@@ -16,6 +16,8 @@
             display: flex;
             height: 100vh;
             background-color: #f5f5f5;
+            position: relative;
+            overflow: hidden;
         }
         
         /* 左侧导航栏 */
@@ -26,6 +28,8 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 100;
         }
         
         /* 导航栏标题 */
@@ -36,6 +40,9 @@
             text-align: center;
             font-size: 18px;
             font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         /* 游戏列表 */
@@ -93,54 +100,82 @@
         /* 右侧内容区 */
         .content {
             flex: 1;
-            padding: 20px;
-            overflow-y: auto;
             background-color: #fff;
+            position: relative;
         }
         
-        .game-content {
+        /* 侧边栏切换按钮 */
+        .toggle-sidebar {
             display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 200;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 16px;
         }
         
-        .game-content.active {
-            display: block;
+        /* iframe样式 */
+        #game-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
         }
         
-        .game-header {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eaeaea;
+        /* 遮罩层 */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 90;
         }
         
-        .game-title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .game-subtitle {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .game-body img {
-            max-width: 100%;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        
-        .game-body p {
-            line-height: 1.6;
-            margin-bottom: 15px;
-            color: #333;
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .toggle-sidebar {
+                display: block;
+            }
+            
+            body.sidebar-open .overlay {
+                display: block;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- 侧边栏切换按钮 -->
+    <button class="toggle-sidebar">☰</button>
+    
+    <!-- 遮罩层 -->
+    <div class="overlay"></div>
+    
     <!-- 左侧导航栏 -->
     <div class="sidebar">
         <div class="sidebar-header">
             游戏列表
+            <span class="close-sidebar" style="cursor: pointer; display: none;">✕</span>
         </div>
         <div class="game-list">
             <!-- 游戏项目 -->
@@ -151,28 +186,27 @@
                     <div class="game-desc">五子棋游戏，休闲益智</div>
                 </div>
             </div>
-            <div class="game-item active" data-game="tetris">
+            <div class="game-item" data-game="tetris">
                 <img src="img/game.svg" alt="俄罗斯方块" class="game-icon">
                 <div class="game-info">
                     <div class="game-name">俄罗斯方块</div>
                     <div class="game-desc">俄罗斯方块游戏，休闲益智</div>
                 </div>
             </div>
-             <div class="game-item active" data-game="2048">
+            <div class="game-item" data-game="2048">
                 <img src="img/game.svg" alt="2048" class="game-icon">
                 <div class="game-info">
                     <div class="game-name">2048</div>
                     <div class="game-desc">2048游戏，休闲益智</div>
                 </div>
             </div>
-           
         </div>
     </div>
     
     <!-- 右侧内容区 -->
     <div class="content">
         <!-- 使用iframe来加载外部HTML页面 -->
-        <iframe id="game-frame" src="gomoku/index.html" frameborder="0" width="100%" height="100%"></iframe>
+        <iframe id="game-frame" src="gomoku/index.html" frameborder="0"></iframe>
     </div>
     
     <script>
@@ -211,8 +245,44 @@
                 console.log(gamePath);
                 // 更新iframe的src属性以加载新页面
                 document.getElementById('game-frame').src = gamePath;
+                
+                // 在移动端点击游戏后自动关闭侧边栏
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
             });
         });
+        
+        // 侧边栏切换功能
+        const toggleBtn = document.querySelector('.toggle-sidebar');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.overlay');
+        const closeBtn = document.querySelector('.close-sidebar');
+        
+        // 在移动端显示关闭按钮
+        if (window.innerWidth <= 768) {
+            closeBtn.style.display = 'block';
+        }
+        
+        // 窗口大小改变时检查
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 768) {
+                closeBtn.style.display = 'block';
+            } else {
+                closeBtn.style.display = 'none';
+                sidebar.classList.remove('open');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+        
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            document.body.classList.toggle('sidebar-open');
+        }
+        
+        toggleBtn.addEventListener('click', toggleSidebar);
+        overlay.addEventListener('click', toggleSidebar);
+        closeBtn.addEventListener('click', toggleSidebar);
     </script>
 
 

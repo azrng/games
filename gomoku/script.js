@@ -704,8 +704,26 @@ function endGame(winner) {
     // 保存游戏记录
     saveGameHistory();
     
+    // 倒计时功能
+    const countdownElement = document.getElementById('countdown-timer');
+    let secondsLeft = 3;
+    
+    // 初始显示
+    countdownElement.textContent = `弹框将在 ${secondsLeft} 秒后关闭`;
+    
+    // 创建倒计时定时器
+    const countdownInterval = setInterval(() => {
+        secondsLeft--;
+        countdownElement.textContent = `弹框将在 ${secondsLeft} 秒后关闭`;
+        
+        if (secondsLeft <= 0) {
+            clearInterval(countdownInterval);
+        }
+    }, 1000);
+    
     // 3秒后自动关闭弹框
     setTimeout(() => {
+        clearInterval(countdownInterval);
         gameResult.classList.add('hidden');
         restartGame();
     }, 3000);
