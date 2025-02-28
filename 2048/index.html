@@ -1,15 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2048 Game</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>炫酷2048 - 挑战你的极限</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap">
 </head>
 <body>
-    <div id="game-container">
-        <div id="game-board"></div>
+    <div class="container">
+        <header>
+            <h1>炫酷2048</h1>
+            <div class="score-container">
+                <div class="score-box">
+                    <span class="score-label">分数</span>
+                    <span id="score">0</span>
+                </div>
+                <div class="score-box">
+                    <span class="score-label">最高分</span>
+                    <span id="best-score">0</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="game-controls">
+            <button id="new-game-btn">新游戏</button>
+            <button id="undo-btn">撤销</button>
+        </div>
+
+        <div class="game-container">
+            <div class="game-message">
+                <p></p>
+                <div class="game-message-buttons">
+                    <button id="retry-btn">再试一次</button>
+                    <button id="keep-playing-btn">继续游戏</button>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="grid-background">
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                    <div class="grid-cell"></div>
+                </div>
+                <div class="tile-container"></div>
+            </div>
+
+            <div class="game-explanation">
+                <p><strong>玩法说明:</strong> 使用 <strong>方向键</strong> 或 <strong>滑动</strong> 移动方块。相同数字的方块相撞时会合并成为它们的和！</p>
+            </div>
+        </div>
     </div>
+    <footer>
+        <p>设计与开发 &copy; 2025</p>
+    </footer>
     <script src="script.js"></script>
 </body>
 </html>

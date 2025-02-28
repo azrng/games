@@ -179,10 +179,24 @@
         </div>
         <div class="game-list">
             <!-- 游戏项目 -->
+            <div class="game-item" data-game="2048">
+                <img src="img/game.svg" alt="2048" class="game-icon">
+                <div class="game-info">
+                    <div class="game-name">2048</div>
+                    <div class="game-desc">2048游戏，休闲益智</div>
+                </div>
+            </div>
             <div class="game-item active" data-game="gomoku">
                 <img src="img/game.svg" alt="五子棋" class="game-icon">
                 <div class="game-info">
                     <div class="game-name">五子棋</div>
+                    <div class="game-desc">五子棋游戏，休闲益智</div>
+                </div>
+            </div>
+            <div class="game-item" data-game="gomoku-advanced">
+                <img src="img/game.svg" alt="五子棋" class="game-icon">
+                <div class="game-info">
+                    <div class="game-name">五子棋高级版</div>
                     <div class="game-desc">五子棋游戏，休闲益智</div>
                 </div>
             </div>
@@ -193,20 +207,21 @@
                     <div class="game-desc">俄罗斯方块游戏，休闲益智</div>
                 </div>
             </div>
-            <div class="game-item" data-game="2048">
-                <img src="img/game.svg" alt="2048" class="game-icon">
+            <div class="game-item" data-game="maze">
+                <img src="img/game.svg" alt="maze" class="game-icon">
                 <div class="game-info">
-                    <div class="game-name">2048</div>
-                    <div class="game-desc">2048游戏，休闲益智</div>
+                    <div class="game-name">迷宫</div>
+                    <div class="game-desc">迷宫游戏，休闲益智</div>
                 </div>
             </div>
+          
         </div>
     </div>
     
     <!-- 右侧内容区 -->
     <div class="content">
         <!-- 使用iframe来加载外部HTML页面 -->
-        <iframe id="game-frame" src="gomoku/index.html" frameborder="0"></iframe>
+        <iframe id="game-frame" src="2048/index.html" frameborder="0"></iframe>
     </div>
     
     <script>
@@ -232,14 +247,21 @@
                     case 'gomoku':
                         gamePath = 'gomoku/index.html';
                         break;
+                    case 'gomoku-advanced':
+                        gamePath = 'https://gobang2.light7.cn';
+                        break;
                     case 'tetris':
                         gamePath = 'tetris/index.html';
                         break;
                     case '2048':
                         gamePath = '2048/index.html';
                         break;
+                    case 'maze':
+                        gamePath = 'maze/index.html';
+                        break;
+       
                     default:
-                        gamePath = 'gomoku/index.html';
+                        gamePath = '2048/index.html';
                 }
                 
                 console.log(gamePath);
