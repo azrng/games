@@ -193,6 +193,13 @@
                     <div class="game-desc">俄罗斯方块游戏，休闲益智</div>
                 </div>
             </div>
+            <div class="game-item" data-game="maze">
+                <img src="img/game.svg" alt="maze" class="game-icon">
+                <div class="game-info">
+                    <div class="game-name">迷宫</div>
+                    <div class="game-desc">迷宫游戏，休闲益智</div>
+                </div>
+            </div>
             <div class="game-item" data-game="2048">
                 <img src="img/game.svg" alt="2048" class="game-icon">
                 <div class="game-info">
@@ -237,6 +244,9 @@
                         break;
                     case '2048':
                         gamePath = '2048/index.html';
+                        break;
+                    case 'maze':
+                        gamePath = 'maze/index.html';
                         break;
                     default:
                         gamePath = 'gomoku/index.html';
