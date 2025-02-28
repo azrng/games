@@ -704,11 +704,11 @@ function endGame(winner) {
     // 保存游戏记录
     saveGameHistory();
     
-    // 5秒后自动关闭弹框
+    // 3秒后自动关闭弹框
     setTimeout(() => {
         gameResult.classList.add('hidden');
         restartGame();
-    }, 5000);
+    }, 3000);
 }
 
 // 保存游戏历史记录
@@ -793,12 +793,12 @@ function showHint() {
         ctx.lineWidth = 2;
         ctx.stroke();
         
-        // 5秒后自动清除提示
+        // 3秒后自动清除提示
         setTimeout(() => {
             if (!gameState.gameOver) {
                 drawBoard();
             }
-        }, 5000);
+        }, 3000);
     }
 }
 
@@ -895,11 +895,11 @@ function handleDraw() {
     // 保存游戏记录
     saveGameHistory();
     
-    // 5秒后自动关闭弹框
+    // 3秒后自动关闭弹框
     setTimeout(() => {
         gameResult.classList.add('hidden');
         restartGame();
-    }, 5000);
+    }, 3000);
 }
 
 // 在每次移动后检查是否平局
