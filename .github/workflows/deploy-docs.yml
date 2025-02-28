@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - master
   # 允许手动触发部署
   workflow_dispatch:
 
