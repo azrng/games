@@ -316,12 +316,14 @@ function makeAIMove() {
         case 'easy':
             move = findRandomMove();
             break;
-        case 'hard':
-            move = findBestMove(3); // 深度为3的搜索
-            break;
         case 'medium':
-        default:
             move = findBestMove(2); // 深度为2的搜索
+            break;
+        case 'hard':
+            move = findBestMoveAlphaBeta(3, -Infinity, Infinity, true); // 将深度从4降低到3，减少计算量
+            break;
+        default:
+            move = findBestMove(2);
             break;
     }
     
@@ -783,11 +785,12 @@ function endGame(winner) {
         }
     }, 1000);
     
-    // 3秒后自动关闭弹框
+    // 3秒后自动关闭弹框，但不重新开始游戏，保留当前棋局状态以便复盘
     setTimeout(() => {
         clearInterval(countdownInterval);
         gameResult.classList.add('hidden');
-        restartGame();
+        // 移除重新开始游戏的调用，保留棋局状态
+        // restartGame(); 
     }, 3000);
 }
 
@@ -979,10 +982,11 @@ function handleDraw() {
     // 保存游戏记录
     saveGameHistory();
     
-    // 3秒后自动关闭弹框
+    // 3秒后自动关闭弹框，但不重新开始游戏，保留当前棋局状态以便复盘
     setTimeout(() => {
         gameResult.classList.add('hidden');
-        restartGame();
+        // 移除重新开始游戏的调用，保留棋局状态
+        // restartGame();
     }, 3000);
 }
 
@@ -1017,6 +1021,564 @@ function updateCanvasSize() {
     // 设置画布大小
     canvas.width = size;
     canvas.height = size;
+}
+
+// 使用Alpha-Beta剪枝的最佳走法搜索
+function findBestMoveAlphaBeta(depth, alpha, beta, isMaximizingPlayer) {
+    // 设置超时机制，防止计算时间过长
+    const startTime = Date.now();
+    const timeLimit = 1000; // 1秒超时限制
+    
+    // 如果是第一步，优先考虑天元位置
+    if (gameState.stepCount === 0) {
+        return {x: 7, y: 7}; // 天元位置
+    }
+    
+    // 如果是第二步，考虑天元周围的位置
+    if (gameState.stepCount === 1) {
+        const centerX = 7;
+        const centerY = 7;
+        // 检查天元是否已被占用
+        if (gameState.board[centerX][centerY] === 0) {
+            return {x: centerX, y: centerY};
+        } else {
+            // 选择天元周围的一个位置
+            const offsets = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+            for (const [dx, dy] of offsets) {
+                const x = centerX + dx;
+                const y = centerY + dy;
+                if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && gameState.board[x][y] === 0) {
+                    return {x, y};
+                }
+            }
+        }
+    }
+    
+    // 首先检查是否有立即获胜的走法
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            if (gameState.board[i][j] === 0) {
+                gameState.board[i][j] = 2; // AI是白棋
+                if (checkWin(i, j)) {
+                    gameState.board[i][j] = 0; // 恢复
+                    return {x: i, y: j};
+                }
+                gameState.board[i][j] = 0; // 恢复
+            }
+        }
+    }
+    
+    // 检查是否需要阻止玩家获胜或形成威胁
+    let bestDefensiveMove = null;
+    let bestDefensiveScore = -Infinity;
+    
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            if (gameState.board[i][j] === 0) {
+                // 检查玩家在此位置落子是否会获胜
+                gameState.board[i][j] = 1; // 玩家是黑棋
+                if (checkWin(i, j)) {
+                    gameState.board[i][j] = 0; // 恢复
+                    return {x: i, y: j}; // 必须阻止玩家获胜
+                }
+                
+                // 评估玩家在此位置的威胁程度
+                const threatScore = evaluatePlayerThreat(i, j, 1);
+                gameState.board[i][j] = 0; // 恢复
+                
+                // 如果威胁分数超过阈值，考虑防守
+                if (threatScore > bestDefensiveScore) {
+                    bestDefensiveScore = threatScore;
+                    bestDefensiveMove = {x: i, y: j};
+                }
+            }
+        }
+    }
+    
+    // 如果发现高威胁（活三或以上），优先防守
+    if (bestDefensiveScore >= 1000) { // 活三的分数阈值
+        return bestDefensiveMove;
+    }
+    
+    // 优化：只考虑已有棋子周围的空位，减少搜索范围
+    const candidateMoves = getRelevantMoves();
+    
+    if (candidateMoves.length === 0) {
+        // 如果没有相关的走法，返回棋盘中心
+        return {x: Math.floor(BOARD_SIZE / 2), y: Math.floor(BOARD_SIZE / 2)};
+    }
+    
+    // 对候选走法进行初步评估并排序，优先考虑更有潜力的走法
+    candidateMoves.forEach(move => {
+        gameState.board[move.x][move.y] = 2; // AI是白棋
+        move.score = quickEvaluate(move.x, move.y, 2);
+        gameState.board[move.x][move.y] = 0; // 恢复
+    });
+    
+    // 按分数降序排序
+    candidateMoves.sort((a, b) => b.score - a.score);
+    
+    // 只考虑前N个最有潜力的走法，减少搜索空间
+    const maxCandidates = 10;
+    const topCandidates = candidateMoves.slice(0, maxCandidates);
+    
+    let bestMove = null;
+    let bestScore = isMaximizingPlayer ? -Infinity : Infinity;
+    
+    // 对每个候选走法进行评估
+    for (const move of topCandidates) {
+        const {x, y} = move;
+        
+        // 检查是否超时
+        if (Date.now() - startTime > timeLimit) {
+            console.log("AI思考超时，返回当前最佳走法");
+            return bestMove || topCandidates[0] || bestDefensiveMove; // 如果超时，返回当前最佳走法或第一个候选走法
+        }
+        
+        // 模拟走棋
+        gameState.board[x][y] = isMaximizingPlayer ? 2 : 1;
+        
+        // 递归评估
+        const score = alphaBeta(depth - 1, alpha, beta, !isMaximizingPlayer, x, y, startTime, timeLimit);
+        
+        // 恢复棋盘
+        gameState.board[x][y] = 0;
+        
+        // 如果返回null，表示搜索已超时
+        if (score === null) {
+            return bestMove || topCandidates[0] || bestDefensiveMove;
+        }
+        
+        // 更新最佳走法
+        if (isMaximizingPlayer) {
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = {x, y};
+            }
+            alpha = Math.max(alpha, bestScore);
+        } else {
+            if (score < bestScore) {
+                bestScore = score;
+                bestMove = {x, y};
+            }
+            beta = Math.min(beta, bestScore);
+        }
+        
+        // Alpha-Beta剪枝
+        if (beta <= alpha) {
+            break;
+        }
+    }
+    
+    // 如果找到了最佳进攻走法，但存在高威胁防守点，比较两者
+    if (bestMove && bestDefensiveScore >= 500) { // 降低防守阈值，更积极防守
+        // 评估最佳进攻走法的得分
+        gameState.board[bestMove.x][bestMove.y] = 2;
+        const attackScore = quickEvaluate(bestMove.x, bestMove.y, 2);
+        gameState.board[bestMove.x][bestMove.y] = 0;
+        
+        // 如果防守得分明显高于进攻得分，选择防守
+        if (bestDefensiveScore > attackScore * 1.5) {
+            return bestDefensiveMove;
+        }
+    }
+    
+    return bestMove || bestDefensiveMove;
+}
+
+// 评估玩家在某位置的威胁程度
+function evaluatePlayerThreat(x, y, player) {
+    let maxThreat = 0;
+    
+    // 检查水平方向
+    maxThreat = Math.max(maxThreat, evaluateDirectionalThreat(x, y, 1, 0, player));
+    // 检查垂直方向
+    maxThreat = Math.max(maxThreat, evaluateDirectionalThreat(x, y, 0, 1, player));
+    // 检查主对角线
+    maxThreat = Math.max(maxThreat, evaluateDirectionalThreat(x, y, 1, 1, player));
+    // 检查副对角线
+    maxThreat = Math.max(maxThreat, evaluateDirectionalThreat(x, y, 1, -1, player));
+    
+    return maxThreat;
+}
+
+// 评估某一方向上的威胁
+function evaluateDirectionalThreat(x, y, dx, dy, player) {
+    // 获取当前方向上的连续棋子和空位情况
+    const line = getLineState(x, y, dx, dy, player);
+    
+    // 威胁评分
+    let threatScore = 0;
+    
+    // 活四 (0XXXX0)
+    if (line.pattern === "0XXXX0") {
+        threatScore = 10000;
+    }
+    // 冲四 (_XXXX0 或 0XXXX_)
+    else if (line.pattern === "_XXXX0" || line.pattern === "0XXXX_") {
+        threatScore = 5000;
+    }
+    // 活三 (0XXX00 或 00XXX0)
+    else if (line.pattern === "0XXX00" || line.pattern === "00XXX0") {
+        threatScore = 1000;
+    }
+    // 眠三 (_XXX00 或 00XXX_ 或 0X0XX0 或 0XX0X0)
+    else if (line.pattern === "_XXX00" || line.pattern === "00XXX_" || 
+             line.pattern === "0X0XX0" || line.pattern === "0XX0X0") {
+        threatScore = 500;
+    }
+    // 活二 (00XX00)
+    else if (line.pattern === "00XX00") {
+        threatScore = 100;
+    }
+    // 眠二 (_0XX00 或 00XX0_)
+    else if (line.pattern === "_0XX00" || line.pattern === "00XX0_") {
+        threatScore = 50;
+    }
+    
+    return threatScore;
+}
+
+// 获取某一方向上的棋型
+function getLineState(x, y, dx, dy, player) {
+    const opponent = player === 1 ? 2 : 1;
+    let pattern = "";
+    
+    // 向一个方向检查
+    for (let i = -5; i <= 5; i++) {
+        const newX = x + i * dx;
+        const newY = y + i * dy;
+        
+        if (newX < 0 || newX >= BOARD_SIZE || newY < 0 || newY >= BOARD_SIZE) {
+            pattern += "_"; // 边界外用_表示
+        } else if (i === 0) {
+            pattern += "X"; // 当前位置用X表示
+        } else if (gameState.board[newX][newY] === player) {
+            pattern += "X"; // 玩家棋子用X表示
+        } else if (gameState.board[newX][newY] === opponent) {
+            pattern += "_"; // 对手棋子用_表示
+        } else {
+            pattern += "0"; // 空位用0表示
+        }
+    }
+    
+    return { pattern };
+}
+
+// 快速评估函数，用于对候选走法进行初步排序
+function quickEvaluate(x, y, player) {
+    let score = 0;
+    
+    // 检查水平方向
+    score += evaluateLine(x, y, 1, 0, player);
+    // 检查垂直方向
+    score += evaluateLine(x, y, 0, 1, player);
+    // 检查主对角线
+    score += evaluateLine(x, y, 1, 1, player);
+    // 检查副对角线
+    score += evaluateLine(x, y, 1, -1, player);
+    
+    // 额外考虑防守价值
+    if (player === 2) { // AI是白棋
+        const defensiveValue = evaluatePlayerThreat(x, y, 1); // 评估黑棋在此位置的威胁
+        score += defensiveValue * 0.8; // 将防守价值纳入考量，但权重略低
+    }
+    
+    return score;
+}
+
+// Alpha-Beta剪枝算法
+function alphaBeta(depth, alpha, beta, isMaximizingPlayer, lastX, lastY, startTime, timeLimit) {
+    // 检查是否超时
+    if (Date.now() - startTime > timeLimit) {
+        return null; // 超时返回null
+    }
+    
+    // 检查是否达到搜索深度或游戏结束
+    if (depth === 0) {
+        return evaluateBoardAdvanced();
+    }
+    
+    // 检查最后一步是否获胜
+    if (checkWin(lastX, lastY)) {
+        return isMaximizingPlayer ? -100000 : 100000;
+    }
+    
+    // 获取候选走法并进行初步排序
+    const candidateMoves = getRelevantMoves();
+    
+    if (candidateMoves.length === 0) {
+        return evaluateBoardAdvanced();
+    }
+    
+    // 对候选走法进行初步评估并排序
+    candidateMoves.forEach(move => {
+        gameState.board[move.x][move.y] = isMaximizingPlayer ? 2 : 1;
+        move.score = quickEvaluate(move.x, move.y, isMaximizingPlayer ? 2 : 1);
+        gameState.board[move.x][move.y] = 0;
+    });
+    
+    // 按分数排序，最大化玩家降序，最小化玩家升序
+    candidateMoves.sort((a, b) => isMaximizingPlayer ? b.score - a.score : a.score - b.score);
+    
+    // 只考虑前N个最有潜力的走法
+    const maxCandidates = 8;
+    const topCandidates = candidateMoves.slice(0, maxCandidates);
+    
+    if (isMaximizingPlayer) {
+        let maxEval = -Infinity;
+        
+        for (const move of topCandidates) {
+            const {x, y} = move;
+            gameState.board[x][y] = 2; // AI是白棋
+            const eval = alphaBeta(depth - 1, alpha, beta, false, x, y, startTime, timeLimit);
+            gameState.board[x][y] = 0;
+            
+            // 如果返回null，表示搜索已超时
+            if (eval === null) {
+                return null;
+            }
+            
+            maxEval = Math.max(maxEval, eval);
+            alpha = Math.max(alpha, eval);
+            
+            if (beta <= alpha) {
+                break; // Beta剪枝
+            }
+        }
+        
+        return maxEval;
+    } else {
+        let minEval = Infinity;
+        
+        for (const move of topCandidates) {
+            const {x, y} = move;
+            gameState.board[x][y] = 1; // 玩家是黑棋
+            const eval = alphaBeta(depth - 1, alpha, beta, true, x, y, startTime, timeLimit);
+            gameState.board[x][y] = 0;
+            
+            // 如果返回null，表示搜索已超时
+            if (eval === null) {
+                return null;
+            }
+            
+            minEval = Math.min(minEval, eval);
+            beta = Math.min(beta, eval);
+            
+            if (beta <= alpha) {
+                break; // Alpha剪枝
+            }
+        }
+        
+        return minEval;
+    }
+}
+
+// 获取相关的走法（已有棋子周围的空位）
+function getRelevantMoves() {
+    const moves = [];
+    const visited = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(false));
+    
+    // 搜索范围（距离已有棋子的格数）
+    const searchRange = 1; // 减小搜索范围，只考虑紧邻的空位
+    
+    // 遍历棋盘寻找已有棋子
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            if (gameState.board[i][j] !== 0) {
+                // 检查周围的空位
+                for (let dx = -searchRange; dx <= searchRange; dx++) {
+                    for (let dy = -searchRange; dy <= searchRange; dy++) {
+                        const x = i + dx;
+                        const y = j + dy;
+                        
+                        // 检查位置是否有效且未被访问过
+                        if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && 
+                            gameState.board[x][y] === 0 && !visited[x][y]) {
+                            moves.push({x, y});
+                            visited[x][y] = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 如果没有找到任何走法（例如第一步），返回棋盘中心位置
+    if (moves.length === 0) {
+        const center = Math.floor(BOARD_SIZE / 2);
+        moves.push({x: center, y: center});
+    }
+    
+    return moves;
+}
+
+// 高级棋盘评估函数
+function evaluateBoardAdvanced() {
+    let score = 0;
+    
+    // 评估AI（白棋）的局面
+    const aiScore = evaluatePlayerAdvanced(2);
+    
+    // 评估玩家（黑棋）的局面
+    const playerScore = evaluatePlayerAdvanced(1);
+    
+    // AI的得分减去玩家的得分
+    score = aiScore - playerScore;
+    
+    return score;
+}
+
+// 评估某一方的局面
+function evaluatePlayerAdvanced(player) {
+    let score = 0;
+    
+    // 棋型及其对应分数
+    const patternScores = {
+        'five': 100000,    // 五连
+        'openFour': 10000, // 活四
+        'fourFour': 10000, // 双四
+        'fourThree': 10000, // 四三
+        'blockedFour': 1000, // 冲四
+        'openThree': 1000, // 活三
+        'threeThree': 5000, // 双三
+        'blockedThree': 100, // 冲三
+        'openTwo': 100,    // 活二
+        'blockedTwo': 10   // 冲二
+    };
+    
+    // 统计各种棋型数量
+    const patterns = {
+        'five': 0,
+        'openFour': 0,
+        'blockedFour': 0,
+        'openThree': 0,
+        'blockedThree': 0,
+        'openTwo': 0,
+        'blockedTwo': 0
+    };
+    
+    // 水平方向
+    for (let i = 0; i < BOARD_SIZE; i++) {
+        for (let j = 0; j <= BOARD_SIZE - 5; j++) {
+            const line = [];
+            for (let k = 0; k < 5; k++) {
+                line.push(gameState.board[i][j + k]);
+            }
+            updatePatterns(line, patterns, player);
+        }
+    }
+    
+    // 垂直方向
+    for (let i = 0; i <= BOARD_SIZE - 5; i++) {
+        for (let j = 0; j < BOARD_SIZE; j++) {
+            const line = [];
+            for (let k = 0; k < 5; k++) {
+                line.push(gameState.board[i + k][j]);
+            }
+            updatePatterns(line, patterns, player);
+        }
+    }
+    
+    // 主对角线方向
+    for (let i = 0; i <= BOARD_SIZE - 5; i++) {
+        for (let j = 0; j <= BOARD_SIZE - 5; j++) {
+            const line = [];
+            for (let k = 0; k < 5; k++) {
+                line.push(gameState.board[i + k][j + k]);
+            }
+            updatePatterns(line, patterns, player);
+        }
+    }
+    
+    // 副对角线方向
+    for (let i = 0; i <= BOARD_SIZE - 5; i++) {
+        for (let j = 4; j < BOARD_SIZE; j++) {
+            const line = [];
+            for (let k = 0; k < 5; k++) {
+                line.push(gameState.board[i + k][j - k]);
+            }
+            updatePatterns(line, patterns, player);
+        }
+    }
+    
+    // 计算特殊棋型组合
+    const fourFour = Math.floor(patterns.openFour / 2) + Math.floor(patterns.blockedFour / 2);
+    const fourThree = Math.min(patterns.openFour + patterns.blockedFour, patterns.openThree);
+    const threeThree = Math.floor(patterns.openThree / 2);
+    
+    // 计算总分
+    score += patterns.five * patternScores.five;
+    score += patterns.openFour * patternScores.openFour;
+    score += patterns.blockedFour * patternScores.blockedFour;
+    score += patterns.openThree * patternScores.openThree;
+    score += patterns.blockedThree * patternScores.blockedThree;
+    score += patterns.openTwo * patternScores.openTwo;
+    score += patterns.blockedTwo * patternScores.blockedTwo;
+    
+    // 加上特殊组合的分数
+    score += fourFour * patternScores.fourFour;
+    score += fourThree * patternScores.fourThree;
+    score += threeThree * patternScores.threeThree;
+    
+    return score;
+}
+
+// 更新棋型统计
+function updatePatterns(line, patterns, player) {
+    const opponent = player === 1 ? 2 : 1;
+    
+    // 检查五连
+    if (countInLine(line, player) === 5 && countInLine(line, opponent) === 0) {
+        patterns.five++;
+        return;
+    }
+    
+    // 检查活四 (0XXXX0)
+    if (countInLine(line, player) === 4 && countInLine(line, opponent) === 0) {
+        if (line[0] === 0 && line[4] === 0) {
+            patterns.openFour++;
+        } else {
+            patterns.blockedFour++;
+        }
+        return;
+    }
+    
+    // 检查活三 (0XXX00 或 00XXX0)
+    if (countInLine(line, player) === 3 && countInLine(line, opponent) === 0) {
+        const zeros = countInLine(line, 0);
+        if (zeros === 2) {
+            // 检查是否是活三
+            if ((line[0] === 0 && line[4] === 0) || 
+                (line[0] === 0 && line[1] === 0) || 
+                (line[3] === 0 && line[4] === 0)) {
+                patterns.openThree++;
+            } else {
+                patterns.blockedThree++;
+            }
+        }
+        return;
+    }
+    
+    // 检查活二 (00XX00)
+    if (countInLine(line, player) === 2 && countInLine(line, opponent) === 0) {
+        const zeros = countInLine(line, 0);
+        if (zeros === 3) {
+            // 检查是否是活二
+            if ((line[0] === 0 && line[3] === 0 && line[4] === 0) || 
+                (line[0] === 0 && line[1] === 0 && line[4] === 0)) {
+                patterns.openTwo++;
+            } else {
+                patterns.blockedTwo++;
+            }
+        }
+        return;
+    }
+}
+
+// 计算一条线上某种棋子的数量
+function countInLine(line, player) {
+    return line.filter(cell => cell === player).length;
 }
 
 // 初始化游戏
