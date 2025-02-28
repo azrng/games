@@ -1072,6 +1072,7 @@ function findBestMoveAlphaBeta(depth, alpha, beta, isMaximizingPlayer) {
     let bestDefensiveMove = null;
     let bestDefensiveScore = -Infinity;
     
+    // 先检查玩家是否有连续三子或更多的威胁
     for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = 0; j < BOARD_SIZE; j++) {
             if (gameState.board[i][j] === 0) {
@@ -1082,21 +1083,28 @@ function findBestMoveAlphaBeta(depth, alpha, beta, isMaximizingPlayer) {
                     return {x: i, y: j}; // 必须阻止玩家获胜
                 }
                 
+                // 检查玩家是否有连续三子或更多
+                const hasThreeOrMore = checkConsecutivePieces(i, j, 1, 3);
+                
                 // 评估玩家在此位置的威胁程度
                 const threatScore = evaluatePlayerThreat(i, j, 1);
                 gameState.board[i][j] = 0; // 恢复
                 
-                // 如果威胁分数超过阈值，考虑防守
-                if (threatScore > bestDefensiveScore) {
-                    bestDefensiveScore = threatScore;
+                // 如果有连续三子或更多，大幅提高威胁分数
+                const finalScore = hasThreeOrMore ? threatScore * 1.5 : threatScore;
+                
+                // 如果威胁分数超过当前最佳防守分数，更新最佳防守走法
+                if (finalScore > bestDefensiveScore) {
+                    bestDefensiveScore = finalScore;
                     bestDefensiveMove = {x: i, y: j};
                 }
             }
         }
     }
     
-    // 如果发现高威胁（活三或以上），优先防守
-    if (bestDefensiveScore >= 1000) { // 活三的分数阈值
+    // 降低防守阈值，更积极地防守
+    // 原来只防守活三及以上(>=1000)，现在降低到活二(>=200)
+    if (bestDefensiveScore >= 200) {
         return bestDefensiveMove;
     }
     
@@ -1171,19 +1179,49 @@ function findBestMoveAlphaBeta(depth, alpha, beta, isMaximizingPlayer) {
     }
     
     // 如果找到了最佳进攻走法，但存在高威胁防守点，比较两者
-    if (bestMove && bestDefensiveScore >= 500) { // 降低防守阈值，更积极防守
+    if (bestMove && bestDefensiveScore >= 100) { // 进一步降低防守阈值，更积极防守
         // 评估最佳进攻走法的得分
         gameState.board[bestMove.x][bestMove.y] = 2;
         const attackScore = quickEvaluate(bestMove.x, bestMove.y, 2);
         gameState.board[bestMove.x][bestMove.y] = 0;
         
         // 如果防守得分明显高于进攻得分，选择防守
-        if (bestDefensiveScore > attackScore * 1.5) {
+        if (bestDefensiveScore > attackScore * 1.2) { // 降低防守倾向的阈值
             return bestDefensiveMove;
         }
     }
     
     return bestMove || bestDefensiveMove;
+}
+
+// 检查是否有连续的棋子
+function checkConsecutivePieces(x, y, player, minCount) {
+    // 模拟在(x,y)位置放置player的棋子
+    const originalValue = gameState.board[x][y];
+    gameState.board[x][y] = player;
+    
+    // 检查四个方向
+    const directions = [
+        [1, 0],  // 水平
+        [0, 1],  // 垂直
+        [1, 1],  // 主对角线
+        [1, -1]  // 副对角线
+    ];
+    
+    let hasConsecutive = false;
+    
+    for (const [dx, dy] of directions) {
+        const count = countConsecutive(x, y, dx, dy);
+        if (count >= minCount) {
+            hasConsecutive = true;
+            break;
+        }
+    }
+    
+    // 恢复棋盘
+    gameState.board[x][y] = originalValue;
+    
+    return hasConsecutive;
 }
 
 // 评估玩家在某位置的威胁程度
@@ -1211,29 +1249,41 @@ function evaluateDirectionalThreat(x, y, dx, dy, player) {
     let threatScore = 0;
     
     // 活四 (0XXXX0)
-    if (line.pattern === "0XXXX0") {
+    if (line.pattern.includes("0XXXX0")) {
         threatScore = 10000;
     }
     // 冲四 (_XXXX0 或 0XXXX_)
-    else if (line.pattern === "_XXXX0" || line.pattern === "0XXXX_") {
+    else if (line.pattern.includes("_XXXX0") || line.pattern.includes("0XXXX_")) {
         threatScore = 5000;
     }
     // 活三 (0XXX00 或 00XXX0)
-    else if (line.pattern === "0XXX00" || line.pattern === "00XXX0") {
+    else if (line.pattern.includes("0XXX00") || line.pattern.includes("00XXX0")) {
         threatScore = 1000;
     }
     // 眠三 (_XXX00 或 00XXX_ 或 0X0XX0 或 0XX0X0)
-    else if (line.pattern === "_XXX00" || line.pattern === "00XXX_" || 
-             line.pattern === "0X0XX0" || line.pattern === "0XX0X0") {
+    else if (line.pattern.includes("_XXX00") || line.pattern.includes("00XXX_") || 
+             line.pattern.includes("0X0XX0") || line.pattern.includes("0XX0X0")) {
         threatScore = 500;
     }
     // 活二 (00XX00)
-    else if (line.pattern === "00XX00") {
-        threatScore = 100;
+    else if (line.pattern.includes("00XX00")) {
+        threatScore = 300;  // 进一步提高活二的威胁分数
     }
     // 眠二 (_0XX00 或 00XX0_)
-    else if (line.pattern === "_0XX00" || line.pattern === "00XX0_") {
-        threatScore = 50;
+    else if (line.pattern.includes("_0XX00") || line.pattern.includes("00XX0_")) {
+        threatScore = 150;  // 进一步提高眠二的威胁分数
+    }
+    // 连续两子 (0XX0)
+    else if (line.pattern.includes("0XX0")) {
+        threatScore = 120;  // 提高连续两子的威胁分数
+    }
+    // 新增：间隔两子 (0X0X0)
+    else if (line.pattern.includes("0X0X0")) {
+        threatScore = 80;  // 间隔两子也有威胁
+    }
+    // 新增：单子周围有空位 (00X00)
+    else if (line.pattern.includes("00X00")) {
+        threatScore = 30;  // 单子周围有空位，有发展潜力
     }
     
     return threatScore;
@@ -1281,7 +1331,17 @@ function quickEvaluate(x, y, player) {
     // 额外考虑防守价值
     if (player === 2) { // AI是白棋
         const defensiveValue = evaluatePlayerThreat(x, y, 1); // 评估黑棋在此位置的威胁
-        score += defensiveValue * 0.8; // 将防守价值纳入考量，但权重略低
+        
+        // 提高防守权重，更积极防守
+        score += defensiveValue * 1.2; // 将防守价值纳入考量，权重提高
+        
+        // 额外考虑位置价值
+        // 靠近中心的位置更有价值
+        const centerX = Math.floor(BOARD_SIZE / 2);
+        const centerY = Math.floor(BOARD_SIZE / 2);
+        const distanceToCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+        const positionValue = Math.max(0, 50 - distanceToCenter * 5);
+        score += positionValue;
     }
     
     return score;
