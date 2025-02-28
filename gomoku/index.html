@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>五子棋游戏</h1>
+            <div class="game-info">
+                <div id="current-player">当前回合: 黑棋</div>
+                <div id="step-count">步数: 0</div>
+            </div>
+        </header>
+        
+        <div class="game-container">
+            <div class="game-menu" id="game-menu">
+                <h2>游戏菜单</h2>
+                <button id="vs-ai">对战电脑</button>
+                <button id="vs-player">双人对战</button>
+                <div class="difficulty-selector">
+                    <h3>AI难度</h3>
+                    <select id="ai-level">
+                        <option value="easy">初级</option>
+                        <option value="medium" selected>中级</option>
+                        <option value="hard">高级</option>
+                    </select>
+                </div>
+                <div class="settings">
+                    <h3>游戏设置</h3>
+                    <div class="setting-item">
+                        <label for="theme-selector">棋盘主题:</label>
+                        <select id="theme-selector">
+                            <option value="classic">经典</option>
+                            <option value="wood">木纹</option>
+                            <option value="modern">现代</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="sound-toggle">音效:</label>
+                        <input type="checkbox" id="sound-toggle" checked>
+                    </div>
+                    <div class="setting-item">
+                        <label for="forbidden-rule">禁手规则:</label>
+                        <input type="checkbox" id="forbidden-rule">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="game-board-container">
+                <canvas id="game-board" width="600" height="600"></canvas>
+                <div class="game-controls">
+                    <button id="undo-btn">悔棋</button>
+                    <button id="hint-btn">提示 (3)</button>
+                    <button id="restart-btn">重新开始</button>
+                    <button id="menu-btn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="game-result" class="game-result hidden">
+            <div class="result-content">
+                <h2 id="result-message">游戏结束</h2>
+                <p id="result-steps">总步数: 0</p>
+                <div class="result-buttons">
+                    <button id="play-again-btn">再来一局</button>
+                    <button id="back-to-menu-btn">返回菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="place-sound" src="sounds/place.mp3" preload="auto"></audio>
+    <audio id="win-sound" src="sounds/win.mp3" preload="auto"></audio>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
