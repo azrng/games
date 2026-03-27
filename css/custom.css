@@ -313,14 +313,15 @@ iframe {
 
     .content {
         padding: 84px var(--app-spacing-md) var(--app-spacing-md);
+        gap: var(--app-spacing-md);
     }
 
     .content-header {
-        flex-direction: column;
-        align-items: flex-start;
+        display: none;
     }
 
     #game-frame {
-        min-height: calc(100vh - 224px);
+        min-height: calc(100vh - 132px);
+        min-height: calc(100dvh - 132px);
     }
 }
