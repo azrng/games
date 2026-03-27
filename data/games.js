@@ -10,20 +10,11 @@
             meta: null
         },
         {
-            slug: "gomoku",
-            title: "五子棋",
-            path: "gomoku/index.html",
-            icon: "img/game.svg",
-            desc: "支持人机与双人对战，可查看最近一局历史记录。",
-            readme: "gomoku/readme.md",
-            meta: null
-        },
-        {
             slug: "gomoku-advanced",
-            title: "高级五子棋",
+            title: "五子棋",
             path: "gomoku-advanced/index.html",
             icon: "img/game.svg",
-            desc: "基于 worker 的高级 AI 版本，支持提示和调试信息。",
+            desc: "基于 worker 的高阶 AI 五子棋版本，支持提示和调试信息。",
             readme: null,
             meta: null
         },
