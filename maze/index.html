@@ -221,7 +221,8 @@
         }
 
         #level-select,
-        #message-overlay {
+        #message-overlay,
+        #unsupported-overlay {
             position: fixed;
             inset: 0;
             z-index: 200;
@@ -234,6 +235,7 @@
         }
 
         #message-overlay.hidden { display: none; }
+        #unsupported-overlay.hidden { display: none; }
 
         .overlay-card {
             width: min(100%, 1040px);
@@ -529,6 +531,14 @@
         </div>
     </section>
 
+    <section id="unsupported-overlay" class="hidden">
+        <div class="overlay-card message-card">
+            <p class="difficulty-tag">桌面端专用</p>
+            <h3>迷宫冒险暂不支持移动端</h3>
+            <p>这个游戏已经切换为桌面端游玩模式。请在电脑浏览器中打开，以获得完整迷宫视野和稳定操作体验。</p>
+        </div>
+    </section>
+
     <section id="mobile-controls">
         <div class="pad-shell">
             <div class="control-row"><button type="button" class="control-btn" id="up">↑</button></div>
@@ -591,6 +601,7 @@
         const mobileControls = document.getElementById('mobile-controls');
         const zoomControls = document.getElementById('zoom-controls');
         const messageOverlay = document.getElementById('message-overlay');
+        const unsupportedOverlay = document.getElementById('unsupported-overlay');
         const messageTitle = document.getElementById('message-title');
         const messageText = document.getElementById('message-text');
         const nextLevelButton = document.getElementById('next-level-btn');
@@ -611,6 +622,17 @@
             }, { passive: false });
 
             button.addEventListener('click', (event) => event.preventDefault());
+        }
+
+        function showUnsupportedState() {
+            gameContainer.style.display = 'none';
+            hud.style.display = 'none';
+            statsPanel.style.display = 'none';
+            levelSelect.style.display = 'none';
+            messageOverlay.classList.add('hidden');
+            mobileControls.style.display = 'none';
+            zoomControls.style.display = 'none';
+            unsupportedOverlay.classList.remove('hidden');
         }
 
         function keyOf(x, y) {
@@ -667,20 +689,18 @@
             messageOverlay.classList.remove('hidden');
         }
 
-        gameState.isMobile = isMobileDevice();
+        const mazeSupported = !isMobileDevice();
+        gameState.isMobile = false;
 
-        if (gameState.isMobile) {
-            mobileControls.style.display = 'block';
-            zoomControls.style.display = 'block';
-            bindMobileButton('up', () => movePlayer(0, -1));
-            bindMobileButton('down', () => movePlayer(0, 1));
-            bindMobileButton('left', () => movePlayer(-1, 0));
-            bindMobileButton('right', () => movePlayer(1, 0));
-            bindMobileButton('zoom-in', zoomIn);
-            bindMobileButton('zoom-out', zoomOut);
+        if (!mazeSupported) {
+            showUnsupportedState();
         }
 
         function zoomIn() {
+            if (!mazeSupported) {
+                return;
+            }
+
             if (gameState.zoomLevel < 2) {
                 gameState.zoomLevel += 0.2;
                 applyZoom();
@@ -688,6 +708,10 @@
         }
 
         function zoomOut() {
+            if (!mazeSupported) {
+                return;
+            }
+
             if (gameState.zoomLevel > 0.5) {
                 gameState.zoomLevel -= 0.2;
                 applyZoom();
@@ -818,6 +842,10 @@
         });
 
         function startGame(difficulty) {
+            if (!mazeSupported) {
+                return;
+            }
+
             gameState.difficulty = difficulty;
             gameState.level = 1;
             gameState.steps = 0;
@@ -1043,6 +1071,10 @@
         }
 
         function movePlayer(dx, dy) {
+            if (!mazeSupported) {
+                return;
+            }
+
             const current = getCurrentConfig();
             const newX = gameState.playerPosition.x + dx;
             const newY = gameState.playerPosition.y + dy;
@@ -1100,6 +1132,10 @@
         }
 
         function nextLevel() {
+            if (!mazeSupported) {
+                return;
+            }
+
             gameState.level++;
             gameState.steps = 0;
             gameState.partnerFound = false;
@@ -1113,6 +1149,10 @@
         }
 
         document.addEventListener('keydown', (event) => {
+            if (!mazeSupported) {
+                return;
+            }
+
             if (levelSelect.style.display !== 'none' || !messageOverlay.classList.contains('hidden')) {
                 return;
             }
