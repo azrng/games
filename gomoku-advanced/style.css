@@ -1,0 +1,356 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+
+body {
+    background-color: #f0f0f0;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 15px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+header h1 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.game-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    font-size: 15px;
+    color: #666;
+}
+
+.game-layout {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* Control Panel */
+.control-panel {
+    width: 220px;
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.action-buttons button {
+    flex: 1;
+    min-width: 90px;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.action-buttons button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#start-btn {
+    background: #4CAF50;
+    color: #fff;
+}
+
+#start-btn:hover:not(:disabled) {
+    background: #45a049;
+}
+
+#undo-btn, #resign-btn {
+    background: #ff9800;
+    color: #fff;
+}
+
+#undo-btn:hover:not(:disabled), #resign-btn:hover:not(:disabled) {
+    background: #e68a00;
+}
+
+#hint-btn {
+    background: #2196F3;
+    color: #fff;
+}
+
+#hint-btn:hover:not(:disabled) {
+    background: #1976D2;
+}
+
+.settings {
+    margin-bottom: 16px;
+}
+
+.settings h3 {
+    font-size: 15px;
+    color: #333;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #eee;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.setting-row label {
+    font-size: 14px;
+    color: #555;
+}
+
+.setting-row select {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    background: #fff;
+    cursor: pointer;
+}
+
+/* Toggle Switch */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 22px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 22px;
+}
+
+.toggle-slider::before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle input:checked + .toggle-slider {
+    background-color: #4CAF50;
+}
+
+.toggle input:checked + .toggle-slider::before {
+    transform: translateX(18px);
+}
+
+/* Debug Panel */
+.debug-panel {
+    background: #f8f8f8;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.debug-panel h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.debug-item {
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+    word-break: break-all;
+}
+
+.debug-item span:first-child {
+    color: #888;
+}
+
+.debug-item span:last-child {
+    color: #333;
+    font-family: monospace;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Board */
+.board-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+#board-canvas {
+    display: block;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+/* Result Modal */
+.result-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px 40px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    min-width: 280px;
+}
+
+.modal-content h2 {
+    font-size: 22px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.modal-content p {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.modal-buttons button {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#play-again-btn {
+    background: #4CAF50;
+    color: #fff;
+}
+
+#play-again-btn:hover {
+    background: #45a049;
+}
+
+#close-modal-btn {
+    background: #e0e0e0;
+    color: #555;
+}
+
+#close-modal-btn:hover {
+    background: #d0d0d0;
+}
+
+/* Board Themes */
+.theme-classic {
+    --board-bg: #e9c396;
+    --line-color: #333;
+}
+
+.theme-wood {
+    --board-bg: #d2a679;
+    --line-color: #5c3a1e;
+}
+
+.theme-modern {
+    --board-bg: #f0f0f0;
+    --line-color: #555;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .game-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .control-panel {
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .action-buttons {
+        justify-content: center;
+    }
+
+    header h1 {
+        font-size: 20px;
+    }
+}

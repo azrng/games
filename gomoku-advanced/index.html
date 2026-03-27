@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋高级版</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>五子棋高级版</h1>
+            <div class="game-info">
+                <div id="status-text">点击"开始"进入游戏</div>
+                <div id="step-count">步数: 0</div>
+            </div>
+        </header>
+
+        <div class="game-layout">
+            <div class="control-panel">
+                <div class="action-buttons">
+                    <button id="start-btn">开始</button>
+                    <button id="undo-btn" disabled>悔棋</button>
+                    <button id="resign-btn" disabled>认输</button>
+                    <button id="hint-btn">提示 (3)</button>
+                </div>
+
+                <div class="settings">
+                    <h3>设置</h3>
+                    <div class="setting-row">
+                        <label>电脑先手</label>
+                        <div class="toggle">
+                            <input type="checkbox" id="ai-first" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label>难度</label>
+                        <select id="difficulty">
+                            <option value="2">弱智 (2层)</option>
+                            <option value="4" selected>简单 (4层)</option>
+                            <option value="6">普通 (6层)</option>
+                            <option value="8">困难 (8层)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>显示序号</label>
+                        <div class="toggle">
+                            <input type="checkbox" id="show-numbers">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label>调试面板</label>
+                        <div class="toggle">
+                            <input type="checkbox" id="debug-toggle">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label>棋盘主题</label>
+                        <select id="theme">
+                            <option value="classic">经典</option>
+                            <option value="wood">木纹</option>
+                            <option value="modern">现代</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>禁手规则</label>
+                        <div class="toggle">
+                            <input type="checkbox" id="forbidden-toggle">
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="debug-panel" class="debug-panel hidden">
+                    <h3>调试信息</h3>
+                    <div class="debug-item"><span>评分:</span> <span id="debug-score">0</span></div>
+                    <div class="debug-item"><span>路径深度:</span> <span id="debug-depth">0</span></div>
+                    <div class="debug-item"><span>AI路径:</span> <span id="debug-path">[]</span></div>
+                    <div class="debug-item"><span>历史记录:</span> <span id="debug-history">[]</span></div>
+                </div>
+            </div>
+
+            <div class="board-container">
+                <canvas id="board-canvas"></canvas>
+                <div id="loading-overlay" class="loading-overlay hidden">AI思考中...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-modal" class="result-modal hidden">
+        <div class="modal-content">
+            <h2 id="result-message"></h2>
+            <p id="result-steps"></p>
+            <div class="modal-buttons">
+                <button id="play-again-btn">再来一局</button>
+                <button id="close-modal-btn">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
