@@ -1,0 +1,23 @@
+:root {
+    --app-bg: #eff3f8;
+    --app-panel: #ffffff;
+    --app-panel-muted: #f6f8fb;
+    --app-border: #d7deea;
+    --app-border-strong: #b8c4d8;
+    --app-text: #172033;
+    --app-text-muted: #5d6880;
+    --app-primary: #2957c8;
+    --app-primary-soft: #e8efff;
+    --app-shadow: 0 18px 40px rgba(31, 50, 81, 0.12);
+    --app-shadow-soft: 0 10px 24px rgba(31, 50, 81, 0.08);
+    --app-radius-lg: 24px;
+    --app-radius-md: 16px;
+    --app-radius-sm: 12px;
+    --app-spacing-xs: 8px;
+    --app-spacing-sm: 12px;
+    --app-spacing-md: 16px;
+    --app-spacing-lg: 24px;
+    --app-spacing-xl: 32px;
+    --app-sidebar-width: 320px;
+    --app-transition: 220ms ease;
+}

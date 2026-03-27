@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const storage = window.AppStore;
+
+    if (!storage) {
+        throw new Error('2048 页面缺少 AppStore 依赖');
+    }
+
     // 游戏主类
     class Game2048 {
         constructor() {
@@ -8,8 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
             this.scoreDisplay = document.getElementById('score');
             this.bestScoreDisplay = document.getElementById('best-score');
             this.messageContainer = document.querySelector('.game-message');
+            this.bestScoreKey = 'best_score';
             this.score = 0;
-            this.bestScore = localStorage.getItem('bestScore') || 0;
+            this.bestScore = Number(
+                storage.getGameValueWithLegacy('2048', this.bestScoreKey, ['bestScore'], '0')
+            ) || 0;
             this.gameHistory = [];
             
             this.bestScoreDisplay.textContent = this.bestScore;
@@ -376,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.score > this.bestScore) {
                 this.bestScore = this.score;
                 this.bestScoreDisplay.textContent = this.bestScore;
-                localStorage.setItem('bestScore', this.bestScore);
+                storage.setGameValue('2048', this.bestScoreKey, this.bestScore);
             }
         }
         

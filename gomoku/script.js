@@ -2,6 +2,12 @@
 const BOARD_SIZE = 15; // 15x15的棋盘
 const CELL_SIZE = 40; // 每个格子的大小
 const PIECE_RADIUS = 18; // 棋子半径
+const storage = window.AppStore;
+const GAME_HISTORY_KEY = 'history';
+
+if (!storage) {
+    throw new Error('五子棋页面缺少 AppStore 依赖');
+}
 
 // 游戏状态
 let gameState = {
@@ -803,7 +809,7 @@ function saveGameHistory() {
         date: new Date().toISOString()
     };
     
-    localStorage.setItem('lastGameHistory', JSON.stringify(gameHistory));
+    storage.setGameJSON('gomoku', GAME_HISTORY_KEY, gameHistory);
 }
 
 // 悔棋
@@ -926,10 +932,10 @@ function showMenu() {
 
 // 加载上一局游戏记录
 function loadLastGameHistory() {
-    const historyJson = localStorage.getItem('lastGameHistory');
-    if (historyJson) {
+    const history = storage.getGameJSONWithLegacy('gomoku', GAME_HISTORY_KEY, ['lastGameHistory'], null);
+
+    if (history) {
         try {
-            const history = JSON.parse(historyJson);
             const historyDate = new Date(history.date);
             const formattedDate = `${historyDate.getFullYear()}-${(historyDate.getMonth() + 1).toString().padStart(2, '0')}-${historyDate.getDate().toString().padStart(2, '0')} ${historyDate.getHours().toString().padStart(2, '0')}:${historyDate.getMinutes().toString().padStart(2, '0')}`;
             
