@@ -1,252 +1,506 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>迷宫冒险</title>
     <style>
+        :root {
+            --bg-a: #081325;
+            --bg-b: #1b2d52;
+            --panel: rgba(9, 18, 36, 0.72);
+            --panel-border: rgba(158, 179, 222, 0.18);
+            --text: #f4f7ff;
+            --muted: rgba(226, 233, 255, 0.74);
+            --accent: #6ee7b7;
+            --accent-strong: #22c55e;
+            --shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+            --r-xl: 28px;
+            --r-lg: 22px;
+            --r-md: 16px;
+        }
+
+        * { box-sizing: border-box; }
+
         html,
         body {
             width: 100%;
             height: 100%;
             margin: 0;
-            padding: 0;
             overflow: hidden;
             overscroll-behavior: none;
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background-color: #2c3e50;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(78, 110, 255, 0.28), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(110, 231, 183, 0.18), transparent 24%),
+                linear-gradient(145deg, var(--bg-a), var(--bg-b));
             touch-action: manipulation;
         }
+
+        button { font: inherit; border: 0; cursor: pointer; }
 
         #game-container {
             position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: linear-gradient(135deg, #3498db, #8e44ad);
+        }
+
+        #game-container::before,
+        #game-container::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(80px);
+            pointer-events: none;
+        }
+
+        #game-container::before {
+            top: -120px;
+            left: -80px;
+            width: 320px;
+            height: 320px;
+            background: rgba(64, 156, 255, 0.28);
+        }
+
+        #game-container::after {
+            right: -140px;
+            bottom: -120px;
+            width: 360px;
+            height: 360px;
+            background: rgba(44, 208, 140, 0.2);
         }
 
         #maze-container {
             position: absolute;
-            transition: transform 0.3s ease;
+            transition: transform 0.32s ease;
+            filter: drop-shadow(0 22px 34px rgba(3, 7, 18, 0.28));
         }
 
         .cell {
             position: absolute;
-            box-sizing: border-box;
-            border-radius: 3px;
+            border-radius: 5px;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .wall {
-            background-color: #34495e;
-            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(145deg, rgba(28, 45, 84, 0.98), rgba(12, 21, 39, 0.98));
+            box-shadow: inset 0 0 0 1px rgba(145, 169, 218, 0.08), inset 0 0 14px rgba(0, 0, 0, 0.36);
         }
 
-        .path {
-            background-color: #ecf0f1;
-        }
+        .path { background: linear-gradient(145deg, rgba(233, 241, 255, 0.96), rgba(216, 228, 247, 0.92)); }
 
-        .start {
-            background-color: #2ecc71;
+        .visited {
+            background: linear-gradient(145deg, rgba(193, 240, 224, 0.96), rgba(168, 221, 205, 0.92));
+            box-shadow: inset 0 0 0 1px rgba(69, 163, 131, 0.08);
         }
 
         .end {
-            background-color: #e74c3c;
+            background: linear-gradient(145deg, rgba(255, 190, 102, 0.96), rgba(255, 120, 94, 0.92));
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 0 22px rgba(255, 140, 102, 0.38);
+            animation: beacon 1.8s ease-in-out infinite;
         }
 
-        #player {
-            position: absolute;
-            width: 90%;
-            height: 90%;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23ffcc00"/><circle cx="35" cy="40" r="5" fill="%23000"/><circle cx="65" cy="40" r="5" fill="%23000"/><path d="M35,70 Q50,85 65,70" stroke="%23000" stroke-width="5" fill="none"/></svg>');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            z-index: 10;
-            transition: transform 0.2s ease;
-            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
-        }
-
+        #player,
         #partner {
             position: absolute;
             width: 90%;
             height: 90%;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23ff9999"/><circle cx="35" cy="40" r="5" fill="%23000"/><circle cx="65" cy="40" r="5" fill="%23000"/><path d="M35,70 Q50,85 65,70" stroke="%23000" stroke-width="5" fill="none"/></svg>');
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
             z-index: 10;
+        }
+
+        #player {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23ffd166"/><circle cx="35" cy="40" r="5" fill="%23000"/><circle cx="65" cy="40" r="5" fill="%23000"/><path d="M34 68 Q50 82 66 68" stroke="%23000" stroke-width="5" fill="none"/></svg>');
+            filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.34));
+            transition: left 0.16s ease, top 0.16s ease;
+        }
+
+        #partner {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23ff9fb2"/><circle cx="35" cy="40" r="5" fill="%23000"/><circle cx="65" cy="40" r="5" fill="%23000"/><path d="M34 68 Q50 82 66 68" stroke="%23000" stroke-width="5" fill="none"/></svg>');
             display: none;
-            filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+            filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.34));
         }
 
-        #ui {
+        #hud {
             position: fixed;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        #level-select {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            z-index: 200;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        #level-select .buttons-container {
+            top: 18px;
+            left: 18px;
+            right: 18px;
+            z-index: 120;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 18px 20px;
+            background: var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--r-xl);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .hud-copy { max-width: 420px; }
+
+        .hud-kicker,
+        .stat-label,
+        .difficulty-tag {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .hud-copy h1 {
+            margin: 8px 0 10px;
+            font-size: clamp(24px, 3vw, 38px);
+            line-height: 1.06;
+        }
+
+        .hud-copy p:last-child {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+
+        .hud-stats {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(92px, 1fr));
             gap: 10px;
+            min-width: 0;
         }
 
-        button {
-            margin: 5px;
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        .stat-card {
+            padding: 12px 14px;
+            border-radius: var(--r-md);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        button:hover {
-            background-color: #2980b9;
+        .stat-value {
+            display: block;
+            margin-top: 8px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        #level-select,
+        #message-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(3, 7, 18, 0.56);
+            backdrop-filter: blur(8px);
+        }
+
+        #message-overlay.hidden { display: none; }
+
+        .overlay-card {
+            width: min(100%, 1040px);
+            padding: 28px;
+            border-radius: 30px;
+            background: linear-gradient(180deg, rgba(11, 19, 37, 0.96), rgba(15, 28, 54, 0.96));
+            border: 1px solid rgba(162, 180, 224, 0.18);
+            box-shadow: 0 34px 80px rgba(0, 0, 0, 0.4);
+        }
+
+        .overlay-card h2 {
+            margin: 10px 0 12px;
+            font-size: clamp(30px, 4vw, 46px);
+        }
+
+        .overlay-card > p {
+            margin: 0;
+            max-width: 720px;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .difficulty-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .difficulty-card {
+            padding: 20px;
+            text-align: left;
+            color: #ffffff;
+            border-radius: var(--r-lg);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(162, 180, 224, 0.12);
+            transition: transform 0.22s ease, border-color 0.22s ease, background-color 0.22s ease, box-shadow 0.22s ease;
+        }
+
+        .difficulty-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(110, 231, 183, 0.42);
+            background: rgba(255, 255, 255, 0.09);
+            box-shadow: 0 18px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .difficulty-card h3 {
+            margin: 10px 0 8px;
+            font-size: 24px;
+        }
+
+        .difficulty-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .difficulty-highlight {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.09);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .message-card {
+            width: min(100%, 420px);
+            text-align: center;
+        }
+
+        .message-card h3 {
+            margin: 10px 0 12px;
+            font-size: 30px;
+        }
+
+        .message-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .primary-btn {
+            margin-top: 22px;
+            min-height: 50px;
+            padding: 0 22px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #042312;
+            font-size: 16px;
+            font-weight: 800;
+            box-shadow: 0 14px 28px rgba(34, 197, 94, 0.24);
         }
 
         #mobile-controls {
             position: fixed;
-            bottom: 20px;
             left: 50%;
+            bottom: 22px;
             transform: translateX(-50%);
             display: none;
-            z-index: 100;
+            z-index: 120;
             touch-action: none;
+        }
+
+        .pad-shell,
+        .zoom-stack {
+            padding: 10px 12px;
+            border-radius: 22px;
+            background: rgba(8, 15, 30, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(14px);
+            box-shadow: var(--shadow);
         }
 
         .control-row {
             display: flex;
             justify-content: center;
-            margin: 5px 0;
+            margin: 4px 0;
         }
 
-        .control-row.horizontal {
-            width: 250px;
-            justify-content: space-between;
+        .control-row.horizontal { gap: 54px; }
+
+        .control-btn,
+        .zoom-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.2s ease, background-color 0.2s ease;
         }
 
         .control-btn {
-            width: 60px;
-            height: 60px;
-            margin: 5px;
-            background-color: rgba(52, 152, 219, 0.7);
-            color: white;
-            border: none;
+            width: 62px;
+            height: 62px;
             border-radius: 50%;
-            font-size: 24px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .control-btn:active {
-            background-color: rgba(41, 128, 185, 0.9);
-            transform: translateY(2px);
-        }
-
-        #zoom-controls {
-            position: fixed;
-            top: 70px;
-            right: 10px;
-            display: none;
-            z-index: 100;
+            background: linear-gradient(145deg, rgba(80, 114, 255, 0.95), rgba(51, 90, 225, 0.95));
+            color: #ffffff;
+            font-size: 26px;
+            box-shadow: 0 12px 24px rgba(28, 63, 190, 0.32);
         }
 
         .zoom-btn {
-            width: 40px;
-            height: 40px;
-            margin: 5px;
-            background-color: rgba(52, 152, 219, 0.7);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 20px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .control-btn:active,
+        .zoom-btn:active { transform: scale(0.96); }
+
+        #zoom-controls {
+            position: fixed;
+            right: 20px;
+            bottom: 32px;
+            display: none;
+            z-index: 120;
+        }
+
+        .zoom-stack {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @keyframes beacon {
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 0 18px rgba(255, 140, 102, 0.24);
+            }
+
+            50% {
+                transform: scale(1.04);
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55), 0 0 28px rgba(255, 140, 102, 0.46);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            #hud { flex-direction: column; }
+
+            .hud-stats {
+                width: 100%;
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            #hud {
+                top: 12px;
+                left: 12px;
+                right: 12px;
+                padding: 14px;
+                gap: 14px;
+                border-radius: 22px;
+            }
+
+            .hud-copy h1 { font-size: 26px; }
+            .hud-copy p:last-child { font-size: 14px; }
+            .hud-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .stat-card { padding: 10px 12px; }
+            .stat-value { font-size: 17px; }
+            .overlay-card { padding: 22px; border-radius: 24px; }
+            .difficulty-grid { grid-template-columns: 1fr; }
+
+            #mobile-controls,
+            #zoom-controls { display: block; }
         }
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="maze-container"></div>
-    </div>
+    <div id="game-container"><div id="maze-container"></div></div>
 
-    <div id="ui">
-        <div>关卡: <span id="level">1</span></div>
-        <div>耗时: <span id="timer">0</span>秒</div>
-    </div>
+    <section id="hud">
+        <div class="hud-copy">
+            <p class="hud-kicker">迷宫冒险</p>
+            <h1>穿过迷宫，找到伙伴</h1>
+            <p id="goal-text">选择难度后开始挑战。每通关一关，迷宫会更大、更紧凑，也更考验路线判断。</p>
+        </div>
+        <div class="hud-stats">
+            <div class="stat-card"><p class="stat-label">关卡</p><span class="stat-value" id="level">1</span></div>
+            <div class="stat-card"><p class="stat-label">步数</p><span class="stat-value" id="steps">0</span></div>
+            <div class="stat-card"><p class="stat-label">耗时</p><span class="stat-value" id="timer">0秒</span></div>
+            <div class="stat-card"><p class="stat-label">尺寸</p><span class="stat-value" id="maze-size">--</span></div>
+            <div class="stat-card"><p class="stat-label">模式</p><span class="stat-value" id="difficulty-name">未开始</span></div>
+        </div>
+    </section>
 
-    <div id="level-select">
-        <h2>迷宫冒险</h2>
-        <p>选择难度开始游戏</p>
-        <div class="buttons-container">
-            <button type="button" id="easy">简单</button>
-            <button type="button" id="medium">中等</button>
-            <button type="button" id="hard">困难</button>
+    <section id="level-select">
+        <div class="overlay-card">
+            <p class="difficulty-tag">难度选择</p>
+            <h2>迷宫冒险</h2>
+            <p>不同难度不只是入口尺寸不同，后续每一关都会继续扩张迷宫规模。越高难度，棋盘越大、单格越小，移动和观察都会更吃力。</p>
+            <div class="difficulty-grid">
+                <button type="button" class="difficulty-card" data-difficulty="easy">
+                    <span class="difficulty-highlight">轻探模式</span>
+                    <h3>简单</h3>
+                    <p>13×13 起步，适合熟悉玩法。每一关迷宫都会继续增长，后续也需要认真找路。</p>
+                </button>
+                <button type="button" class="difficulty-card" data-difficulty="medium">
+                    <span class="difficulty-highlight">追踪模式</span>
+                    <h3>中等</h3>
+                    <p>19×19 起步，转角更多、回溯成本更高，适合想要稳定挑战的玩家。</p>
+                </button>
+                <button type="button" class="difficulty-card" data-difficulty="hard">
+                    <span class="difficulty-highlight">深渊模式</span>
+                    <h3>困难</h3>
+                    <p>27×27 起步，视野更紧、路线更长。通关后增长也更明显，真正考验方向感。</p>
+                </button>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <div id="mobile-controls">
-        <div class="control-row">
-            <button type="button" class="control-btn" id="up">↑</button>
+    <section id="message-overlay" class="hidden">
+        <div class="overlay-card message-card">
+            <p class="difficulty-tag">通关完成</p>
+            <h3 id="message-title">找到伙伴了</h3>
+            <p id="message-text">准备进入下一关。</p>
+            <button type="button" class="primary-btn" id="next-level-btn">进入下一关</button>
         </div>
-        <div class="control-row horizontal">
-            <button type="button" class="control-btn" id="left">←</button>
-            <button type="button" class="control-btn" id="right">→</button>
-        </div>
-        <div class="control-row">
-            <button type="button" class="control-btn" id="down">↓</button>
-        </div>
-    </div>
+    </section>
 
-    <div id="zoom-controls">
-        <button type="button" class="zoom-btn" id="zoom-in">+</button>
-        <button type="button" class="zoom-btn" id="zoom-out">-</button>
-    </div>
+    <section id="mobile-controls">
+        <div class="pad-shell">
+            <div class="control-row"><button type="button" class="control-btn" id="up">↑</button></div>
+            <div class="control-row horizontal">
+                <button type="button" class="control-btn" id="left">←</button>
+                <button type="button" class="control-btn" id="right">→</button>
+            </div>
+            <div class="control-row"><button type="button" class="control-btn" id="down">↓</button></div>
+        </div>
+    </section>
+
+    <section id="zoom-controls">
+        <div class="zoom-stack">
+            <button type="button" class="zoom-btn" id="zoom-in">+</button>
+            <button type="button" class="zoom-btn" id="zoom-out">−</button>
+        </div>
+    </section>
 
     <script>
         const config = {
-            easy: { width: 10, height: 10, cellSize: 40 },
-            medium: { width: 15, height: 15, cellSize: 35 },
-            hard: { width: 20, height: 20, cellSize: 30 }
+            easy: { label: '简单', baseSize: 13, sizeStep: 2, baseCellSize: 40, cellShrinkEvery: 3, cellShrinkStep: 1, minCellSize: 28 },
+            medium: { label: '中等', baseSize: 19, sizeStep: 2, baseCellSize: 34, cellShrinkEvery: 2, cellShrinkStep: 1, minCellSize: 22 },
+            hard: { label: '困难', baseSize: 27, sizeStep: 2, baseCellSize: 28, cellShrinkEvery: 2, cellShrinkStep: 1, minCellSize: 16 }
         };
 
         const gameState = {
@@ -260,20 +514,28 @@
             playerPosition: { x: 0, y: 0 },
             partnerPosition: { x: 0, y: 0 },
             partnerFound: false,
-            mazeCompleted: false,
             zoomLevel: 1,
             isMobile: false,
             translateX: 0,
-            translateY: 0
+            translateY: 0,
+            visitedCells: new Set()
         };
 
         const gameContainer = document.getElementById('game-container');
         const mazeContainer = document.getElementById('maze-container');
         const levelSelect = document.getElementById('level-select');
         const levelDisplay = document.getElementById('level');
+        const stepsDisplay = document.getElementById('steps');
         const timerDisplay = document.getElementById('timer');
+        const mazeSizeDisplay = document.getElementById('maze-size');
+        const difficultyDisplay = document.getElementById('difficulty-name');
+        const goalText = document.getElementById('goal-text');
         const mobileControls = document.getElementById('mobile-controls');
         const zoomControls = document.getElementById('zoom-controls');
+        const messageOverlay = document.getElementById('message-overlay');
+        const messageTitle = document.getElementById('message-title');
+        const messageText = document.getElementById('message-text');
+        const nextLevelButton = document.getElementById('next-level-btn');
 
         function isMobileDevice() {
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -290,9 +552,56 @@
                 window.scrollTo(0, 0);
             }, { passive: false });
 
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
-            });
+            button.addEventListener('click', (event) => event.preventDefault());
+        }
+
+        function keyOf(x, y) {
+            return `${x},${y}`;
+        }
+
+        function getCurrentConfig() {
+            const difficulty = config[gameState.difficulty];
+            const levelOffset = Math.max(0, gameState.level - 1);
+            const size = difficulty.baseSize + levelOffset * difficulty.sizeStep;
+            const shrink = Math.floor(levelOffset / difficulty.cellShrinkEvery) * difficulty.cellShrinkStep;
+
+            return {
+                width: size,
+                height: size,
+                cellSize: Math.max(difficulty.minCellSize, difficulty.baseCellSize - shrink),
+                label: difficulty.label
+            };
+        }
+
+        function updateHud() {
+            levelDisplay.textContent = gameState.level;
+            stepsDisplay.textContent = gameState.steps;
+            timerDisplay.textContent = `${gameState.elapsedTime}秒`;
+
+            if (!gameState.difficulty) {
+                mazeSizeDisplay.textContent = '--';
+                difficultyDisplay.textContent = '未开始';
+                return;
+            }
+
+            const current = getCurrentConfig();
+            mazeSizeDisplay.textContent = `${current.width}×${current.height}`;
+            difficultyDisplay.textContent = current.label;
+        }
+
+        function setMissionText(text) {
+            goalText.textContent = text;
+        }
+
+        function hideMessageOverlay() {
+            messageOverlay.classList.add('hidden');
+        }
+
+        function showMessageOverlay(title, text, buttonText) {
+            messageTitle.textContent = title;
+            messageText.textContent = text;
+            nextLevelButton.textContent = buttonText;
+            messageOverlay.classList.remove('hidden');
         }
 
         gameState.isMobile = isMobileDevice();
@@ -300,7 +609,6 @@
         if (gameState.isMobile) {
             mobileControls.style.display = 'block';
             zoomControls.style.display = 'block';
-
             bindMobileButton('up', () => movePlayer(0, -1));
             bindMobileButton('down', () => movePlayer(0, 1));
             bindMobileButton('left', () => movePlayer(-1, 0));
@@ -327,21 +635,27 @@
             mazeContainer.style.transform = `scale(${gameState.zoomLevel}) translate(${gameState.translateX}px, ${gameState.translateY}px)`;
         }
 
-        document.getElementById('easy').addEventListener('click', () => startGame('easy'));
-        document.getElementById('medium').addEventListener('click', () => startGame('medium'));
-        document.getElementById('hard').addEventListener('click', () => startGame('hard'));
+        document.querySelectorAll('.difficulty-card').forEach((button) => {
+            button.addEventListener('click', () => startGame(button.dataset.difficulty));
+        });
+
+        nextLevelButton.addEventListener('click', () => {
+            hideMessageOverlay();
+            nextLevel();
+        });
 
         function startGame(difficulty) {
             gameState.difficulty = difficulty;
             gameState.level = 1;
             gameState.steps = 0;
             gameState.partnerFound = false;
-            gameState.mazeCompleted = false;
             gameState.zoomLevel = 1;
             gameState.translateX = 0;
             gameState.translateY = 0;
 
-            levelDisplay.textContent = gameState.level;
+            hideMessageOverlay();
+            updateHud();
+            setMissionText('找到终点处的伙伴后进入下一关。随着关卡提升，迷宫会持续扩大。');
             startTimer();
             levelSelect.style.display = 'none';
             generateMaze();
@@ -354,33 +668,27 @@
 
             gameState.startTime = Date.now();
             gameState.elapsedTime = 0;
-            timerDisplay.textContent = '0';
+            updateHud();
 
             gameState.timerInterval = setInterval(() => {
                 gameState.elapsedTime = Math.floor((Date.now() - gameState.startTime) / 1000);
-                timerDisplay.textContent = gameState.elapsedTime;
+                updateHud();
             }, 1000);
         }
 
         function generateMaze() {
-            const { width, height } = config[gameState.difficulty];
+            const { width, height } = getCurrentConfig();
             const maze = Array(height).fill(null).map(() => Array(width).fill(1));
 
             function carvePassages(x, y) {
-                const directions = [
-                    [0, -2],
-                    [2, 0],
-                    [0, 2],
-                    [-2, 0]
-                ];
-
+                const directions = [[0, -2], [2, 0], [0, 2], [-2, 0]];
                 directions.sort(() => Math.random() - 0.5);
 
                 for (const [dx, dy] of directions) {
                     const nx = x + dx;
                     const ny = y + dy;
 
-                    if (nx >= 0 && nx < width && ny >= 0 && ny < height && maze[ny][nx] === 1) {
+                    if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && maze[ny][nx] === 1) {
                         maze[y + dy / 2][x + dx / 2] = 0;
                         maze[ny][nx] = 0;
                         carvePassages(nx, ny);
@@ -394,6 +702,7 @@
             carvePassages(startX, startY);
 
             gameState.playerPosition = { x: startX, y: startY };
+            gameState.visitedCells = new Set([keyOf(startX, startY)]);
 
             let endX = startX;
             let endY = startY;
@@ -414,18 +723,16 @@
 
             gameState.partnerPosition = { x: endX, y: endY };
             gameState.maze = maze;
+            updateHud();
             renderMaze();
         }
 
         function renderMaze() {
             mazeContainer.innerHTML = '';
 
-            const { width, height, cellSize } = config[gameState.difficulty];
-            const maze = gameState.maze;
-
+            const { width, height, cellSize } = getCurrentConfig();
             mazeContainer.style.width = `${width * cellSize}px`;
             mazeContainer.style.height = `${height * cellSize}px`;
-            mazeContainer.style.overflow = 'hidden';
 
             const cellsContainer = document.createElement('div');
             cellsContainer.style.position = 'relative';
@@ -441,21 +748,23 @@
                     cell.style.height = `${cellSize}px`;
                     cell.style.left = `${x * cellSize}px`;
                     cell.style.top = `${y * cellSize}px`;
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
 
-                    if (maze[y][x] === 1) {
+                    if (gameState.maze[y][x] === 1) {
                         cell.classList.add('wall');
                     } else {
                         cell.classList.add('path');
 
-                        if (x === gameState.playerPosition.x && y === gameState.playerPosition.y) {
-                            cell.classList.add('start');
-                        } else if (x === gameState.partnerPosition.x && y === gameState.partnerPosition.y) {
+                        if (gameState.visitedCells.has(keyOf(x, y))) {
+                            cell.classList.add('visited');
+                        }
+
+                        if (x === gameState.partnerPosition.x && y === gameState.partnerPosition.y) {
                             cell.classList.add('end');
                         }
                     }
 
-                    cell.dataset.x = x;
-                    cell.dataset.y = y;
                     cellsContainer.appendChild(cell);
                 }
             }
@@ -480,7 +789,7 @@
         }
 
         function focusOnPlayer() {
-            const { cellSize, width, height } = config[gameState.difficulty];
+            const { cellSize, width, height } = getCurrentConfig();
             const playerX = gameState.playerPosition.x * cellSize;
             const playerY = gameState.playerPosition.y * cellSize;
             const containerWidth = gameContainer.offsetWidth;
@@ -489,7 +798,6 @@
             if (gameState.isMobile) {
                 const offsetX = containerWidth / 2 - playerX - cellSize / 2;
                 const offsetY = containerHeight / 2 - playerY - cellSize / 2;
-
                 gameState.translateX = offsetX;
                 gameState.translateY = offsetY;
                 mazeContainer.style.transform = `scale(${gameState.zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
@@ -498,75 +806,73 @@
 
             const mazeWidth = width * cellSize;
             const mazeHeight = height * cellSize;
-            const offsetX = (containerWidth - mazeWidth) / 2;
-            const offsetY = (containerHeight - mazeHeight) / 2;
-
-            gameState.translateX = offsetX;
-            gameState.translateY = offsetY;
-            mazeContainer.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+            gameState.translateX = (containerWidth - mazeWidth) / 2;
+            gameState.translateY = (containerHeight - mazeHeight) / 2;
+            mazeContainer.style.transform = `translate(${gameState.translateX}px, ${gameState.translateY}px)`;
         }
 
         function movePlayer(dx, dy) {
+            const current = getCurrentConfig();
             const newX = gameState.playerPosition.x + dx;
             const newY = gameState.playerPosition.y + dy;
 
             if (
                 newX >= 0 &&
-                newX < config[gameState.difficulty].width &&
+                newX < current.width &&
                 newY >= 0 &&
-                newY < config[gameState.difficulty].height &&
+                newY < current.height &&
                 gameState.maze[newY][newX] === 0
             ) {
-                gameState.playerPosition.x = newX;
-                gameState.playerPosition.y = newY;
+                const previousX = gameState.playerPosition.x;
+                const previousY = gameState.playerPosition.y;
+                gameState.playerPosition = { x: newX, y: newY };
                 gameState.steps++;
+                gameState.visitedCells.add(keyOf(previousX, previousY));
+                gameState.visitedCells.add(keyOf(newX, newY));
+                updateHud();
+
+                const previousCell = document.querySelector(`.cell[data-x="${previousX}"][data-y="${previousY}"]`);
+                if (previousCell && !previousCell.classList.contains('end')) {
+                    previousCell.classList.add('visited');
+                }
 
                 const player = document.getElementById('player');
-                const { cellSize } = config[gameState.difficulty];
-                player.style.left = `${newX * cellSize + cellSize * 0.05}px`;
-                player.style.top = `${newY * cellSize + cellSize * 0.05}px`;
+                player.style.left = `${newX * current.cellSize + current.cellSize * 0.05}px`;
+                player.style.top = `${newY * current.cellSize + current.cellSize * 0.05}px`;
 
                 if (gameState.isMobile) {
                     focusOnPlayer();
                 }
 
-                if (
-                    newX === gameState.partnerPosition.x &&
-                    newY === gameState.partnerPosition.y &&
-                    !gameState.partnerFound
-                ) {
+                if (newX === gameState.partnerPosition.x && newY === gameState.partnerPosition.y && !gameState.partnerFound) {
                     gameState.partnerFound = true;
                     document.getElementById('partner').style.display = 'block';
                     clearInterval(gameState.timerInterval);
-
-                    setTimeout(() => {
-                        alert(`恭喜你找到了伙伴！共用了 ${gameState.elapsedTime} 秒。\n准备进入下一关！`);
-                        nextLevel();
-                    }, 500);
+                    setMissionText('伙伴已经找到，准备进入更复杂的下一关。');
+                    showMessageOverlay(
+                        '找到伙伴了',
+                        `你在第 ${gameState.level} 关用时 ${gameState.elapsedTime} 秒、共走了 ${gameState.steps} 步。下一关迷宫会继续扩大。`,
+                        `进入第 ${gameState.level + 1} 关`
+                    );
                 }
             }
         }
 
         function nextLevel() {
             gameState.level++;
-            levelDisplay.textContent = gameState.level;
+            gameState.steps = 0;
             gameState.partnerFound = false;
-
+            gameState.zoomLevel = 1;
+            gameState.translateX = 0;
+            gameState.translateY = 0;
+            updateHud();
+            setMissionText('难度已经提升。留意更长的岔路与更紧凑的视野。');
             startTimer();
-
-            if (gameState.level % 3 === 0 && gameState.difficulty !== 'hard') {
-                if (gameState.difficulty === 'easy') {
-                    gameState.difficulty = 'medium';
-                } else if (gameState.difficulty === 'medium') {
-                    gameState.difficulty = 'hard';
-                }
-            }
-
             generateMaze();
         }
 
         document.addEventListener('keydown', (event) => {
-            if (levelSelect.style.display !== 'none') {
+            if (levelSelect.style.display !== 'none' || !messageOverlay.classList.contains('hidden')) {
                 return;
             }
 
@@ -633,7 +939,6 @@
                         } else {
                             zoomOut();
                         }
-
                         initialDistance = currentDistance;
                     }
                 }
@@ -641,6 +946,8 @@
                 event.preventDefault();
             }
         }, { passive: false });
+
+        updateHud();
     </script>
 </body>
 </html>
