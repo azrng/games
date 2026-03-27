@@ -78,6 +78,7 @@
         #maze-container {
             position: absolute;
             transition: transform 0.32s ease;
+            transform-origin: top left;
             filter: drop-shadow(0 22px 34px rgba(3, 7, 18, 0.28));
         }
 
@@ -132,65 +133,76 @@
             position: fixed;
             top: 18px;
             left: 18px;
-            right: 18px;
             z-index: 120;
             display: flex;
-            justify-content: space-between;
-            gap: 18px;
-            padding: 18px 20px;
+            flex-direction: column;
+            gap: 8px;
+            width: min(360px, calc(100vw - 168px));
+            padding: 14px 16px;
             background: var(--panel);
             border: 1px solid var(--panel-border);
-            border-radius: var(--r-xl);
+            border-radius: 24px;
             box-shadow: var(--shadow);
             backdrop-filter: blur(18px);
         }
 
-        .hud-copy { max-width: 420px; }
+        .hud-copy { max-width: none; }
+
+        #hud-stats-panel {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 120;
+            width: 108px;
+        }
 
         .hud-kicker,
         .stat-label,
         .difficulty-tag {
             margin: 0;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.07em;
             text-transform: uppercase;
             color: var(--muted);
         }
 
         .hud-copy h1 {
-            margin: 8px 0 10px;
-            font-size: clamp(24px, 3vw, 38px);
-            line-height: 1.06;
+            margin: 4px 0 0;
+            font-size: clamp(22px, 2.6vw, 32px);
+            line-height: 1.1;
         }
 
         .hud-copy p:last-child {
             margin: 0;
-            font-size: 15px;
-            line-height: 1.6;
+            font-size: 13px;
+            line-height: 1.55;
             color: var(--muted);
         }
 
         .hud-stats {
             display: grid;
-            grid-template-columns: repeat(5, minmax(92px, 1fr));
-            gap: 10px;
-            min-width: 0;
+            grid-template-columns: 1fr;
+            gap: 8px;
         }
 
         .stat-card {
-            padding: 12px 14px;
-            border-radius: var(--r-md);
+            min-height: 62px;
+            padding: 9px 10px 10px;
+            border-radius: 14px;
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 12px 24px rgba(2, 8, 23, 0.18);
         }
 
         .stat-value {
             display: block;
-            margin-top: 8px;
-            font-size: 18px;
+            margin-top: 5px;
+            font-size: 15px;
             font-weight: 700;
+            line-height: 1.25;
             color: #ffffff;
+            word-break: break-word;
         }
 
         #level-select,
@@ -395,29 +407,33 @@
         }
 
         @media (max-width: 1100px) {
-            #hud { flex-direction: column; }
-
-            .hud-stats {
-                width: 100%;
-                grid-template-columns: repeat(5, minmax(0, 1fr));
-            }
+            #hud { width: min(320px, calc(100vw - 148px)); }
+            #hud-stats-panel { width: 98px; }
         }
 
         @media (max-width: 720px) {
             #hud {
                 top: 12px;
                 left: 12px;
-                right: 12px;
-                padding: 14px;
-                gap: 14px;
-                border-radius: 22px;
+                width: calc(100vw - 128px);
+                min-width: 0;
+                padding: 12px 14px;
+                border-radius: 20px;
             }
 
-            .hud-copy h1 { font-size: 26px; }
-            .hud-copy p:last-child { font-size: 14px; }
-            .hud-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .stat-card { padding: 10px 12px; }
-            .stat-value { font-size: 17px; }
+            #hud-stats-panel {
+                top: 12px;
+                right: 12px;
+                width: 92px;
+            }
+
+            .hud-copy h1 { font-size: 24px; }
+            .hud-copy p:last-child { font-size: 12px; }
+            .stat-card {
+                min-height: 56px;
+                padding: 8px 9px 9px;
+            }
+            .stat-value { font-size: 14px; }
             .overlay-card { padding: 22px; border-radius: 24px; }
             .difficulty-grid { grid-template-columns: 1fr; }
 
@@ -435,14 +451,15 @@
             <h1>穿过迷宫，找到伙伴</h1>
             <p id="goal-text">选择难度后开始挑战。每通关一关，迷宫会更大、更紧凑，也更考验路线判断。</p>
         </div>
-        <div class="hud-stats">
-            <div class="stat-card"><p class="stat-label">关卡</p><span class="stat-value" id="level">1</span></div>
-            <div class="stat-card"><p class="stat-label">步数</p><span class="stat-value" id="steps">0</span></div>
-            <div class="stat-card"><p class="stat-label">耗时</p><span class="stat-value" id="timer">0秒</span></div>
-            <div class="stat-card"><p class="stat-label">尺寸</p><span class="stat-value" id="maze-size">--</span></div>
-            <div class="stat-card"><p class="stat-label">模式</p><span class="stat-value" id="difficulty-name">未开始</span></div>
-        </div>
     </section>
+
+    <aside id="hud-stats-panel" class="hud-stats">
+        <div class="stat-card"><p class="stat-label">关卡</p><span class="stat-value" id="level">1</span></div>
+        <div class="stat-card"><p class="stat-label">步数</p><span class="stat-value" id="steps">0</span></div>
+        <div class="stat-card"><p class="stat-label">耗时</p><span class="stat-value" id="timer">0秒</span></div>
+        <div class="stat-card"><p class="stat-label">尺寸</p><span class="stat-value" id="maze-size">--</span></div>
+        <div class="stat-card"><p class="stat-label">模式</p><span class="stat-value" id="difficulty-name">未开始</span></div>
+    </aside>
 
     <section id="level-select">
         <div class="overlay-card">
@@ -523,6 +540,8 @@
 
         const gameContainer = document.getElementById('game-container');
         const mazeContainer = document.getElementById('maze-container');
+        const hud = document.getElementById('hud');
+        const statsPanel = document.getElementById('hud-stats-panel');
         const levelSelect = document.getElementById('level-select');
         const levelDisplay = document.getElementById('level');
         const stepsDisplay = document.getElementById('steps');
@@ -632,7 +651,44 @@
         }
 
         function applyZoom() {
-            mazeContainer.style.transform = `scale(${gameState.zoomLevel}) translate(${gameState.translateX}px, ${gameState.translateY}px)`;
+            focusOnPlayer();
+        }
+
+        function clamp(value, min, max) {
+            return Math.min(max, Math.max(min, value));
+        }
+
+        function applyMazeTransform() {
+            mazeContainer.style.transform = `translate(${gameState.translateX}px, ${gameState.translateY}px) scale(${gameState.zoomLevel})`;
+        }
+
+        function getViewportSafeArea() {
+            const narrowLayout = window.innerWidth <= 720;
+            const gutter = narrowLayout ? 12 : 18;
+            const hudRect = hud.getBoundingClientRect();
+            const statsRect = statsPanel.getBoundingClientRect();
+            const controlsRect = mobileControls.getBoundingClientRect();
+
+            let top = gutter;
+            let right = gutter;
+            let bottom = gutter;
+            const left = gutter;
+
+            if (hudRect.height > 0) {
+                top = Math.max(top, hudRect.bottom + gutter);
+            }
+
+            if (narrowLayout) {
+                right = Math.max(right, window.innerWidth - statsRect.left + gutter);
+            } else {
+                right = Math.max(right, window.innerWidth - statsRect.left + gutter);
+            }
+
+            if (gameState.isMobile && mobileControls.offsetParent !== null) {
+                bottom = Math.max(bottom, window.innerHeight - controlsRect.top + gutter);
+            }
+
+            return { top, right, bottom, left };
         }
 
         document.querySelectorAll('.difficulty-card').forEach((button) => {
@@ -790,25 +846,35 @@
 
         function focusOnPlayer() {
             const { cellSize, width, height } = getCurrentConfig();
-            const playerX = gameState.playerPosition.x * cellSize;
-            const playerY = gameState.playerPosition.y * cellSize;
             const containerWidth = gameContainer.offsetWidth;
             const containerHeight = gameContainer.offsetHeight;
+            const safeArea = getViewportSafeArea();
+            const availableWidth = Math.max(120, containerWidth - safeArea.left - safeArea.right);
+            const availableHeight = Math.max(120, containerHeight - safeArea.top - safeArea.bottom);
+            const scale = gameState.isMobile ? gameState.zoomLevel : 1;
+            const scaledCellSize = cellSize * scale;
+            const mazeWidth = width * scaledCellSize;
+            const mazeHeight = height * scaledCellSize;
+            const playerCenterX = gameState.playerPosition.x * scaledCellSize + scaledCellSize / 2;
+            const playerCenterY = gameState.playerPosition.y * scaledCellSize + scaledCellSize / 2;
+            const viewportCenterX = safeArea.left + availableWidth / 2;
+            const viewportCenterY = safeArea.top + availableHeight / 2;
+            const targetX = viewportCenterX - playerCenterX;
+            const targetY = viewportCenterY - playerCenterY;
 
-            if (gameState.isMobile) {
-                const offsetX = containerWidth / 2 - playerX - cellSize / 2;
-                const offsetY = containerHeight / 2 - playerY - cellSize / 2;
-                gameState.translateX = offsetX;
-                gameState.translateY = offsetY;
-                mazeContainer.style.transform = `scale(${gameState.zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
-                return;
+            if (mazeWidth <= availableWidth) {
+                gameState.translateX = safeArea.left + (availableWidth - mazeWidth) / 2;
+            } else {
+                gameState.translateX = clamp(targetX, safeArea.left + availableWidth - mazeWidth, safeArea.left);
             }
 
-            const mazeWidth = width * cellSize;
-            const mazeHeight = height * cellSize;
-            gameState.translateX = (containerWidth - mazeWidth) / 2;
-            gameState.translateY = (containerHeight - mazeHeight) / 2;
-            mazeContainer.style.transform = `translate(${gameState.translateX}px, ${gameState.translateY}px)`;
+            if (mazeHeight <= availableHeight) {
+                gameState.translateY = safeArea.top + (availableHeight - mazeHeight) / 2;
+            } else {
+                gameState.translateY = clamp(targetY, safeArea.top + availableHeight - mazeHeight, safeArea.top);
+            }
+
+            applyMazeTransform();
         }
 
         function movePlayer(dx, dy) {
@@ -840,9 +906,7 @@
                 player.style.left = `${newX * current.cellSize + current.cellSize * 0.05}px`;
                 player.style.top = `${newY * current.cellSize + current.cellSize * 0.05}px`;
 
-                if (gameState.isMobile) {
-                    focusOnPlayer();
-                }
+                focusOnPlayer();
 
                 if (newX === gameState.partnerPosition.x && newY === gameState.partnerPosition.y && !gameState.partnerFound) {
                     gameState.partnerFound = true;
@@ -946,6 +1010,12 @@
                 event.preventDefault();
             }
         }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            if (levelSelect.style.display === 'none') {
+                focusOnPlayer();
+            }
+        });
 
         updateHud();
     </script>
