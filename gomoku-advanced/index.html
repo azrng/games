@@ -8,6 +8,24 @@
 </head>
 <body>
     <div class="container">
+        <header class="page-header">
+            <div class="page-copy">
+                <p class="page-eyebrow">智能对局</p>
+                <h1>五子棋</h1>
+                <p class="page-description">保留高阶 AI、提示与主题切换能力，移除调试信息，针对移动端重新整理布局。</p>
+            </div>
+            <div class="game-info">
+                <div class="info-card">
+                    <span class="info-label">当前状态</span>
+                    <span id="status-text" class="info-value">点击“开始”进入游戏</span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">步数</span>
+                    <span id="step-count" class="info-value">0</span>
+                </div>
+            </div>
+        </header>
+
         <main class="game-layout">
             <section class="board-panel">
                 <div class="board-panel-header">
@@ -23,16 +41,6 @@
             <aside class="control-panel">
                 <section class="panel-card">
                     <h2>对局操作</h2>
-                    <div class="game-info">
-                        <div class="info-card">
-                            <span class="info-label">当前状态</span>
-                            <span id="status-text" class="info-value">点击“开始”进入游戏</span>
-                        </div>
-                        <div class="info-card">
-                            <span class="info-label">步数</span>
-                            <span id="step-count" class="info-value">0</span>
-                        </div>
-                    </div>
                     <div class="action-buttons">
                         <button id="start-btn" type="button">开始</button>
                         <button id="undo-btn" type="button" disabled>悔棋</button>

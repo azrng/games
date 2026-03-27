@@ -45,10 +45,13 @@ iframe {
     display: grid;
     grid-template-columns: var(--app-sidebar-width) 1fr;
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 .sidebar {
     position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
     padding: var(--app-spacing-lg);
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(14px);
@@ -56,12 +59,11 @@ iframe {
     display: flex;
     flex-direction: column;
     gap: var(--app-spacing-lg);
+    overflow-y: auto;
 }
 
 .sidebar-header,
-.brand,
-.content-header,
-.content-badges {
+.brand {
     display: flex;
     align-items: center;
 }
@@ -85,7 +87,6 @@ iframe {
 }
 
 .brand-eyebrow,
-.content-eyebrow,
 .meta-label,
 .sidebar-heading {
     margin: 0 0 6px;
@@ -122,9 +123,7 @@ iframe {
 
 .sidebar-copy,
 .meta-card,
-.game-item,
-.frame-panel,
-.content-header {
+.game-item {
     background: var(--app-panel);
     border: 1px solid rgba(215, 222, 234, 0.9);
     border-radius: var(--app-radius-md);
@@ -213,63 +212,18 @@ iframe {
 }
 
 .content {
-    padding: var(--app-spacing-xl);
-    display: flex;
-    flex-direction: column;
-    gap: var(--app-spacing-lg);
-}
-
-.content-header {
-    justify-content: space-between;
-    gap: var(--app-spacing-lg);
-    padding: var(--app-spacing-lg);
-}
-
-.content-title {
-    font-size: clamp(28px, 3vw, 40px);
-}
-
-.content-description {
-    margin-top: 10px;
-    max-width: 560px;
-}
-
-.content-badges {
-    gap: var(--app-spacing-sm);
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 36px;
-    padding: 0 14px;
-    border-radius: 999px;
-    background: var(--app-primary-soft);
-    color: var(--app-primary);
-    font-weight: 700;
-}
-
-.badge-muted {
-    background: var(--app-panel-muted);
-    color: var(--app-text-muted);
-}
-
-.frame-panel {
-    padding: var(--app-spacing-md);
-    min-height: 0;
-    flex: 1;
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(246, 248, 251, 0.95));
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: rgba(255, 255, 255, 0.72);
 }
 
 #game-frame {
     width: 100%;
-    min-height: calc(100vh - 176px);
+    height: 100vh;
+    height: 100dvh;
     border: 0;
-    border-radius: calc(var(--app-radius-lg) - 8px);
     background: #ffffff;
+    display: block;
 }
 
 .overlay {
@@ -312,16 +266,12 @@ iframe {
     }
 
     .content {
-        padding: 84px var(--app-spacing-md) var(--app-spacing-md);
-        gap: var(--app-spacing-md);
-    }
-
-    .content-header {
-        display: none;
+        min-height: 100vh;
+        min-height: 100dvh;
     }
 
     #game-frame {
-        min-height: calc(100vh - 132px);
-        min-height: calc(100dvh - 132px);
+        height: 100vh;
+        height: 100dvh;
     }
 }

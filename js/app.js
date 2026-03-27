@@ -7,9 +7,6 @@
         overlay: documentObject.getElementById("overlay"),
         gameList: documentObject.getElementById("game-list"),
         gameFrame: documentObject.getElementById("game-frame"),
-        currentGameTitle: documentObject.getElementById("current-game-title"),
-        currentGameDesc: documentObject.getElementById("current-game-desc"),
-        gameCountBadge: documentObject.getElementById("game-count-badge"),
         sidebarToggle: documentObject.getElementById("sidebar-toggle"),
         sidebarClose: documentObject.getElementById("sidebar-close")
     };
@@ -85,7 +82,6 @@
         });
 
         elements.gameList.replaceChildren(fragment);
-        elements.gameCountBadge.textContent = `${games.length} 款游戏`;
     }
 
     function syncActiveState() {
@@ -106,14 +102,12 @@
         const game = getGameBySlug(slug) || games[0];
 
         if (!game) {
-            elements.currentGameTitle.textContent = "未找到游戏";
-            elements.currentGameDesc.textContent = "请检查游戏清单配置。";
+            elements.gameFrame.removeAttribute("src");
+            elements.gameFrame.title = "未找到游戏";
             return;
         }
 
         activeSlug = game.slug;
-        elements.currentGameTitle.textContent = game.title;
-        elements.currentGameDesc.textContent = game.desc;
         elements.gameFrame.src = game.path;
         elements.gameFrame.title = `${game.title} 游戏画面`;
         syncActiveState();
@@ -169,8 +163,8 @@
 
     function init() {
         if (!games.length) {
-            elements.currentGameTitle.textContent = "暂无游戏";
-            elements.currentGameDesc.textContent = "请先在 data/games.js 中维护游戏清单。";
+            elements.gameFrame.removeAttribute("src");
+            elements.gameFrame.title = "暂无游戏";
             return;
         }
 
