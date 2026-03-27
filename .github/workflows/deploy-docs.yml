@@ -4,25 +4,40 @@ on:
   push:
     branches:
       - master
-  # 允许手动触发部署
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # - name: Setup Node.js
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: '20'
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Add .nojekyll
+        run: |
+          if [ ! -f .nojekyll ]; then
+            touch .nojekyll
+          fi
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.ACCESSTOKEN }}
-          publish_dir: .
-          # 保持.nojekyll文件，确保GitHub Pages正确处理下划线开头的文件和目录
-          enable_jekyll: false 
+        id: deployment
+        uses: actions/deploy-pages@v4
