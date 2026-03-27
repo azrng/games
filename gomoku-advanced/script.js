@@ -18,15 +18,10 @@
         status: 'idle',
         aiFirst: true,
         depth: 4,
-        showNumbers: false,
-        debug: false,
         theme: 'classic',
         forbiddenMoves: false,
         hints: 3,
         loading: false,
-        score: 0,
-        path: [],
-        currentDepth: 0,
         hintMove: null,
         hintTimer: null
     };
@@ -37,7 +32,6 @@
     var statusText, stepCount;
     var loadingOverlay;
     var resultModal, resultMessage, resultSteps;
-    var debugPanel, debugScore, debugDepth, debugPath, debugHistory;
 
     // Worker
     var worker;
@@ -55,11 +49,6 @@
         resultModal = document.getElementById('result-modal');
         resultMessage = document.getElementById('result-message');
         resultSteps = document.getElementById('result-steps');
-        debugPanel = document.getElementById('debug-panel');
-        debugScore = document.getElementById('debug-score');
-        debugDepth = document.getElementById('debug-depth');
-        debugPath = document.getElementById('debug-path');
-        debugHistory = document.getElementById('debug-history');
 
         worker = new Worker('ai-worker.js');
 
@@ -77,9 +66,6 @@
         game.currentPlayer = 0;
         game.history = [];
         game.winner = 0;
-        game.score = 0;
-        game.path = [];
-        game.currentDepth = 0;
         game.hintMove = null;
         if (game.hintTimer) {
             clearTimeout(game.hintTimer);
@@ -165,7 +151,7 @@
         // Forbidden move check (only for black)
         if (game.forbiddenMoves && game.currentPlayer === 1) {
             if (isForbiddenMove(game.board, row, col)) {
-                statusText.textContent = '禁手！此处不能落子';
+                statusText.textContent = '禁手位置，当前不能落子';
                 return;
             }
         }
@@ -242,9 +228,6 @@
         game.winner = data.winner;
         game.currentPlayer = data.current_player;
         game.history = data.history;
-        game.score = data.score || 0;
-        game.path = data.bestPath || [];
-        game.currentDepth = data.currentDepth || 0;
     }
 
     function checkGameOver() {
@@ -258,14 +241,14 @@
     function showResult() {
         var msg = '';
         if (game.winner === 1) {
-            msg = '黑棋获胜！';
+            msg = '黑棋获胜';
         } else if (game.winner === -1) {
-            msg = '白棋获胜！';
+            msg = '白棋获胜';
         } else {
-            msg = '平局！';
+            msg = '平局';
         }
         resultMessage.textContent = msg;
-        resultSteps.textContent = '总步数: ' + game.history.length;
+        resultSteps.textContent = '总步数：' + game.history.length;
         resultModal.classList.remove('hidden');
     }
 
@@ -486,21 +469,6 @@
             ctx.fill();
         }
 
-        // Move numbers
-        if (game.showNumbers && game.history.length > 0) {
-            for (var mi = 0; mi < game.history.length; mi++) {
-                var mh = game.history[mi];
-                var mx = (mh.j + 1) * cellSize;
-                var my = (mh.i + 1) * cellSize;
-                var mFontSize = cellSize * 0.35;
-                ctx.font = 'bold ' + mFontSize + 'px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = mh.role === 1 ? '#fff' : '#000';
-                ctx.fillText(mi + 1, mx, my);
-            }
-        }
-
         // Hint marker
         if (game.hintMove) {
             var hx = (game.hintMove[1] + 1) * cellSize;
@@ -513,19 +481,6 @@
             ctx.strokeStyle = 'rgba(255, 150, 0, 0.8)';
             ctx.lineWidth = 2;
             ctx.stroke();
-        }
-
-        // Debug path
-        if (game.debug && game.path && game.path.length > 0) {
-            for (var di = 0; di < game.path.length; di++) {
-                var dp = game.path[di];
-                var dx = (dp[1] + 1) * cellSize;
-                var dy = (dp[0] + 1) * cellSize;
-                ctx.fillStyle = di % 2 === 0 ? 'rgba(0, 150, 255, 0.3)' : 'rgba(255, 100, 0, 0.3)';
-                ctx.beginPath();
-                ctx.arc(dx, dy, cellSize * 0.35, 0, Math.PI * 2);
-                ctx.fill();
-            }
         }
     }
 
@@ -566,14 +521,14 @@
     function updateUI() {
         // Status
         if (game.status === 'idle' && game.history.length === 0) {
-            statusText.textContent = '点击"开始"进入游戏';
+            statusText.textContent = '点击“开始”进入游戏';
         } else if (game.status === 'gaming') {
             var playerText = game.currentPlayer === 1 ? '黑棋' : '白棋';
-            statusText.textContent = '当前回合: ' + playerText;
+            statusText.textContent = '当前回合：' + playerText;
         }
 
         // Step count
-        stepCount.textContent = '步数: ' + game.history.length;
+        stepCount.textContent = game.history.length;
 
         // Buttons
         startBtn.disabled = game.loading;
@@ -581,17 +536,6 @@
         resignBtn.disabled = game.loading || game.status !== 'gaming';
         hintBtn.disabled = game.loading || game.status !== 'gaming' || game.hints <= 0;
         hintBtn.textContent = '提示 (' + game.hints + ')';
-
-        // Debug
-        if (game.debug) {
-            debugPanel.classList.remove('hidden');
-            debugScore.textContent = game.score;
-            debugDepth.textContent = game.currentDepth;
-            debugPath.textContent = JSON.stringify(game.path.slice(0, 10));
-            debugHistory.textContent = JSON.stringify(game.history.slice(-10));
-        } else {
-            debugPanel.classList.add('hidden');
-        }
     }
 
     // ===== Event Binding =====
@@ -613,16 +557,6 @@
 
         document.getElementById('difficulty').addEventListener('change', function(e) {
             game.depth = parseInt(e.target.value);
-        });
-
-        document.getElementById('show-numbers').addEventListener('change', function(e) {
-            game.showNumbers = e.target.checked;
-            render();
-        });
-
-        document.getElementById('debug-toggle').addEventListener('change', function(e) {
-            game.debug = e.target.checked;
-            updateUI();
         });
 
         document.getElementById('theme').addEventListener('change', function(e) {
