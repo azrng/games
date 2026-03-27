@@ -105,6 +105,11 @@
             box-shadow: inset 0 0 0 1px rgba(69, 163, 131, 0.08);
         }
 
+        .void {
+            background: rgba(6, 12, 24, 0.9);
+            box-shadow: inset 0 0 0 1px rgba(126, 148, 196, 0.04);
+        }
+
         .end {
             background: linear-gradient(145deg, rgba(255, 190, 102, 0.96), rgba(255, 120, 94, 0.92));
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 0 22px rgba(255, 140, 102, 0.38);
@@ -568,7 +573,8 @@
             playerElement: null,
             partnerElement: null,
             safeArea: { top: 18, right: 18, bottom: 18, left: 18 },
-            focusFrame: 0
+            focusFrame: 0,
+            mobileViewportRadius: 4
         };
 
         const gameContainer = document.getElementById('game-container');
@@ -701,6 +707,10 @@
             return Math.round(value * ratio) / ratio;
         }
 
+        function isMobileViewportMode() {
+            return gameState.isMobile;
+        }
+
         function applyMazeTransform() {
             mazeContainer.style.transform = `translate3d(${gameState.translateX}px, ${gameState.translateY}px, 0) scale(${gameState.zoomLevel})`;
         }
@@ -758,6 +768,44 @@
                 gameState.focusFrame = 0;
                 focusOnPlayer();
             });
+        }
+
+        function buildCell(cellSize, renderX, renderY, mazeX, mazeY) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.style.width = `${cellSize}px`;
+            cell.style.height = `${cellSize}px`;
+            cell.style.left = `${renderX * cellSize}px`;
+            cell.style.top = `${renderY * cellSize}px`;
+            cell.dataset.x = mazeX;
+            cell.dataset.y = mazeY;
+
+            if (
+                mazeX < 0 ||
+                mazeY < 0 ||
+                mazeY >= gameState.maze.length ||
+                mazeX >= gameState.maze[0].length
+            ) {
+                cell.classList.add('void');
+                return cell;
+            }
+
+            if (gameState.maze[mazeY][mazeX] === 1) {
+                cell.classList.add('wall');
+                return cell;
+            }
+
+            cell.classList.add('path');
+
+            if (gameState.visitedCells.has(keyOf(mazeX, mazeY))) {
+                cell.classList.add('visited');
+            }
+
+            if (mazeX === gameState.partnerPosition.x && mazeY === gameState.partnerPosition.y) {
+                cell.classList.add('end');
+            }
+
+            return cell;
         }
 
         document.querySelectorAll('.difficulty-card').forEach((button) => {
@@ -857,41 +905,71 @@
             mazeContainer.innerHTML = '';
 
             const { width, height, cellSize } = getCurrentConfig();
-            mazeContainer.style.width = `${width * cellSize}px`;
-            mazeContainer.style.height = `${height * cellSize}px`;
-
             const cellsContainer = document.createElement('div');
             cellsContainer.style.position = 'relative';
             cellsContainer.style.width = '100%';
             cellsContainer.style.height = '100%';
             mazeContainer.appendChild(cellsContainer);
 
+            if (isMobileViewportMode()) {
+                const radius = gameState.mobileViewportRadius;
+                const windowSize = radius * 2 + 1;
+                const startX = gameState.playerPosition.x - radius;
+                const startY = gameState.playerPosition.y - radius;
+
+                mazeContainer.style.width = `${windowSize * cellSize}px`;
+                mazeContainer.style.height = `${windowSize * cellSize}px`;
+
+                for (let renderY = 0; renderY < windowSize; renderY++) {
+                    for (let renderX = 0; renderX < windowSize; renderX++) {
+                        const mazeX = startX + renderX;
+                        const mazeY = startY + renderY;
+                        cellsContainer.appendChild(buildCell(cellSize, renderX, renderY, mazeX, mazeY));
+                    }
+                }
+
+                const player = document.createElement('div');
+                player.id = 'player';
+                player.style.width = `${cellSize * 0.9}px`;
+                player.style.height = `${cellSize * 0.9}px`;
+                setActorPosition(player, radius, radius, cellSize);
+                cellsContainer.appendChild(player);
+                gameState.playerElement = player;
+
+                const partner = document.createElement('div');
+                partner.id = 'partner';
+                partner.style.width = `${cellSize * 0.9}px`;
+                partner.style.height = `${cellSize * 0.9}px`;
+
+                const partnerRenderX = gameState.partnerPosition.x - startX;
+                const partnerRenderY = gameState.partnerPosition.y - startY;
+                const partnerVisible = (
+                    partnerRenderX >= 0 &&
+                    partnerRenderX < windowSize &&
+                    partnerRenderY >= 0 &&
+                    partnerRenderY < windowSize
+                );
+
+                if (partnerVisible) {
+                    setActorPosition(partner, partnerRenderX, partnerRenderY, cellSize);
+                    partner.style.display = gameState.partnerFound ? 'block' : 'none';
+                    cellsContainer.appendChild(partner);
+                    gameState.partnerElement = partner;
+                } else {
+                    gameState.partnerElement = null;
+                }
+
+                refreshViewportMetrics();
+                scheduleFocusOnPlayer();
+                return;
+            }
+
+            mazeContainer.style.width = `${width * cellSize}px`;
+            mazeContainer.style.height = `${height * cellSize}px`;
+
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    cell.style.width = `${cellSize}px`;
-                    cell.style.height = `${cellSize}px`;
-                    cell.style.left = `${x * cellSize}px`;
-                    cell.style.top = `${y * cellSize}px`;
-                    cell.dataset.x = x;
-                    cell.dataset.y = y;
-
-                    if (gameState.maze[y][x] === 1) {
-                        cell.classList.add('wall');
-                    } else {
-                        cell.classList.add('path');
-
-                        if (gameState.visitedCells.has(keyOf(x, y))) {
-                            cell.classList.add('visited');
-                        }
-
-                        if (x === gameState.partnerPosition.x && y === gameState.partnerPosition.y) {
-                            cell.classList.add('end');
-                        }
-                    }
-
-                    cellsContainer.appendChild(cell);
+                    cellsContainer.appendChild(buildCell(cellSize, x, y, x, y));
                 }
             }
 
@@ -920,6 +998,20 @@
             const containerWidth = gameContainer.offsetWidth;
             const containerHeight = gameContainer.offsetHeight;
             const safeArea = gameState.safeArea;
+
+            if (isMobileViewportMode()) {
+                const viewportCells = gameState.mobileViewportRadius * 2 + 1;
+                const viewportWidth = viewportCells * cellSize * gameState.zoomLevel;
+                const viewportHeight = viewportCells * cellSize * gameState.zoomLevel;
+                const availableWidth = Math.max(120, containerWidth - safeArea.left - safeArea.right);
+                const availableHeight = Math.max(120, containerHeight - safeArea.top - safeArea.bottom);
+
+                gameState.translateX = roundToDevicePixel(safeArea.left + (availableWidth - viewportWidth) / 2);
+                gameState.translateY = roundToDevicePixel(safeArea.top + (availableHeight - viewportHeight) / 2);
+                applyMazeTransform();
+                return;
+            }
+
             const availableWidth = Math.max(120, containerWidth - safeArea.left - safeArea.right);
             const availableHeight = Math.max(120, containerHeight - safeArea.top - safeArea.bottom);
             const scale = gameState.isMobile ? gameState.zoomLevel : 1;
@@ -970,18 +1062,32 @@
                 gameState.visitedCells.add(keyOf(newX, newY));
                 updateHud();
 
-                const previousCell = document.querySelector(`.cell[data-x="${previousX}"][data-y="${previousY}"]`);
-                if (previousCell && !previousCell.classList.contains('end')) {
-                    previousCell.classList.add('visited');
+                const foundPartnerNow = (
+                    newX === gameState.partnerPosition.x &&
+                    newY === gameState.partnerPosition.y &&
+                    !gameState.partnerFound
+                );
+
+                if (foundPartnerNow) {
+                    gameState.partnerFound = true;
                 }
 
-                setActorPosition(gameState.playerElement, newX, newY, current.cellSize);
+                if (isMobileViewportMode()) {
+                    renderMaze();
+                } else {
+                    const previousCell = document.querySelector(`.cell[data-x="${previousX}"][data-y="${previousY}"]`);
+                    if (previousCell && !previousCell.classList.contains('end')) {
+                        previousCell.classList.add('visited');
+                    }
 
-                scheduleFocusOnPlayer();
+                    setActorPosition(gameState.playerElement, newX, newY, current.cellSize);
+                    scheduleFocusOnPlayer();
+                }
 
-                if (newX === gameState.partnerPosition.x && newY === gameState.partnerPosition.y && !gameState.partnerFound) {
-                    gameState.partnerFound = true;
-                    gameState.partnerElement.style.display = 'block';
+                if (foundPartnerNow) {
+                    if (gameState.partnerElement) {
+                        gameState.partnerElement.style.display = 'block';
+                    }
                     clearInterval(gameState.timerInterval);
                     setMissionText('伙伴已经找到，准备进入更复杂的下一关。');
                     showMessageOverlay(
