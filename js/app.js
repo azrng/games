@@ -1,198 +1,68 @@
 (function startGameHub(windowObject, documentObject) {
-    const store = windowObject.AppStore;
     const games = Array.isArray(windowObject.GAME_CATALOG) ? windowObject.GAME_CATALOG : [];
+    const grid = documentObject.getElementById("game-grid");
 
-    const elements = {
-        sidebar: documentObject.getElementById("sidebar"),
-        overlay: documentObject.getElementById("overlay"),
-        gameList: documentObject.getElementById("game-list"),
-        gameFrame: documentObject.getElementById("game-frame"),
-        sidebarToggle: documentObject.getElementById("sidebar-toggle"),
-        sidebarClose: documentObject.getElementById("sidebar-close")
+    if (!grid || !games.length) return;
+
+    /* 每个游戏的 banner 图标和标签 */
+    const gameMeta = {
+        "2048":            { icon: "🎲", tag: "休闲" },
+        "gomoku-advanced": { icon: "♟️", tag: "策略" },
+        "tetris":          { icon: "🧩", tag: "经典" },
+        "maze":            { icon: "🌊", tag: "冒险" },
+        "color-challenge": { icon: "🎨", tag: "休闲" },
+        "sliding-puzzle":  { icon: "🯰", tag: "益智" },
+        "hidden-cats":     { icon: "🐱", tag: "休闲" },
     };
 
-    const activeGameStorageKey = "ui_active_game";
-    const mobileGameMaxWidth = 640;
-    let activeSlug = null;
-
-    function isMobileViewport() {
-        return windowObject.innerWidth <= 980;
-    }
-
-    function shouldUseMobileGamePage() {
-        return windowObject.innerWidth <= mobileGameMaxWidth;
-    }
-
-    function toggleSidebar(forceOpen) {
-        const shouldOpen = typeof forceOpen === "boolean"
-            ? forceOpen
-            : !elements.sidebar.classList.contains("is-open");
-
-        elements.sidebar.classList.toggle("is-open", shouldOpen);
-        elements.overlay.classList.toggle("is-visible", shouldOpen);
-        elements.overlay.hidden = !shouldOpen;
-    }
-
-    function closeSidebarOnMobile() {
-        if (isMobileViewport()) {
-            toggleSidebar(false);
-        }
-    }
-
-    function getGameBySlug(slug) {
-        return games.find((game) => game.slug === slug) || null;
-    }
-
-    function createGameItem(game) {
-        const button = documentObject.createElement("button");
-        button.className = "game-item";
-        button.type = "button";
-        button.dataset.slug = game.slug;
-        button.setAttribute("aria-controls", "game-frame");
-
-        const icon = documentObject.createElement("img");
-        icon.className = "game-icon";
-        icon.src = game.icon;
-        icon.alt = `${game.title} 图标`;
-
-        const body = documentObject.createElement("div");
-        body.className = "game-item-body";
-
-        const title = documentObject.createElement("p");
-        title.className = "game-name";
-        title.textContent = game.title;
-
-        const description = documentObject.createElement("p");
-        description.className = "game-desc";
-        description.textContent = game.desc;
-
-        body.appendChild(title);
-        body.appendChild(description);
-        button.appendChild(icon);
-        button.appendChild(body);
-
-        button.addEventListener("click", () => {
-            setActiveGame(game.slug);
-            closeSidebarOnMobile();
-        });
-
-        return button;
-    }
-
-    function renderGameList() {
-        const fragment = documentObject.createDocumentFragment();
-
-        games.forEach((game) => {
-            fragment.appendChild(createGameItem(game));
-        });
-
-        elements.gameList.replaceChildren(fragment);
-    }
-
-    function syncActiveState() {
-        const items = elements.gameList.querySelectorAll(".game-item");
-
-        items.forEach((item) => {
-            const isActive = item.dataset.slug === activeSlug;
-            item.classList.toggle("is-active", isActive);
-            if (isActive) {
-                item.setAttribute("aria-current", "page");
-            } else {
-                item.removeAttribute("aria-current");
-            }
-        });
-    }
-
-    function setActiveGame(slug, updateHash = true) {
-        const game = getGameBySlug(slug) || games[0];
-
-        if (!game) {
-            elements.gameFrame.removeAttribute("src");
-            elements.gameFrame.title = "未找到游戏";
-            return;
-        }
-
-        activeSlug = game.slug;
-        elements.gameFrame.src = getGameFramePath(game);
-        elements.gameFrame.title = `${game.title} 游戏画面`;
-        syncActiveState();
-
-        if (store) {
-            store.set(activeGameStorageKey, game.slug);
-        }
-
-        if (updateHash) {
-            windowObject.location.hash = game.slug;
-        }
-    }
-
-    function getGameFramePath(game) {
-        if (shouldUseMobileGamePage() && game.mobilePath) {
-            return game.mobilePath;
-        }
-
+    function getGamePath(game) {
+        const isMobile = windowObject.innerWidth <= 640;
+        if (isMobile && game.mobilePath) return game.mobilePath;
         return game.path;
     }
 
-    function getInitialSlug() {
-        const slugFromHash = windowObject.location.hash.replace("#", "");
-        const hashGame = getGameBySlug(slugFromHash);
+    function createCard(game) {
+        const meta = gameMeta[game.slug] || { icon: "🎮", tag: "游戏" };
 
-        if (hashGame) {
-            return hashGame.slug;
-        }
+        const a = documentObject.createElement("a");
+        a.className = "game-card";
+        a.href = getGamePath(game);
+        a.dataset.slug = game.slug;
+        a.setAttribute("role", "listitem");
 
-        if (store) {
-            const storedSlug = store.get(activeGameStorageKey, "");
-            const storedGame = getGameBySlug(storedSlug);
-            if (storedGame) {
-                return storedGame.slug;
-            }
-        }
+        const banner = documentObject.createElement("div");
+        banner.className = "game-card-banner";
+        banner.textContent = meta.icon;
 
-        return games[0] ? games[0].slug : "";
+        const body = documentObject.createElement("div");
+        body.className = "game-card-body";
+
+        const title = documentObject.createElement("p");
+        title.className = "game-card-title";
+        title.textContent = game.title;
+
+        const desc = documentObject.createElement("p");
+        desc.className = "game-card-desc";
+        desc.textContent = game.desc;
+
+        const tag = documentObject.createElement("span");
+        tag.className = "game-card-tag";
+        tag.textContent = meta.tag;
+
+        body.appendChild(title);
+        body.appendChild(desc);
+        body.appendChild(tag);
+        a.appendChild(banner);
+        a.appendChild(body);
+
+        return a;
     }
 
-    function bindEvents() {
-        elements.sidebarToggle.addEventListener("click", () => toggleSidebar(true));
-        elements.sidebarClose.addEventListener("click", () => toggleSidebar(false));
-        elements.overlay.addEventListener("click", () => toggleSidebar(false));
-
-        windowObject.addEventListener("hashchange", () => {
-            const slug = windowObject.location.hash.replace("#", "");
-            const game = getGameBySlug(slug);
-
-            if (game && game.slug !== activeSlug) {
-                setActiveGame(game.slug, false);
-            }
-        });
-
-        windowObject.addEventListener("resize", () => {
-            if (!isMobileViewport()) {
-                toggleSidebar(false);
-            }
-
-            const game = getGameBySlug(activeSlug);
-            if (game) {
-                const nextPath = getGameFramePath(game);
-                if (elements.gameFrame.getAttribute("src") !== nextPath) {
-                    elements.gameFrame.src = nextPath;
-                }
-            }
-        });
+    function render() {
+        const fragment = documentObject.createDocumentFragment();
+        games.forEach((game) => fragment.appendChild(createCard(game)));
+        grid.replaceChildren(fragment);
     }
 
-    function init() {
-        if (!games.length) {
-            elements.gameFrame.removeAttribute("src");
-            elements.gameFrame.title = "暂无游戏";
-            return;
-        }
-
-        renderGameList();
-        bindEvents();
-        setActiveGame(getInitialSlug(), false);
-    }
-
-    init();
+    render();
 })(window, document);

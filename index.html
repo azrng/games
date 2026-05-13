@@ -9,43 +9,22 @@
     <link rel="stylesheet" href="css/custom.css">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="切换游戏列表">
-        ☰
-    </button>
 
-    <div class="app-shell">
-        <aside class="sidebar" id="sidebar">
-            <header class="sidebar-header">
-                <div class="brand">
-                    <img class="brand-icon" src="img/game.svg" alt="游戏平台图标">
-                    <div>
-                        <p class="brand-eyebrow">Game Hub</p>
-                        <h1 class="brand-title">游戏平台</h1>
-                    </div>
+    <div class="hub">
+        <header class="hub-header">
+            <div class="hub-brand">
+                <img class="hub-brand-icon" src="img/game.svg" alt="游戏平台图标">
+                <div>
+                    <p class="hub-brand-eyebrow">Game Hub</p>
+                    <h1 class="hub-brand-title">游戏平台</h1>
                 </div>
-                <button class="sidebar-close" id="sidebar-close" type="button" aria-label="关闭菜单">
-                    ×
-                </button>
-            </header>
+            </div>
+            <p class="hub-subtitle">选择一款游戏开始游玩</p>
+        </header>
 
-            <section class="sidebar-section">
-                <div class="sidebar-copy">
-                    <p class="sidebar-heading">游戏目录</p>
-                    <p class="sidebar-text">菜单内容来自统一清单文件，新增游戏时只需要补一条元数据。</p>
-                </div>
-                <nav class="game-list" id="game-list" aria-label="游戏导航"></nav>
-            </section>
-
-        </aside>
-
-        <main class="content">
-            <iframe id="game-frame" title="当前游戏" loading="lazy"></iframe>
-        </main>
+        <div class="hub-grid" id="game-grid" role="list" aria-label="游戏列表"></div>
     </div>
 
-    <div class="overlay" id="overlay" hidden></div>
-
-    <script src="js/store.js"></script>
     <script src="data/games.js"></script>
     <script src="js/app.js"></script>
 </body>
