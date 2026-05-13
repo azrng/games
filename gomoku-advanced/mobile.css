@@ -134,7 +134,7 @@ body.mobile-game {
     bottom: 0;
     z-index: 30;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     padding: 10px 12px max(12px, env(safe-area-inset-bottom));
     background: rgba(247, 249, 252, 0.92);

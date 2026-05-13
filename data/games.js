@@ -15,7 +15,7 @@
             path: "gomoku-advanced/index.html",
             mobilePath: "gomoku-advanced/mobile.html",
             icon: "img/game.svg",
-            desc: "基于 worker 的高阶 AI 五子棋版本，支持提示和调试信息。",
+            desc: "基于 worker 的高阶 AI 五子棋版本，PC 端保留提示能力。",
             readme: null,
             meta: null
         },

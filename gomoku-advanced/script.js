@@ -560,8 +560,10 @@
         startBtn.disabled = game.loading;
         undoBtn.disabled = game.loading || game.status !== 'gaming' || game.history.length < 2;
         resignBtn.disabled = game.loading || game.status !== 'gaming';
-        hintBtn.disabled = game.loading || game.status !== 'gaming' || game.hints <= 0;
-        hintBtn.textContent = '提示 (' + game.hints + ')';
+        if (hintBtn) {
+            hintBtn.disabled = game.loading || game.status !== 'gaming' || game.hints <= 0;
+            hintBtn.textContent = '提示 (' + game.hints + ')';
+        }
     }
 
     // ===== Event Binding =====
@@ -575,7 +577,9 @@
         startBtn.addEventListener('click', startGame);
         undoBtn.addEventListener('click', undoMove);
         resignBtn.addEventListener('click', resign);
-        hintBtn.addEventListener('click', showHint);
+        if (hintBtn) {
+            hintBtn.addEventListener('click', showHint);
+        }
 
         document.getElementById('ai-first').addEventListener('change', function(e) {
             game.aiFirst = e.target.checked;
