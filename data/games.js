@@ -56,6 +56,16 @@
             desc: "移动端数字滑块拼图，支持 3×3、4×4、5×5 和历史最优记录。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "hidden-cats",
+            title: "找猫咪",
+            path: "hidden-cats/index.html",
+            mobilePath: "hidden-cats/index.html",
+            icon: "img/game.svg",
+            desc: "在程序生成的素描画中找出隐藏的所有猫咪，关卡逐步升级。",
+            readme: null,
+            meta: null
         }
     ];
 
