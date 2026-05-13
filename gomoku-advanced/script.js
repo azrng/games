@@ -32,6 +32,7 @@
     var statusText, stepCount;
     var loadingOverlay;
     var resultModal, resultMessage, resultSteps;
+    var aiFirstInput, difficultySelect, themeSelect, forbiddenToggle;
 
     // Worker
     var worker;
@@ -49,9 +50,14 @@
         resultModal = document.getElementById('result-modal');
         resultMessage = document.getElementById('result-message');
         resultSteps = document.getElementById('result-steps');
+        aiFirstInput = document.getElementById('ai-first');
+        difficultySelect = document.getElementById('difficulty');
+        themeSelect = document.getElementById('theme');
+        forbiddenToggle = document.getElementById('forbidden-toggle');
 
         worker = new Worker('ai-worker.js');
 
+        syncSettingsFromControls();
         resetBoard();
         resizeCanvas();
         render();
@@ -128,6 +134,24 @@
         ctx.quadraticCurveTo(x, y, x + safeRadius, y);
     }
 
+    function syncSettingsFromControls() {
+        if (aiFirstInput) {
+            game.aiFirst = aiFirstInput.checked;
+        }
+        if (difficultySelect) {
+            var parsedDepth = parseInt(difficultySelect.value, 10);
+            if (!isNaN(parsedDepth)) {
+                game.depth = parsedDepth;
+            }
+        }
+        if (themeSelect) {
+            game.theme = themeSelect.value;
+        }
+        if (forbiddenToggle) {
+            game.forbiddenMoves = forbiddenToggle.checked;
+        }
+    }
+
     // ===== Worker Communication =====
     function sendToWorker(action, payload) {
         return new Promise(function(resolve) {
@@ -142,6 +166,7 @@
 
     // ===== Game Actions =====
     function startGame() {
+        syncSettingsFromControls();
         game.hints = 3;
         game.loading = true;
         updateUI();
@@ -165,6 +190,7 @@
 
     function handleCanvasClick(e) {
         if (game.loading || game.status !== 'gaming') return;
+        syncSettingsFromControls();
 
         var point = getBoardPointFromEvent(e);
         var cellSize = getCellSize();
@@ -228,6 +254,7 @@
 
     function showHint() {
         if (game.loading || game.status !== 'gaming' || game.hints <= 0) return;
+        syncSettingsFromControls();
 
         game.hints--;
         game.loading = true;
@@ -581,20 +608,20 @@
             hintBtn.addEventListener('click', showHint);
         }
 
-        document.getElementById('ai-first').addEventListener('change', function(e) {
+        aiFirstInput.addEventListener('change', function(e) {
             game.aiFirst = e.target.checked;
         });
 
-        document.getElementById('difficulty').addEventListener('change', function(e) {
-            game.depth = parseInt(e.target.value);
+        difficultySelect.addEventListener('change', function(e) {
+            game.depth = parseInt(e.target.value, 10);
         });
 
-        document.getElementById('theme').addEventListener('change', function(e) {
+        themeSelect.addEventListener('change', function(e) {
             game.theme = e.target.value;
             render();
         });
 
-        document.getElementById('forbidden-toggle').addEventListener('change', function(e) {
+        forbiddenToggle.addEventListener('change', function(e) {
             game.forbiddenMoves = e.target.checked;
             render();
         });

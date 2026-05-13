@@ -11,6 +11,8 @@ function createElement(id) {
         id,
         textContent: '',
         disabled: false,
+        checked: id === 'ai-first',
+        value: id === 'difficulty' ? '4' : (id === 'theme' ? 'classic' : ''),
         style: {},
         parentElement: { clientWidth: 360 },
         classList: {
@@ -19,6 +21,11 @@ function createElement(id) {
         },
         addEventListener(type, handler) {
             listeners[type] = handler;
+        },
+        dispatch(type, event) {
+            if (listeners[type]) {
+                listeners[type](event || { target: this });
+            }
         },
         getContext() {
             return createCanvasContext();
@@ -63,6 +70,12 @@ function testCatalogDescriptionDoesNotPromiseMobileHint() {
 
 function testSharedScriptInitializesWithoutHintButton() {
     const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
+    const { elements, context } = createScriptContext();
+
+    assert.doesNotThrow(() => vm.runInNewContext(script, context), 'script should initialize when hint-btn is absent');
+}
+
+function createScriptContext() {
     const elements = new Map();
     [
         'board-canvas',
@@ -91,6 +104,7 @@ function testSharedScriptInitializesWithoutHintButton() {
         addEventListener() {}
     };
 
+    const workerMessages = [];
     const context = {
         document,
         window: {
@@ -101,7 +115,9 @@ function testSharedScriptInitializesWithoutHintButton() {
             addEventListener() {}
         },
         Worker: function Worker() {
-            this.postMessage = function postMessage() {};
+            this.postMessage = function postMessage(message) {
+                workerMessages.push(message);
+            };
         },
         Math,
         Promise,
@@ -109,12 +125,37 @@ function testSharedScriptInitializesWithoutHintButton() {
         clearTimeout
     };
     context.window.window = context.window;
+    context.workerMessages = workerMessages;
 
-    assert.doesNotThrow(() => vm.runInNewContext(script, context), 'script should initialize when hint-btn is absent');
+    return { elements, context };
+}
+
+function testToggleTouchTargetCoversVisibleSwitch() {
+    const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
+    assert(!/\.toggle input\s*\{[^}]*width:\s*0\s*;[^}]*height:\s*0\s*;/s.test(css), 'toggle input should not be zero-sized');
+    assert(/\.toggle input\s*\{[^}]*width:\s*100%\s*;[^}]*height:\s*100%\s*;/s.test(css), 'toggle input should cover the visible switch');
+}
+
+function testStartReadsCurrentSettingsControls() {
+    const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
+    const { elements, context } = createScriptContext();
+
+    vm.runInNewContext(script, context);
+
+    elements.get('ai-first').checked = false;
+    elements.get('difficulty').value = '8';
+    elements.get('start-btn').dispatch('click');
+
+    const startMessage = context.workerMessages.find((message) => message.action === 'start');
+    assert(startMessage, 'start should send a worker message');
+    assert.strictEqual(startMessage.payload.aiFirst, false, 'start should read current ai-first control');
+    assert.strictEqual(startMessage.payload.depth, 8, 'start should read current difficulty control');
 }
 
 testMobileHtmlDoesNotExposeHintButton();
 testCatalogDescriptionDoesNotPromiseMobileHint();
 testSharedScriptInitializesWithoutHintButton();
+testToggleTouchTargetCoversVisibleSwitch();
+testStartReadsCurrentSettingsControls();
 
 console.log('mobile gomoku smoke test passed');
