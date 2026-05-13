@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>色觉挑战 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="色觉挑战">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Kuku Kube</p>
+                <h1>色觉挑战</h1>
+            </div>
+            <div class="timer-pill" aria-label="存活时间">
+                <span id="timer-text">0秒</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">轮次</span>
+                <strong id="round-text">1</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">得分</span>
+                <strong id="score-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">最高分</span>
+                <strong id="best-score">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">最长轮数</span>
+                <strong id="best-rounds">0</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="找出不同色方块">
+            <div id="grid" class="color-grid" aria-live="polite"></div>
+        </section>
+
+        <p class="hint-text">轻触找出唯一不同色。纯色觉游戏可能不适合所有色觉障碍用户。</p>
+    </main>
+
+    <section id="result-modal" class="result-modal" hidden>
+        <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <p class="eyebrow">Challenge Over</p>
+            <h2 id="result-title">游戏结束</h2>
+            <div class="result-grid">
+                <div>
+                    <span class="label">本局得分</span>
+                    <strong id="result-score">0</strong>
+                </div>
+                <div>
+                    <span class="label">存活轮数</span>
+                    <strong id="result-rounds">0</strong>
+                </div>
+                <div>
+                    <span class="label">历史最高</span>
+                    <strong id="result-best-score">0</strong>
+                </div>
+                <div>
+                    <span class="label">最长轮数</span>
+                    <strong id="result-best-rounds">0</strong>
+                </div>
+            </div>
+            <button id="restart-btn" class="primary-btn" type="button">再来一局</button>
+        </div>
+    </section>
+
+    <section class="desktop-notice" aria-label="移动端提示">
+        <div>
+            <p class="eyebrow">Mobile Only</p>
+            <h2>请在手机上体验</h2>
+            <p>色觉挑战按触控和竖屏节奏设计，移动端会获得完整体验。</p>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

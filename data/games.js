@@ -36,6 +36,16 @@
             desc: "递归回溯生成迷宫的桌面端专用挑战，关卡会逐步扩张。",
             readme: "maze/readme.md",
             meta: null
+        },
+        {
+            slug: "color-challenge",
+            title: "色觉挑战",
+            path: "color-challenge/index.html",
+            mobilePath: "color-challenge/index.html",
+            icon: "img/game.svg",
+            desc: "纯移动端色觉辨识挑战，找出唯一不同色并冲击最高分。",
+            readme: null,
+            meta: null
         }
     ];
 
