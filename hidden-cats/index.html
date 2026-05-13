@@ -458,7 +458,6 @@
         const MIN_SCALE = 0.4;
         const MAX_SCALE = 3.0;
         const HIT_RADIUS_MULT = 1.3;
-        const CAT_ACCENT = "#d94f7d";
         const SKETCH_LINE = "#757b84";
         const SKETCH_LIGHT = "#a7adb5";
 
@@ -547,82 +546,113 @@
             return list[Math.floor(random() * list.length)];
         }
 
-        /* 绘制接近参考图的小猫剪影 */
+        /* 绘制隐藏在线稿中的小猫轮廓 */
         function drawCat(cx, cy, size, rotation, variant, found) {
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(rotation);
 
             const s = size;
-            const fillColor = found ? "rgba(16,185,129,0.35)" : CAT_ACCENT;
-            const lineColor = found ? "rgba(16,185,129,0.95)" : "#8c3152";
+            const fillColor = found ? "rgba(16,185,129,0.16)" : "rgba(251,251,248,0.02)";
+            const lineColor = found ? "rgba(16,185,129,0.95)" : "#666d76";
             ctx.fillStyle = fillColor;
             ctx.strokeStyle = lineColor;
-            ctx.lineWidth = Math.max(1, s * 0.045);
+            ctx.lineWidth = Math.max(1.1, s * 0.038);
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
 
             const compact = variant % 4;
+            const headY = compact === 1 ? -s * 0.02 : -s * 0.24;
+
             ctx.beginPath();
             if (compact === 0) {
-                ctx.ellipse(0, s * 0.1, s * 0.36, s * 0.46, -0.1, 0, Math.PI * 2);
+                ctx.ellipse(0, s * 0.15, s * 0.34, s * 0.45, -0.05, 0, Math.PI * 2);
             } else if (compact === 1) {
-                ctx.ellipse(0, s * 0.15, s * 0.52, s * 0.28, 0.08, 0, Math.PI * 2);
+                ctx.ellipse(-s * 0.02, s * 0.18, s * 0.52, s * 0.24, 0.04, 0, Math.PI * 2);
             } else if (compact === 2) {
-                ctx.arc(0, s * 0.12, s * 0.34, 0, Math.PI * 2);
+                ctx.arc(0, s * 0.16, s * 0.33, 0, Math.PI * 2);
             } else {
-                ctx.ellipse(0, s * 0.1, s * 0.5, s * 0.28, -0.18, 0, Math.PI * 2);
+                ctx.ellipse(-s * 0.04, s * 0.12, s * 0.48, s * 0.26, -0.18, 0, Math.PI * 2);
             }
             ctx.fill();
             ctx.stroke();
 
-            const headY = compact === 1 ? -s * 0.06 : -s * 0.28;
             ctx.beginPath();
-            ctx.arc(0, headY, s * 0.25, 0, Math.PI * 2);
+            ctx.arc(0, headY, s * 0.28, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.moveTo(-s * 0.18, headY - s * 0.16);
-            ctx.lineTo(-s * 0.28, headY - s * 0.42);
-            ctx.lineTo(-s * 0.02, headY - s * 0.24);
+            ctx.moveTo(-s * 0.2, headY - s * 0.17);
+            ctx.lineTo(-s * 0.33, headY - s * 0.46);
+            ctx.lineTo(-s * 0.03, headY - s * 0.25);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
             ctx.beginPath();
-            ctx.moveTo(s * 0.18, headY - s * 0.16);
-            ctx.lineTo(s * 0.28, headY - s * 0.42);
-            ctx.lineTo(s * 0.02, headY - s * 0.24);
+            ctx.moveTo(s * 0.2, headY - s * 0.17);
+            ctx.lineTo(s * 0.33, headY - s * 0.46);
+            ctx.lineTo(s * 0.03, headY - s * 0.25);
             ctx.closePath();
             ctx.fill();
             ctx.stroke();
 
-            ctx.fillStyle = "#522135";
+            ctx.fillStyle = found ? "rgba(16,185,129,0.95)" : "#737983";
             ctx.beginPath();
-            ctx.arc(-s * 0.08, headY - s * 0.02, s * 0.025, 0, Math.PI * 2);
+            ctx.arc(-s * 0.09, headY - s * 0.02, s * 0.022, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(s * 0.08, headY - s * 0.02, s * 0.025, 0, Math.PI * 2);
+            ctx.arc(s * 0.09, headY - s * 0.02, s * 0.022, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.strokeStyle = lineColor;
             ctx.beginPath();
-            ctx.moveTo(-s * 0.06, headY + s * 0.08);
-            ctx.lineTo(-s * 0.22, headY + s * 0.04);
-            ctx.moveTo(s * 0.06, headY + s * 0.08);
-            ctx.lineTo(s * 0.22, headY + s * 0.04);
+            ctx.moveTo(-s * 0.05, headY + s * 0.08);
+            ctx.lineTo(-s * 0.27, headY + s * 0.02);
+            ctx.moveTo(-s * 0.04, headY + s * 0.13);
+            ctx.lineTo(-s * 0.28, headY + s * 0.14);
+            ctx.moveTo(s * 0.05, headY + s * 0.08);
+            ctx.lineTo(s * 0.27, headY + s * 0.02);
+            ctx.moveTo(s * 0.04, headY + s * 0.13);
+            ctx.lineTo(s * 0.28, headY + s * 0.14);
             ctx.stroke();
 
             ctx.beginPath();
             const tailDir = compact % 2 === 0 ? 1 : -1;
             ctx.moveTo(tailDir * s * 0.32, s * 0.12);
             ctx.quadraticCurveTo(
-                tailDir * s * 0.68, -s * 0.1,
-                tailDir * s * 0.45, -s * 0.36
+                tailDir * s * 0.7, -s * 0.08,
+                tailDir * s * 0.46, -s * 0.38
             );
             ctx.stroke();
 
+            ctx.restore();
+        }
+
+        function drawCatDecoy(x, y, size, rotation = 0) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+            sketchStyle(Math.max(0.9, size * 0.035), SKETCH_LIGHT);
+            ctx.beginPath();
+            ctx.arc(0, -size * 0.18, size * 0.22, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.16, -size * 0.34);
+            ctx.lineTo(-size * 0.26, -size * 0.58);
+            ctx.lineTo(-size * 0.02, -size * 0.42);
+            ctx.moveTo(size * 0.16, -size * 0.34);
+            ctx.lineTo(size * 0.26, -size * 0.58);
+            ctx.lineTo(size * 0.02, -size * 0.42);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.ellipse(0, size * 0.14, size * 0.42, size * 0.24, 0.12, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(size * 0.34, size * 0.1);
+            ctx.quadraticCurveTo(size * 0.62, -size * 0.08, size * 0.42, -size * 0.28);
+            ctx.stroke();
             ctx.restore();
         }
 
@@ -840,6 +870,60 @@
             ctx.stroke();
         }
 
+        function drawDenseLinework(size, random) {
+            sketchStyle(1, "rgba(117,123,132,0.72)");
+            const windowCount = 75 + Math.floor(random() * 45);
+            for (let i = 0; i < windowCount; i++) {
+                const x = size * (0.03 + random() * 0.92);
+                const y = size * (0.18 + random() * 0.68);
+                const w = size * (0.012 + random() * 0.018);
+                const h = size * (0.018 + random() * 0.026);
+                if (random() < 0.55) {
+                    ctx.strokeRect(x, y, w, h);
+                    ctx.beginPath();
+                    ctx.moveTo(x + w * 0.5, y);
+                    ctx.lineTo(x + w * 0.5, y + h);
+                    ctx.moveTo(x, y + h * 0.5);
+                    ctx.lineTo(x + w, y + h * 0.5);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + h);
+                    ctx.lineTo(x, y + h * 0.35);
+                    ctx.quadraticCurveTo(x + w * 0.5, y - h * 0.15, x + w, y + h * 0.35);
+                    ctx.lineTo(x + w, y + h);
+                    ctx.stroke();
+                }
+            }
+
+            const textureCount = 95 + Math.floor(random() * 60);
+            for (let i = 0; i < textureCount; i++) {
+                const x = size * random();
+                const y = size * random();
+                const len = size * (0.015 + random() * 0.035);
+                const angle = random() * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(
+                    x + Math.cos(angle + 0.8) * len * 0.45,
+                    y + Math.sin(angle + 0.8) * len * 0.45,
+                    x + Math.cos(angle) * len,
+                    y + Math.sin(angle) * len
+                );
+                ctx.stroke();
+            }
+
+            const decoyCount = 18 + Math.floor(random() * 12);
+            for (let i = 0; i < decoyCount; i++) {
+                drawCatDecoy(
+                    size * (0.04 + random() * 0.9),
+                    size * (0.18 + random() * 0.74),
+                    size * (0.018 + random() * 0.014),
+                    random() * 1.2 - 0.6
+                );
+            }
+        }
+
         /* 绘制干扰物 */
         function drawObstacle(o) {
             ctx.save();
@@ -1007,6 +1091,7 @@
             drawStreetBlocks(size, random);
             drawHillsAndRoads(size, random);
             drawArtistAndTable(size, random);
+            drawDenseLinework(size, random);
         }
 
         /* ===== 场景生成 ===== */
@@ -1016,20 +1101,20 @@
             const random = seededRandom(state.sceneSeed + 31);
             const jitter = (value, spread) => value + (random() - 0.5) * spread;
             return [
-                { x: jitter(size * 0.08, size * 0.03), y: jitter(size * 0.58, size * 0.04), r: size * 0.023, variant: 0, rotation: -0.18 },
-                { x: jitter(size * 0.16, size * 0.05), y: jitter(size * 0.43, size * 0.05), r: size * 0.021, variant: 2, rotation: 0.12 },
-                { x: jitter(size * 0.23, size * 0.04), y: jitter(size * 0.67, size * 0.04), r: size * 0.024, variant: 1, rotation: 0.04 },
-                { x: jitter(size * 0.34, size * 0.04), y: jitter(size * 0.31, size * 0.04), r: size * 0.019, variant: 0, rotation: -0.08 },
-                { x: jitter(size * 0.37, size * 0.04), y: jitter(size * 0.62, size * 0.04), r: size * 0.022, variant: 3, rotation: 0.3 },
-                { x: jitter(size * 0.48, size * 0.05), y: jitter(size * 0.42, size * 0.04), r: size * 0.018, variant: 0, rotation: 0.05 },
-                { x: jitter(size * 0.55, size * 0.05), y: jitter(size * 0.51, size * 0.04), r: size * 0.021, variant: 1, rotation: -0.2 },
-                { x: jitter(size * 0.61, size * 0.05), y: jitter(size * 0.22, size * 0.04), r: size * 0.019, variant: 3, rotation: 0.18 },
-                { x: jitter(size * 0.72, size * 0.05), y: jitter(size * 0.56, size * 0.04), r: size * 0.02, variant: 0, rotation: -0.08 },
-                { x: jitter(size * 0.79, size * 0.05), y: jitter(size * 0.33, size * 0.04), r: size * 0.022, variant: 1, rotation: 0.2 },
-                { x: jitter(size * 0.86, size * 0.04), y: jitter(size * 0.68, size * 0.04), r: size * 0.02, variant: 2, rotation: 0.16 },
-                { x: jitter(size * 0.93, size * 0.04), y: jitter(size * 0.48, size * 0.04), r: size * 0.018, variant: 0, rotation: -0.25 },
-                { x: jitter(size * 0.44, size * 0.05), y: jitter(size * 0.76, size * 0.04), r: size * 0.02, variant: 2, rotation: 0.1 },
-                { x: jitter(size * 0.64, size * 0.05), y: jitter(size * 0.73, size * 0.04), r: size * 0.019, variant: 3, rotation: -0.18 },
+                { x: jitter(size * 0.08, size * 0.03), y: jitter(size * 0.58, size * 0.04), r: size * 0.017, variant: 0, rotation: -0.18 },
+                { x: jitter(size * 0.16, size * 0.05), y: jitter(size * 0.43, size * 0.05), r: size * 0.016, variant: 2, rotation: 0.12 },
+                { x: jitter(size * 0.23, size * 0.04), y: jitter(size * 0.67, size * 0.04), r: size * 0.018, variant: 1, rotation: 0.04 },
+                { x: jitter(size * 0.34, size * 0.04), y: jitter(size * 0.31, size * 0.04), r: size * 0.015, variant: 0, rotation: -0.08 },
+                { x: jitter(size * 0.37, size * 0.04), y: jitter(size * 0.62, size * 0.04), r: size * 0.017, variant: 3, rotation: 0.3 },
+                { x: jitter(size * 0.48, size * 0.05), y: jitter(size * 0.42, size * 0.04), r: size * 0.015, variant: 0, rotation: 0.05 },
+                { x: jitter(size * 0.55, size * 0.05), y: jitter(size * 0.51, size * 0.04), r: size * 0.017, variant: 1, rotation: -0.2 },
+                { x: jitter(size * 0.61, size * 0.05), y: jitter(size * 0.22, size * 0.04), r: size * 0.015, variant: 3, rotation: 0.18 },
+                { x: jitter(size * 0.72, size * 0.05), y: jitter(size * 0.56, size * 0.04), r: size * 0.016, variant: 0, rotation: -0.08 },
+                { x: jitter(size * 0.79, size * 0.05), y: jitter(size * 0.33, size * 0.04), r: size * 0.017, variant: 1, rotation: 0.2 },
+                { x: jitter(size * 0.86, size * 0.04), y: jitter(size * 0.68, size * 0.04), r: size * 0.016, variant: 2, rotation: 0.16 },
+                { x: jitter(size * 0.93, size * 0.04), y: jitter(size * 0.48, size * 0.04), r: size * 0.015, variant: 0, rotation: -0.25 },
+                { x: jitter(size * 0.44, size * 0.05), y: jitter(size * 0.76, size * 0.04), r: size * 0.016, variant: 2, rotation: 0.1 },
+                { x: jitter(size * 0.64, size * 0.05), y: jitter(size * 0.73, size * 0.04), r: size * 0.015, variant: 3, rotation: -0.18 },
             ];
         }
 
@@ -1054,7 +1139,7 @@
             state.cats = anchors.slice(0, cats).map((anchor) => ({
                 x: anchor.x + randFloat(-size * 0.008, size * 0.008),
                 y: anchor.y + randFloat(-size * 0.008, size * 0.008),
-                r: Math.max(22, Math.min(42, anchor.r)),
+                r: Math.max(18, Math.min(32, anchor.r)),
                 found: false,
                 variant: anchor.variant,
                 rotation: anchor.rotation + randFloat(-0.12, 0.12),
@@ -1096,7 +1181,7 @@
             /* 线稿干扰物 */
             state.obstacles.forEach(drawObstacle);
 
-            /* 粉色猫咪剪影，藏在线稿细节里 */
+            /* 小猫轮廓藏在线稿细节里 */
             state.cats.forEach(c => {
                 drawCat(c.x, c.y, c.r, c.rotation, c.variant, c.found);
             });
