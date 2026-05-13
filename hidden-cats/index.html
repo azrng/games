@@ -639,15 +639,16 @@
             ctx.stroke();
         }
 
-        function drawCloud(x, y, scale = 1) {
+        function drawCloud(x, y, scale = 1, random = Math.random) {
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(scale, scale);
             sketchStyle(1.5, SKETCH_LIGHT);
+            const lift = (random() - 0.5) * 18;
             ctx.beginPath();
             ctx.moveTo(-86, 10);
-            ctx.bezierCurveTo(-64, -24, -32, -24, -18, -4);
-            ctx.bezierCurveTo(2, -44, 50, -38, 60, -2);
+            ctx.bezierCurveTo(-64, -24 + lift, -32, -24, -18, -4);
+            ctx.bezierCurveTo(2, -44, 50, -38 + lift, 60, -2);
             ctx.bezierCurveTo(94, -4, 112, 14, 94, 32);
             ctx.lineTo(-72, 32);
             ctx.bezierCurveTo(-108, 30, -112, 14, -86, 10);
@@ -674,29 +675,31 @@
             ctx.restore();
         }
 
-        function drawColosseum(x, y, w, h) {
+        function drawColosseum(x, y, w, h, lean = 0) {
             ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(lean);
             sketchStyle(2, SKETCH_LINE);
             ctx.beginPath();
-            ctx.moveTo(x, y + h * 0.16);
-            ctx.quadraticCurveTo(x + w * 0.46, y - h * 0.05, x + w, y + h * 0.12);
-            ctx.lineTo(x + w * 0.92, y + h);
-            ctx.lineTo(x + w * 0.05, y + h);
+            ctx.moveTo(0, h * 0.16);
+            ctx.quadraticCurveTo(w * 0.46, -h * 0.05, w, h * 0.12);
+            ctx.lineTo(w * 0.92, h);
+            ctx.lineTo(w * 0.05, h);
             ctx.closePath();
             ctx.stroke();
 
             for (let row = 0; row < 5; row++) {
-                const yy = y + h * (0.2 + row * 0.16);
+                const yy = h * (0.2 + row * 0.16);
                 ctx.beginPath();
-                ctx.moveTo(x + w * 0.03, yy);
-                ctx.quadraticCurveTo(x + w * 0.48, yy - h * 0.05, x + w * 0.96, yy);
+                ctx.moveTo(w * 0.03, yy);
+                ctx.quadraticCurveTo(w * 0.48, yy - h * 0.05, w * 0.96, yy);
                 ctx.stroke();
             }
 
             for (let row = 0; row < 4; row++) {
-                const yy = y + h * (0.27 + row * 0.16);
+                const yy = h * (0.27 + row * 0.16);
                 for (let i = 0; i < 9; i++) {
-                    const ax = x + w * (0.1 + i * 0.09);
+                    const ax = w * (0.1 + i * 0.09);
                     const aw = w * 0.055;
                     const ah = h * 0.09;
                     ctx.beginPath();
@@ -710,10 +713,10 @@
             ctx.restore();
         }
 
-        function drawLeaningTower(x, y, w, h) {
+        function drawLeaningTower(x, y, w, h, lean = -0.08) {
             ctx.save();
             ctx.translate(x, y);
-            ctx.rotate(-0.08);
+            ctx.rotate(lean);
             sketchStyle(2, SKETCH_LINE);
             ctx.strokeRect(0, 0, w, h);
             for (let row = 0; row < 7; row++) {
@@ -735,14 +738,15 @@
             ctx.restore();
         }
 
-        function drawStreetBlocks(size) {
+        function drawStreetBlocks(size, random) {
             sketchStyle(1.5, SKETCH_LINE);
-            const baseY = size * 0.48;
-            for (let i = 0; i < 7; i++) {
-                const x = size * (0.42 + i * 0.055);
-                const y = baseY - (i % 3) * size * 0.035;
-                const w = size * 0.07;
-                const h = size * (0.18 + (i % 2) * 0.04);
+            const baseY = size * (0.44 + random() * 0.05);
+            const count = 6 + Math.floor(random() * 3);
+            for (let i = 0; i < count; i++) {
+                const x = size * (0.39 + i * (0.046 + random() * 0.015));
+                const y = baseY - (i % 3) * size * (0.025 + random() * 0.018);
+                const w = size * (0.055 + random() * 0.03);
+                const h = size * (0.15 + random() * 0.08);
                 ctx.strokeRect(x, y, w, h);
                 ctx.beginPath();
                 ctx.moveTo(x - w * 0.08, y);
@@ -757,11 +761,11 @@
             }
         }
 
-        function drawAirship(size) {
-            const x = size * 0.56;
-            const y = size * 0.08;
-            const w = size * 0.28;
-            const h = size * 0.09;
+        function drawAirship(size, random) {
+            const x = size * (0.48 + random() * 0.16);
+            const y = size * (0.04 + random() * 0.06);
+            const w = size * (0.22 + random() * 0.1);
+            const h = size * (0.075 + random() * 0.035);
             ctx.save();
             sketchStyle(1.7, SKETCH_LINE);
             strokeEllipse(x + w * 0.5, y + h * 0.5, w * 0.5, h * 0.5);
@@ -781,11 +785,11 @@
             ctx.restore();
         }
 
-        function drawArtistAndTable(size) {
+        function drawArtistAndTable(size, random) {
             ctx.save();
             sketchStyle(1.8, SKETCH_LINE);
-            const cx = size * 0.84;
-            const cy = size * 0.21;
+            const cx = size * (0.79 + random() * 0.08);
+            const cy = size * (0.18 + random() * 0.05);
             strokeEllipse(cx, cy, size * 0.04, size * 0.055);
             ctx.beginPath();
             ctx.moveTo(cx - size * 0.045, cy - size * 0.05);
@@ -804,8 +808,8 @@
             ctx.lineTo(cx + size * 0.12, cy + size * 0.32);
             ctx.stroke();
 
-            const tx = size * 0.63;
-            const ty = size * 0.58;
+            const tx = size * (0.61 + random() * 0.04);
+            const ty = size * (0.56 + random() * 0.05);
             ctx.beginPath();
             ctx.moveTo(tx, ty);
             ctx.lineTo(size * 0.98, ty + size * 0.04);
@@ -819,10 +823,10 @@
             ctx.restore();
         }
 
-        function drawHillsAndRoads(size) {
+        function drawHillsAndRoads(size, random) {
             sketchStyle(1.4, SKETCH_LIGHT);
             for (let i = 0; i < 6; i++) {
-                const y = size * (0.58 + i * 0.045);
+                const y = size * (0.56 + i * (0.038 + random() * 0.012));
                 ctx.beginPath();
                 ctx.moveTo(size * 0.28, y);
                 for (let x = size * 0.34; x < size * 0.68; x += size * 0.08) {
@@ -951,47 +955,81 @@
                     ctx.ellipse(0, -s * 0.05, s * 0.2, s * 0.15, 0, 0, Math.PI * 2);
                     ctx.stroke();
                     break;
+                case "window":
+                    ctx.strokeRect(-s * 0.22, -s * 0.3, s * 0.44, s * 0.6);
+                    ctx.beginPath();
+                    ctx.moveTo(0, -s * 0.3);
+                    ctx.lineTo(0, s * 0.3);
+                    ctx.moveTo(-s * 0.22, 0);
+                    ctx.lineTo(s * 0.22, 0);
+                    ctx.stroke();
+                    break;
+                case "plate":
+                    strokeEllipse(0, 0, s * 0.34, s * 0.2, 0.08);
+                    strokeEllipse(0, 0, s * 0.2, s * 0.1, 0.08);
+                    break;
+                case "leaf":
+                    ctx.beginPath();
+                    ctx.moveTo(-s * 0.28, s * 0.18);
+                    ctx.quadraticCurveTo(0, -s * 0.36, s * 0.3, s * 0.16);
+                    ctx.quadraticCurveTo(0, s * 0.28, -s * 0.28, s * 0.18);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(-s * 0.16, s * 0.16);
+                    ctx.lineTo(s * 0.2, -s * 0.08);
+                    ctx.stroke();
+                    break;
             }
             ctx.restore();
         }
 
         /* 绘制参考图风格的大幅线稿场景 */
         function drawTravelSketchScene(size) {
+            const random = seededRandom(state.sceneSeed);
             ctx.fillStyle = "#fbfbf8";
             ctx.fillRect(0, 0, size, size);
 
-            drawCloud(size * 0.13, size * 0.06, size / 1250);
-            drawCloud(size * 0.35, size * 0.05, size / 1150);
-            drawCloud(size * 0.86, size * 0.08, size / 1300);
-            drawAirship(size);
-            drawBird(size * 0.11, size * 0.13, size / 1550, 0.2);
-            drawBird(size * 0.18, size * 0.08, size / 1400, -0.15);
-            drawColosseum(size * 0.01, size * 0.31, size * 0.28, size * 0.47);
-            drawLeaningTower(size * 0.3, size * 0.21, size * 0.14, size * 0.58);
-            drawStreetBlocks(size);
-            drawHillsAndRoads(size);
-            drawArtistAndTable(size);
+            const cloudCount = 4 + Math.floor(random() * 3);
+            for (let i = 0; i < cloudCount; i++) {
+                drawCloud(size * (0.08 + random() * 0.86), size * (0.04 + random() * 0.16), size / (1050 + random() * 360), random);
+            }
+
+            drawAirship(size, random);
+
+            const birdCount = 2 + Math.floor(random() * 4);
+            for (let i = 0; i < birdCount; i++) {
+                drawBird(size * (0.04 + random() * 0.3), size * (0.06 + random() * 0.2), size / (1200 + random() * 500), random() - 0.5);
+            }
+
+            const colosseumX = size * (0.005 + random() * 0.035);
+            drawColosseum(colosseumX, size * (0.29 + random() * 0.04), size * (0.25 + random() * 0.06), size * (0.42 + random() * 0.08), (random() - 0.5) * 0.06);
+            drawLeaningTower(size * (0.27 + random() * 0.06), size * (0.18 + random() * 0.06), size * (0.12 + random() * 0.04), size * (0.54 + random() * 0.08), -0.12 + random() * 0.08);
+            drawStreetBlocks(size, random);
+            drawHillsAndRoads(size, random);
+            drawArtistAndTable(size, random);
         }
 
         /* ===== 场景生成 ===== */
-        const OBSTACLE_TYPES = ["tree", "house", "flower", "bottle", "book", "star", "cloud", "fish", "mushroom"];
+        const OBSTACLE_TYPES = ["tree", "house", "flower", "bottle", "book", "star", "cloud", "fish", "mushroom", "window", "plate", "leaf"];
 
         function sceneCatAnchors(size) {
+            const random = seededRandom(state.sceneSeed + 31);
+            const jitter = (value, spread) => value + (random() - 0.5) * spread;
             return [
-                { x: size * 0.08, y: size * 0.58, r: size * 0.023, variant: 0, rotation: -0.18 },
-                { x: size * 0.16, y: size * 0.43, r: size * 0.021, variant: 2, rotation: 0.12 },
-                { x: size * 0.23, y: size * 0.67, r: size * 0.024, variant: 1, rotation: 0.04 },
-                { x: size * 0.34, y: size * 0.31, r: size * 0.019, variant: 0, rotation: -0.08 },
-                { x: size * 0.37, y: size * 0.62, r: size * 0.022, variant: 3, rotation: 0.3 },
-                { x: size * 0.48, y: size * 0.42, r: size * 0.018, variant: 0, rotation: 0.05 },
-                { x: size * 0.55, y: size * 0.51, r: size * 0.021, variant: 1, rotation: -0.2 },
-                { x: size * 0.61, y: size * 0.22, r: size * 0.019, variant: 3, rotation: 0.18 },
-                { x: size * 0.72, y: size * 0.56, r: size * 0.02, variant: 0, rotation: -0.08 },
-                { x: size * 0.79, y: size * 0.33, r: size * 0.022, variant: 1, rotation: 0.2 },
-                { x: size * 0.86, y: size * 0.68, r: size * 0.02, variant: 2, rotation: 0.16 },
-                { x: size * 0.93, y: size * 0.48, r: size * 0.018, variant: 0, rotation: -0.25 },
-                { x: size * 0.44, y: size * 0.76, r: size * 0.02, variant: 2, rotation: 0.1 },
-                { x: size * 0.64, y: size * 0.73, r: size * 0.019, variant: 3, rotation: -0.18 },
+                { x: jitter(size * 0.08, size * 0.03), y: jitter(size * 0.58, size * 0.04), r: size * 0.023, variant: 0, rotation: -0.18 },
+                { x: jitter(size * 0.16, size * 0.05), y: jitter(size * 0.43, size * 0.05), r: size * 0.021, variant: 2, rotation: 0.12 },
+                { x: jitter(size * 0.23, size * 0.04), y: jitter(size * 0.67, size * 0.04), r: size * 0.024, variant: 1, rotation: 0.04 },
+                { x: jitter(size * 0.34, size * 0.04), y: jitter(size * 0.31, size * 0.04), r: size * 0.019, variant: 0, rotation: -0.08 },
+                { x: jitter(size * 0.37, size * 0.04), y: jitter(size * 0.62, size * 0.04), r: size * 0.022, variant: 3, rotation: 0.3 },
+                { x: jitter(size * 0.48, size * 0.05), y: jitter(size * 0.42, size * 0.04), r: size * 0.018, variant: 0, rotation: 0.05 },
+                { x: jitter(size * 0.55, size * 0.05), y: jitter(size * 0.51, size * 0.04), r: size * 0.021, variant: 1, rotation: -0.2 },
+                { x: jitter(size * 0.61, size * 0.05), y: jitter(size * 0.22, size * 0.04), r: size * 0.019, variant: 3, rotation: 0.18 },
+                { x: jitter(size * 0.72, size * 0.05), y: jitter(size * 0.56, size * 0.04), r: size * 0.02, variant: 0, rotation: -0.08 },
+                { x: jitter(size * 0.79, size * 0.05), y: jitter(size * 0.33, size * 0.04), r: size * 0.022, variant: 1, rotation: 0.2 },
+                { x: jitter(size * 0.86, size * 0.04), y: jitter(size * 0.68, size * 0.04), r: size * 0.02, variant: 2, rotation: 0.16 },
+                { x: jitter(size * 0.93, size * 0.04), y: jitter(size * 0.48, size * 0.04), r: size * 0.018, variant: 0, rotation: -0.25 },
+                { x: jitter(size * 0.44, size * 0.05), y: jitter(size * 0.76, size * 0.04), r: size * 0.02, variant: 2, rotation: 0.1 },
+                { x: jitter(size * 0.64, size * 0.05), y: jitter(size * 0.73, size * 0.04), r: size * 0.019, variant: 3, rotation: -0.18 },
             ];
         }
 
@@ -1055,10 +1093,10 @@
 
             drawTravelSketchScene(size);
 
-            /* 干扰物 */
+            /* 线稿干扰物 */
             state.obstacles.forEach(drawObstacle);
 
-            /* 猫咪（未找到的画在干扰物之间） */
+            /* 粉色猫咪剪影，藏在线稿细节里 */
             state.cats.forEach(c => {
                 drawCat(c.x, c.y, c.r, c.rotation, c.variant, c.found);
             });

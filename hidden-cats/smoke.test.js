@@ -143,6 +143,9 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("user-scalable=no"), "page should disable browser zoom for touch gestures");
     assert(html.includes("id=\"gameCanvas\""), "page should include a canvas");
     assert(html.includes("id=\"btnHint\""), "page should include hint control");
+    assert(html.includes("sceneSeed"), "page should generate a randomized scene seed per level");
+    assert(html.includes("CAT_ACCENT"), "page should draw accent-color hidden cats");
+    assert(html.includes("drawTravelSketchScene"), "page should render a generated sketch scene");
     assert(catalog.includes("slug: \"hidden-cats\""), "hidden-cats should be registered in catalog");
     assert(catalog.includes("mobilePath: \"hidden-cats/index.html\""), "hidden-cats should have mobile path");
 
