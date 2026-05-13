@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>数字华容道 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="数字华容道">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Sliding Puzzle</p>
+                <h1>数字华容道</h1>
+            </div>
+            <button id="size-btn" class="size-pill" type="button">规格</button>
+        </header>
+
+        <section class="stats" aria-label="游戏状态">
+            <article class="stat-card">
+                <span class="label">规格</span>
+                <strong id="size-label">4×4</strong>
+            </article>
+            <article class="stat-card">
+                <span class="label">步数</span>
+                <strong id="steps-text">0</strong>
+            </article>
+            <article class="stat-card">
+                <span class="label">时间</span>
+                <strong id="timer-text">00:00</strong>
+            </article>
+        </section>
+
+        <section class="record-row" aria-label="历史最优">
+            <span>最少步数：<strong id="best-steps">--</strong></span>
+            <span>最短用时：<strong id="best-time">--</strong></span>
+        </section>
+
+        <section class="board-section" aria-label="拼图棋盘">
+            <div id="board" class="puzzle-board"></div>
+        </section>
+
+        <nav class="action-bar" aria-label="游戏操作">
+            <button id="undo-btn" class="action-btn" type="button" disabled>撤销</button>
+            <button id="shuffle-btn" class="action-btn primary" type="button">打乱</button>
+            <button id="reset-btn" class="action-btn danger" type="button">重置</button>
+        </nav>
+    </main>
+
+    <section id="size-panel" class="size-panel">
+        <div class="panel-card" role="dialog" aria-modal="true" aria-labelledby="size-title">
+            <p class="eyebrow">选择难度</p>
+            <h2 id="size-title">数字华容道</h2>
+            <button type="button" class="size-card" data-size="3">
+                <span>3×3 入门</span>
+                <small>8 个方块，轻松上手</small>
+            </button>
+            <button type="button" class="size-card featured" data-size="4">
+                <span>4×4 经典</span>
+                <small>15 个方块，经典挑战</small>
+            </button>
+            <button type="button" class="size-card" data-size="5">
+                <span>5×5 挑战</span>
+                <small>24 个方块，终极考验</small>
+            </button>
+        </div>
+    </section>
+
+    <section id="result-modal" class="result-modal" hidden>
+        <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <p class="eyebrow">Puzzle Solved</p>
+            <h2 id="result-title">通关成功</h2>
+            <div class="result-grid">
+                <div>
+                    <span class="label">规格</span>
+                    <strong id="result-size">4×4</strong>
+                </div>
+                <div>
+                    <span class="label">步数</span>
+                    <strong id="result-steps">0</strong>
+                </div>
+                <div>
+                    <span class="label">用时</span>
+                    <strong id="result-time">00:00</strong>
+                </div>
+                <div>
+                    <span class="label">最少步数</span>
+                    <strong id="result-best-steps">--</strong>
+                </div>
+                <div>
+                    <span class="label">最短用时</span>
+                    <strong id="result-best-time">--</strong>
+                </div>
+            </div>
+            <div class="result-actions">
+                <button id="play-again-btn" class="action-btn primary" type="button">再来一局</button>
+                <button id="change-size-btn" class="action-btn" type="button">换个规格</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="desktop-notice" aria-label="移动端提示">
+        <div>
+            <p class="eyebrow">Mobile Only</p>
+            <h2>请在手机上体验</h2>
+            <p>数字华容道按触控滑动和竖屏棋盘设计，移动端会获得完整体验。</p>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

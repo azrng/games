@@ -46,6 +46,16 @@
             desc: "纯移动端色觉辨识挑战，找出唯一不同色并冲击最高分。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "sliding-puzzle",
+            title: "数字华容道",
+            path: "sliding-puzzle/index.html",
+            mobilePath: "sliding-puzzle/index.html",
+            icon: "img/game.svg",
+            desc: "移动端数字滑块拼图，支持 3×3、4×4、5×5 和历史最优记录。",
+            readme: null,
+            meta: null
         }
     ];
 
