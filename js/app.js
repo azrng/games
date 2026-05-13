@@ -12,10 +12,15 @@
     };
 
     const activeGameStorageKey = "ui_active_game";
+    const mobileGameMaxWidth = 640;
     let activeSlug = null;
 
     function isMobileViewport() {
         return windowObject.innerWidth <= 980;
+    }
+
+    function shouldUseMobileGamePage() {
+        return windowObject.innerWidth <= mobileGameMaxWidth;
     }
 
     function toggleSidebar(forceOpen) {
@@ -108,7 +113,7 @@
         }
 
         activeSlug = game.slug;
-        elements.gameFrame.src = game.path;
+        elements.gameFrame.src = getGameFramePath(game);
         elements.gameFrame.title = `${game.title} 游戏画面`;
         syncActiveState();
 
@@ -119,6 +124,14 @@
         if (updateHash) {
             windowObject.location.hash = game.slug;
         }
+    }
+
+    function getGameFramePath(game) {
+        if (shouldUseMobileGamePage() && game.mobilePath) {
+            return game.mobilePath;
+        }
+
+        return game.path;
     }
 
     function getInitialSlug() {
@@ -157,6 +170,14 @@
         windowObject.addEventListener("resize", () => {
             if (!isMobileViewport()) {
                 toggleSidebar(false);
+            }
+
+            const game = getGameBySlug(activeSlug);
+            if (game) {
+                const nextPath = getGameFramePath(game);
+                if (elements.gameFrame.getAttribute("src") !== nextPath) {
+                    elements.gameFrame.src = nextPath;
+                }
             }
         });
     }

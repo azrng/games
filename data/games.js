@@ -13,6 +13,7 @@
             slug: "gomoku-advanced",
             title: "五子棋",
             path: "gomoku-advanced/index.html",
+            mobilePath: "gomoku-advanced/mobile.html",
             icon: "img/game.svg",
             desc: "基于 worker 的高阶 AI 五子棋版本，支持提示和调试信息。",
             readme: null,

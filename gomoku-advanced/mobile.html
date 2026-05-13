@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>五子棋 - 移动端</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body class="mobile-game">
+    <main class="mobile-shell">
+        <header class="mobile-topbar">
+            <div>
+                <p class="mobile-eyebrow">AI 对局</p>
+                <h1>五子棋</h1>
+            </div>
+            <button id="settings-open-btn" class="mobile-icon-btn" type="button" aria-controls="mobile-settings-panel" aria-expanded="false" aria-label="打开设置">
+                ⚙
+            </button>
+        </header>
+
+        <section class="mobile-status-grid" aria-label="对局状态">
+            <article class="mobile-status-card">
+                <span class="info-label">当前状态</span>
+                <strong id="status-text" class="info-value">点击“开始”进入游戏</strong>
+            </article>
+            <article class="mobile-status-card">
+                <span class="info-label">步数</span>
+                <strong id="step-count" class="info-value">0</strong>
+            </article>
+        </section>
+
+        <section class="mobile-board-section" aria-label="棋盘">
+            <div class="mobile-board-frame">
+                <canvas id="board-canvas"></canvas>
+                <div id="loading-overlay" class="loading-overlay hidden">AI 思考中...</div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="mobile-action-bar" aria-label="对局操作">
+        <button id="start-btn" class="mobile-action primary" type="button">开始</button>
+        <button id="undo-btn" class="mobile-action" type="button" disabled>悔棋</button>
+        <button id="hint-btn" class="mobile-action" type="button">提示 (3)</button>
+        <button id="resign-btn" class="mobile-action danger" type="button" disabled>认输</button>
+    </nav>
+
+    <div id="mobile-settings-backdrop" class="mobile-settings-backdrop hidden"></div>
+    <aside id="mobile-settings-panel" class="mobile-settings-panel" aria-label="对局设置" aria-hidden="true">
+        <div class="mobile-sheet-handle"></div>
+        <header class="mobile-sheet-header">
+            <h2>对局设置</h2>
+            <button id="settings-close-btn" class="mobile-close-btn" type="button" aria-label="关闭设置">×</button>
+        </header>
+        <div class="settings mobile-settings">
+            <div class="setting-row">
+                <label for="ai-first">电脑先手</label>
+                <div class="toggle">
+                    <input type="checkbox" id="ai-first" checked>
+                    <span class="toggle-slider"></span>
+                </div>
+            </div>
+            <div class="setting-row">
+                <label for="difficulty">难度</label>
+                <select id="difficulty">
+                    <option value="2">入门 (2 层)</option>
+                    <option value="4" selected>简单 (4 层)</option>
+                    <option value="6">标准 (6 层)</option>
+                    <option value="8">困难 (8 层)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label for="theme">棋盘主题</label>
+                <select id="theme">
+                    <option value="classic">经典</option>
+                    <option value="wood">木纹</option>
+                    <option value="modern">现代</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label for="forbidden-toggle">禁手规则</label>
+                <div class="toggle">
+                    <input type="checkbox" id="forbidden-toggle">
+                    <span class="toggle-slider"></span>
+                </div>
+            </div>
+        </div>
+        <button id="settings-done-btn" class="mobile-done-btn" type="button">完成</button>
+    </aside>
+
+    <div id="result-modal" class="result-modal hidden">
+        <div class="modal-content">
+            <h2 id="result-message"></h2>
+            <p id="result-steps"></p>
+            <div class="modal-buttons">
+                <button id="play-again-btn" type="button">再来一局</button>
+                <button id="close-modal-btn" type="button">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="mobile-ui.js"></script>
+</body>
+</html>

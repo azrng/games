@@ -1,0 +1,323 @@
+html,
+body.mobile-game {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+}
+
+body.mobile-game {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background:
+        linear-gradient(135deg, rgba(38, 67, 132, 0.18), transparent 34%),
+        linear-gradient(180deg, #f7f4ec 0%, #edf2f7 56%, #e8edf5 100%);
+    color: #172033;
+    overscroll-behavior: none;
+}
+
+.mobile-game button,
+.mobile-game select,
+.mobile-game canvas {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-shell {
+    min-height: calc(100vh - 84px);
+    min-height: calc(100dvh - 84px);
+    padding: max(14px, env(safe-area-inset-top)) 14px 104px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mobile-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 4px 2px 0;
+}
+
+.mobile-eyebrow {
+    margin: 0 0 3px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #60708b;
+}
+
+.mobile-topbar h1 {
+    margin: 0;
+    font-size: 25px;
+    line-height: 1.1;
+    color: #13213a;
+}
+
+.mobile-icon-btn,
+.mobile-close-btn {
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #172033;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 10px 22px rgba(31, 50, 81, 0.12);
+    cursor: pointer;
+}
+
+.mobile-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    font-size: 21px;
+}
+
+.mobile-status-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(82px, 0.6fr);
+    gap: 10px;
+}
+
+.mobile-status-card {
+    min-width: 0;
+    padding: 12px 13px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(215, 222, 234, 0.88);
+    border-radius: 18px;
+    box-shadow: 0 12px 28px rgba(31, 50, 81, 0.09);
+}
+
+.mobile-status-card .info-label {
+    display: block;
+    margin-bottom: 5px;
+    letter-spacing: 0.06em;
+}
+
+.mobile-status-card .info-value {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-board-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+
+.mobile-board-frame {
+    position: relative;
+    width: min(100%, calc(100dvh - 250px), 520px);
+    min-width: 288px;
+    padding: 10px;
+    background:
+        linear-gradient(145deg, rgba(248, 239, 228, 0.96), rgba(235, 208, 172, 0.96));
+    border: 1px solid rgba(150, 105, 59, 0.18);
+    border-radius: 22px;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+        0 20px 42px rgba(73, 51, 24, 0.18);
+}
+
+.mobile-board-frame #board-canvas {
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(84, 58, 23, 0.16);
+}
+
+.mobile-action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px 12px max(12px, env(safe-area-inset-bottom));
+    background: rgba(247, 249, 252, 0.92);
+    border-top: 1px solid rgba(183, 196, 216, 0.72);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 -12px 30px rgba(31, 50, 81, 0.1);
+}
+
+.mobile-action {
+    min-height: 52px;
+    border: 0;
+    border-radius: 16px;
+    background: #ffffff;
+    color: #22304b;
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(31, 50, 81, 0.1);
+    cursor: pointer;
+}
+
+.mobile-action.primary {
+    background: #198754;
+    color: #ffffff;
+}
+
+.mobile-action.danger {
+    background: #dc3545;
+    color: #ffffff;
+}
+
+.mobile-action:disabled {
+    opacity: 0.45;
+    box-shadow: none;
+}
+
+.mobile-settings-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(23, 32, 51, 0.42);
+    backdrop-filter: blur(2px);
+}
+
+.mobile-settings-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    padding: 10px 18px max(18px, env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -18px 44px rgba(17, 24, 39, 0.22);
+    transform: translateY(105%);
+    transition: transform 220ms ease;
+}
+
+.mobile-settings-panel.is-open {
+    transform: translateY(0);
+}
+
+.mobile-sheet-handle {
+    width: 42px;
+    height: 5px;
+    margin: 0 auto 14px;
+    border-radius: 999px;
+    background: #cfd7e4;
+}
+
+.mobile-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.mobile-sheet-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #172033;
+}
+
+.mobile-close-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 26px;
+}
+
+.mobile-settings {
+    margin-top: 0;
+    gap: 12px;
+}
+
+.mobile-settings .setting-row {
+    padding: 14px;
+    align-items: center;
+    background: #f7f9fc;
+    border: 1px solid #e1e7f0;
+    border-radius: 16px;
+}
+
+.mobile-settings .setting-row select {
+    min-width: 132px;
+}
+
+.mobile-done-btn {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 16px;
+    background: #2957c8;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.mobile-game .loading-overlay {
+    inset: 10px;
+    border-radius: 16px;
+}
+
+.mobile-game .result-modal {
+    align-items: flex-end;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+}
+
+.mobile-game .modal-content {
+    width: 100%;
+    max-width: 440px;
+    border-radius: 24px;
+}
+
+body.settings-open {
+    overflow: hidden;
+}
+
+@media (max-width: 360px) {
+    .mobile-shell {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .mobile-status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mobile-action-bar {
+        gap: 6px;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .mobile-action {
+        min-height: 48px;
+        border-radius: 14px;
+        font-size: 13px;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+    .mobile-shell {
+        min-height: 100dvh;
+        padding-bottom: 78px;
+        gap: 8px;
+    }
+
+    .mobile-topbar h1 {
+        font-size: 20px;
+    }
+
+    .mobile-status-card {
+        padding: 8px 10px;
+    }
+
+    .mobile-board-frame {
+        width: min(72vh, 420px);
+        padding: 8px;
+    }
+
+    .mobile-action {
+        min-height: 44px;
+    }
+}

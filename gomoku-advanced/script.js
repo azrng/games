@@ -110,6 +110,24 @@
         };
     }
 
+    function drawRoundedRect(x, y, width, height, radius) {
+        if (typeof ctx.roundRect === 'function') {
+            ctx.roundRect(x, y, width, height, radius);
+            return;
+        }
+
+        var safeRadius = Math.min(radius, width / 2, height / 2);
+        ctx.moveTo(x + safeRadius, y);
+        ctx.lineTo(x + width - safeRadius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+        ctx.lineTo(x + width, y + height - safeRadius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
+        ctx.lineTo(x + safeRadius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
+        ctx.lineTo(x, y + safeRadius);
+        ctx.quadraticCurveTo(x, y, x + safeRadius, y);
+    }
+
     // ===== Worker Communication =====
     function sendToWorker(action, payload) {
         return new Promise(function(resolve) {
@@ -406,7 +424,7 @@
         // Board background
         ctx.fillStyle = theme.bg;
         ctx.beginPath();
-        ctx.roundRect(0, 0, size, size, 8);
+        drawRoundedRect(0, 0, size, size, 8);
         ctx.fill();
 
         // Grid lines
