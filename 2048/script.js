@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.bestScoreDisplay.textContent = this.bestScore;
             
             this.setupEventListeners();
-            this.startGame();
+            this.restoreOrStart();
         }
         
         // 设置事件监听
@@ -125,10 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
             this.won = false;
             this.keepPlayingAfterWin = false;
             this.gameHistory = [];
-            
+
+            this.clearPersistedState();
             this.updateScore();
             this.clearMessage();
-            
+
             this.clearTiles();
             this.addStartTiles();
         }
@@ -294,18 +295,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (moved) {
                 // 添加新方块
                 this.addRandomTile();
-                
+
                 // 检查游戏状态
                 if (!this.movesAvailable()) {
                     this.over = true;
                 }
-                
+
                 // 重新渲染
                 this.renderGrid();
                 this.updateScore();
-                
+
                 // 更新游戏状态
                 this.updateGameState();
+
+                // 持久化：游戏中保存，已结束则清除
+                if (this.isGameTerminated()) {
+                    this.clearPersistedState();
+                } else {
+                    this.persistState();
+                }
             }
         }
         
@@ -513,15 +521,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const addition = document.createElement('div');
             addition.classList.add('score-addition');
             addition.textContent = '+' + value;
-            
+
             // 定位到分数显示区域
             const scoreContainer = document.querySelector('.score-container');
             scoreContainer.appendChild(addition);
-            
+
             // 动画结束后移除元素
             setTimeout(() => {
                 scoreContainer.removeChild(addition);
             }, 800);
+        }
+
+        // 尝试恢复存档，无有效存档则开始新游戏
+        restoreOrStart() {
+            const saved = storage.getGameJSON('2048', 'game_state');
+            if (saved && saved.grid && !saved.over && !(saved.won && !saved.keepPlayingAfterWin)) {
+                this.grid = saved.grid;
+                this.score = saved.score || 0;
+                this.over = false;
+                this.won = saved.won || false;
+                this.keepPlayingAfterWin = saved.keepPlayingAfterWin || false;
+                this.gameHistory = [];
+                this.updateScore();
+                this.clearMessage();
+                this.clearTiles();
+                this.renderGrid();
+            } else {
+                this.startGame();
+            }
+        }
+
+        // 保存当前游戏状态到 localStorage
+        persistState() {
+            storage.setGameJSON('2048', 'game_state', {
+                grid: this.grid,
+                score: this.score,
+                over: this.over,
+                won: this.won,
+                keepPlayingAfterWin: this.keepPlayingAfterWin
+            });
+        }
+
+        // 清除 localStorage 中的游戏存档
+        clearPersistedState() {
+            storage.removeGameValue('2048', 'game_state');
         }
     }
     
