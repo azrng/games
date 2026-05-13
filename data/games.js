@@ -33,7 +33,7 @@
             title: "迷宫冒险",
             path: "maze/index.html",
             icon: "img/game.svg",
-            desc: "递归回溯生成迷宫，支持移动端方向键和缩放操作。",
+            desc: "递归回溯生成迷宫的桌面端专用挑战，关卡会逐步扩张。",
             readme: "maze/readme.md",
             meta: null
         }
