@@ -75,7 +75,10 @@
 
     function resizeCanvas() {
         var container = canvas.parentElement;
-        var maxSize = Math.min(container.clientWidth || 600, 600);
+        var containerStyle = window.getComputedStyle(container);
+        var horizontalPadding = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight);
+        var availableWidth = (container.clientWidth || 600) - horizontalPadding;
+        var maxSize = Math.min(availableWidth || 600, 600);
         var dpr = window.devicePixelRatio || 1;
         canvas.width = maxSize * dpr;
         canvas.height = maxSize * dpr;
@@ -86,11 +89,25 @@
     }
 
     function getCellSize() {
-        return parseFloat(canvas.style.width) / (BOARD_SIZE + 1);
+        return getDisplaySize() / (BOARD_SIZE + 1);
     }
 
     function getDisplaySize() {
-        return parseFloat(canvas.style.width);
+        var rect = canvas.getBoundingClientRect();
+        return Math.min(rect.width, rect.height) || parseFloat(canvas.style.width);
+    }
+
+    function getBoardPointFromEvent(e) {
+        var rect = canvas.getBoundingClientRect();
+        var point = e.changedTouches ? e.changedTouches[0] : (e.touches ? e.touches[0] : e);
+        var displaySize = getDisplaySize();
+        var scaleX = displaySize / rect.width;
+        var scaleY = displaySize / rect.height;
+
+        return {
+            x: (point.clientX - rect.left) * scaleX,
+            y: (point.clientY - rect.top) * scaleY
+        };
     }
 
     // ===== Worker Communication =====
@@ -131,19 +148,10 @@
     function handleCanvasClick(e) {
         if (game.loading || game.status !== 'gaming') return;
 
-        var rect = canvas.getBoundingClientRect();
-        var x, y;
-        if (e.touches) {
-            x = e.touches[0].clientX - rect.left;
-            y = e.touches[0].clientY - rect.top;
-        } else {
-            x = e.clientX - rect.left;
-            y = e.clientY - rect.top;
-        }
-
+        var point = getBoardPointFromEvent(e);
         var cellSize = getCellSize();
-        var col = Math.round(x / cellSize - 1);
-        var row = Math.round(y / cellSize - 1);
+        var col = Math.round(point.x / cellSize - 1);
+        var row = Math.round(point.y / cellSize - 1);
 
         if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
         if (game.board[row][col] !== 0) return;
