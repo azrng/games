@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 storage.getGameValueWithLegacy('2048', this.bestScoreKey, ['bestScore'], '0')
             ) || 0;
             this.gameHistory = [];
-            
+            this.mergedFlags = [];
+
             this.bestScoreDisplay.textContent = this.bestScore;
             
             this.setupEventListeners();
