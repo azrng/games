@@ -339,6 +339,24 @@
             100% { opacity: 0; transform: scale(1); }
         }
 
+        .hint-marker {
+            position: absolute;
+            border: 3px solid rgba(47,158,68,0.85);
+            border-radius: 999px;
+            pointer-events: none;
+            transform: scale(0.72);
+            animation: hintPulse 1200ms ease-out forwards;
+            box-shadow: 0 0 0 0 rgba(47,158,68,0.22);
+            z-index: 15;
+        }
+
+        @keyframes hintPulse {
+            0% { opacity: 0; transform: scale(0.6); box-shadow: 0 0 0 0 rgba(47,158,68,0.24); }
+            20% { opacity: 1; transform: scale(1); }
+            62% { opacity: 0.9; transform: scale(1.16); box-shadow: 0 0 0 18px rgba(47,158,68,0); }
+            100% { opacity: 0; transform: scale(1.34); box-shadow: 0 0 0 26px rgba(47,158,68,0); }
+        }
+
         /* ===== 猫咪已找到标记 ===== */
         .found-ring {
             position: absolute;
@@ -484,8 +502,8 @@
 
         /* ===== DOM 引用 ===== */
         const $ = (s) => document.querySelector(s);
-        const canvas = $("#gameCanvas");
-        const ctx = canvas.getContext("2d");
+        let canvas = $("#gameCanvas");
+        let ctx = canvas.getContext("2d");
         const wrap = $("#canvasWrap");
 
         const uiLevel = $("#levelLabel");
@@ -503,13 +521,18 @@
         /* ===== 游戏状态 ===== */
         let state = {};
 
-        function initState(level) {
+        function initState(level, levelSeed) {
             const size = canvasSize(level);
             const cats = catCount(level);
+            const stableSeed = normalizeSeed(levelSeed || createLevelSeed(level));
             state = {
                 level,
                 size,
-                sceneSeed: Math.floor(Math.random() * 1000000),
+                levelSeed: stableSeed,
+                sceneSeed: deriveSeed(stableSeed, 11),
+                catSeed: deriveSeed(stableSeed, 23),
+                obstacleSeed: deriveSeed(stableSeed, 37),
+                hintSeed: deriveSeed(stableSeed, 53),
                 cats: [],           // { x, y, r, found, variant }
                 obstacles: [],      // { x, y, type, scale, rotation }
                 landmarks: [],
@@ -524,14 +547,29 @@
                 offsetX: 0,
                 offsetY: 0,
                 won: false,
+                backgroundCanvas: null,
             };
         }
 
         /* ===== 绘制工具 ===== */
 
         /* 随机整数 [min, max] */
-        function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-        function randFloat(min, max) { return Math.random() * (max - min) + min; }
+        function randInt(min, max, random = Math.random) { return Math.floor(random() * (max - min + 1)) + min; }
+        function randFloat(min, max, random = Math.random) { return random() * (max - min) + min; }
+
+        function normalizeSeed(seed) {
+            let value = Math.floor(seed) % 2147483647;
+            if (value <= 0) value += 2147483646;
+            return value;
+        }
+
+        function createLevelSeed(level) {
+            return normalizeSeed(Date.now() + level * 2654435761 + Math.floor(Math.random() * 1000000));
+        }
+
+        function deriveSeed(seed, salt) {
+            return normalizeSeed(seed + salt * 1000003 + (seed % 9973) * (salt + 17));
+        }
 
         function seededRandom(seed) {
             let value = seed % 2147483647;
@@ -1118,49 +1156,112 @@
             ];
         }
 
-        function shuffledAnchors(size) {
-            const anchors = sceneCatAnchors(size).slice();
-            for (let i = anchors.length - 1; i > 0; i--) {
-                const j = randInt(0, i);
-                [anchors[i], anchors[j]] = [anchors[j], anchors[i]];
-            }
-            return anchors;
+        function semanticCatRegions(size) {
+            return [
+                { name: "colosseum-arches", xMin: 0.06, xMax: 0.28, yMin: 0.38, yMax: 0.7, r: 0.016, variants: [0, 1], rot: [-0.22, 0.18] },
+                { name: "tower-windows", xMin: 0.3, xMax: 0.43, yMin: 0.22, yMax: 0.62, r: 0.014, variants: [2, 3], rot: [-0.18, 0.24] },
+                { name: "street-roofs", xMin: 0.43, xMax: 0.76, yMin: 0.31, yMax: 0.5, r: 0.015, variants: [0, 2], rot: [-0.12, 0.16] },
+                { name: "cloud-edges", xMin: 0.12, xMax: 0.85, yMin: 0.08, yMax: 0.2, r: 0.013, variants: [1, 3], rot: [-0.28, 0.28] },
+                { name: "road-lines", xMin: 0.44, xMax: 0.7, yMin: 0.62, yMax: 0.9, r: 0.015, variants: [0, 1, 2], rot: [-0.32, 0.22] },
+                { name: "table-objects", xMin: 0.64, xMax: 0.94, yMin: 0.58, yMax: 0.86, r: 0.016, variants: [1, 2, 3], rot: [-0.2, 0.32] },
+                { name: "artist-lines", xMin: 0.75, xMax: 0.9, yMin: 0.17, yMax: 0.45, r: 0.014, variants: [0, 3], rot: [-0.24, 0.2] },
+                { name: "hills-texture", xMin: 0.24, xMax: 0.72, yMin: 0.52, yMax: 0.76, r: 0.015, variants: [0, 1, 2, 3], rot: [-0.2, 0.2] },
+            ];
         }
 
-        function generateLevel(level) {
+        function candidateCatsFromRegions(size, random, count) {
+            const regions = semanticCatRegions(size);
+            const targetCount = Math.max(count * 4, 24);
+            const candidates = [];
+            for (let i = 0; i < targetCount; i++) {
+                const region = pickFrom(regions, random);
+                const r = size * (region.r + (random() - 0.5) * 0.004);
+                candidates.push({
+                    x: size * (region.xMin + random() * (region.xMax - region.xMin)),
+                    y: size * (region.yMin + random() * (region.yMax - region.yMin)),
+                    r,
+                    variant: pickFrom(region.variants, random),
+                    rotation: region.rot[0] + random() * (region.rot[1] - region.rot[0]),
+                    region: region.name,
+                });
+            }
+            return candidates;
+        }
+
+        function shuffleWithRandom(items, random) {
+            const result = items.slice();
+            for (let i = result.length - 1; i > 0; i--) {
+                const j = randInt(0, i, random);
+                [result[i], result[j]] = [result[j], result[i]];
+            }
+            return result;
+        }
+
+        function pickCatCandidates(size, cats, random) {
+            const anchors = sceneCatAnchors(size);
+            const candidates = shuffleWithRandom(anchors.concat(candidateCatsFromRegions(size, random, cats)), random);
+            const selected = [];
+            const minDist = size * 0.11;
+            const padding = size * 0.045;
+
+            for (const candidate of candidates) {
+                if (candidate.x < padding || candidate.x > size - padding || candidate.y < padding || candidate.y > size - padding) continue;
+                if (selected.some((item) => Math.hypot(item.x - candidate.x, item.y - candidate.y) < minDist)) continue;
+                selected.push(candidate);
+                if (selected.length >= cats) break;
+            }
+
+            if (selected.length < cats) {
+                for (const candidate of candidates) {
+                    if (selected.includes(candidate)) continue;
+                    selected.push(candidate);
+                    if (selected.length >= cats) break;
+                }
+            }
+
+            return selected;
+        }
+
+        function generateLevel(level, levelSeed = createLevelSeed(level)) {
             stopTimer();
-            initState(level);
+            initState(level, levelSeed);
             const size = state.size;
             const cats = state.totalCats;
             const obs = obstacleCount(cats, level) + 18;
+            const catRandom = seededRandom(state.catSeed);
+            const obstacleRandom = seededRandom(state.obstacleSeed);
+            const hintRandom = seededRandom(state.hintSeed);
+            state.hintRandom = hintRandom;
 
-            /* 生成猫咪位置：优先嵌入线稿地标、窗洞、餐桌和云边。 */
-            const anchors = shuffledAnchors(size);
-            state.cats = anchors.slice(0, cats).map((anchor) => ({
-                x: anchor.x + randFloat(-size * 0.008, size * 0.008),
-                y: anchor.y + randFloat(-size * 0.008, size * 0.008),
+            /* 生成猫咪位置：从固定锚点和场景语义区域共同取样，保持同一 seed 可复现。 */
+            const anchors = pickCatCandidates(size, cats, catRandom);
+            state.cats = anchors.map((anchor) => ({
+                x: anchor.x + randFloat(-size * 0.006, size * 0.006, catRandom),
+                y: anchor.y + randFloat(-size * 0.006, size * 0.006, catRandom),
                 r: Math.max(18, Math.min(32, anchor.r)),
                 found: false,
                 variant: anchor.variant,
-                rotation: anchor.rotation + randFloat(-0.12, 0.12),
+                rotation: anchor.rotation + randFloat(-0.1, 0.1, catRandom),
+                region: anchor.region || "anchor",
             }));
 
             /* 生成干扰物 */
             const padding = size * 0.08;
             for (let i = 0; i < obs; i++) {
                 state.obstacles.push({
-                    x: randFloat(padding * 0.5, size - padding * 0.5),
-                    y: randFloat(padding * 0.5, size - padding * 0.5),
-                    type: OBSTACLE_TYPES[randInt(0, OBSTACLE_TYPES.length - 1)],
-                    size: randInt(35, 65),
-                    scale: randFloat(0.7, 1.3),
-                    rotation: randFloat(-0.6, 0.6),
+                    x: randFloat(padding * 0.5, size - padding * 0.5, obstacleRandom),
+                    y: randFloat(padding * 0.5, size - padding * 0.5, obstacleRandom),
+                    type: OBSTACLE_TYPES[randInt(0, OBSTACLE_TYPES.length - 1, obstacleRandom)],
+                    size: randInt(35, 65, obstacleRandom),
+                    scale: randFloat(0.7, 1.3, obstacleRandom),
+                    rotation: randFloat(-0.6, 0.6, obstacleRandom),
                 });
             }
 
             /* 设置画布像素尺寸 */
             canvas.width = size;
             canvas.height = size;
+            buildBackgroundCache();
 
             /* 初始缩放：让画布适应视口 */
             fitCanvasToView();
@@ -1172,14 +1273,43 @@
         }
 
         /* ===== 渲染 ===== */
+        function buildBackgroundCache() {
+            if (typeof document.createElement !== "function") {
+                state.backgroundCanvas = null;
+                return;
+            }
+
+            const size = state.size;
+            const activeCanvas = canvas;
+            const activeCtx = ctx;
+            const cache = document.createElement("canvas");
+            const cacheCtx = cache.getContext && cache.getContext("2d");
+            if (!cacheCtx) {
+                state.backgroundCanvas = null;
+                return;
+            }
+
+            cache.width = size;
+            cache.height = size;
+            canvas = cache;
+            ctx = cacheCtx;
+            drawTravelSketchScene(size);
+            state.obstacles.forEach(drawObstacle);
+            canvas = activeCanvas;
+            ctx = activeCtx;
+            state.backgroundCanvas = cache;
+        }
+
         function renderScene() {
             const size = state.size;
             ctx.clearRect(0, 0, size, size);
 
-            drawTravelSketchScene(size);
-
-            /* 线稿干扰物 */
-            state.obstacles.forEach(drawObstacle);
+            if (state.backgroundCanvas) {
+                ctx.drawImage(state.backgroundCanvas, 0, 0);
+            } else {
+                drawTravelSketchScene(size);
+                state.obstacles.forEach(drawObstacle);
+            }
 
             /* 小猫轮廓藏在线稿细节里 */
             state.cats.forEach(c => {
@@ -1203,6 +1333,31 @@
             clampView();
             canvas.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.scale})`;
             canvas.style.transformOrigin = "0 0";
+        }
+
+        function animateViewTo(targetScale, targetOffsetX, targetOffsetY, duration = 520, onComplete) {
+            const startScale = state.scale;
+            const startOffsetX = state.offsetX;
+            const startOffsetY = state.offsetY;
+            const startAt = performance.now();
+            const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+            function step(now) {
+                const pct = Math.min(1, (now - startAt) / duration);
+                const eased = easeOutCubic(pct);
+                state.scale = startScale + (targetScale - startScale) * eased;
+                state.offsetX = startOffsetX + (targetOffsetX - startOffsetX) * eased;
+                state.offsetY = startOffsetY + (targetOffsetY - startOffsetY) * eased;
+                applyTransform();
+
+                if (pct < 1) {
+                    requestAnimationFrame(step);
+                } else if (onComplete) {
+                    onComplete();
+                }
+            }
+
+            requestAnimationFrame(step);
         }
 
         function clampView() {
@@ -1363,6 +1518,17 @@
             setTimeout(() => el.remove(), 700);
         }
 
+        function showHintMarker(target) {
+            const size = Math.max(46, target.r * state.scale * 3.2);
+            const left = target.x * state.scale + state.offsetX - size / 2;
+            const top = target.y * state.scale + state.offsetY - size / 2;
+            const el = document.createElement("div");
+            el.className = "hint-marker";
+            el.style.cssText = `left:${left}px;top:${top}px;width:${size}px;height:${size}px;`;
+            wrap.appendChild(el);
+            setTimeout(() => el.remove(), 1250);
+        }
+
         /* ===== 计时器 ===== */
         function startTimer() {
             if (state.timerInterval) return;
@@ -1443,36 +1609,17 @@
             state.hints--;
             updateUI();
 
-            const target = unfound[Math.floor(Math.random() * unfound.length)];
+            const target = unfound[Math.floor(state.hintRandom() * unfound.length)];
 
-            /* 平移缩放到目标猫咪 */
+            /* 平滑移动到目标附近，保留玩家当前空间感。 */
             const vw = wrap.clientWidth;
             const vh = wrap.clientHeight;
-            state.scale = Math.min(MAX_SCALE, 2.0);
-            state.offsetX = vw / 2 - target.x * state.scale;
-            state.offsetY = vh / 2 - target.y * state.scale;
-            applyTransform();
-
-            /* 闪烁高亮 */
-            let blinks = 0;
-            const interval = setInterval(() => {
-                blinks++;
-                if (blinks % 2 === 0) {
-                    ctx.save();
-                    ctx.strokeStyle = "rgba(47,158,68,0.8)";
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.arc(target.x, target.y, target.r * 1.2, 0, Math.PI * 2);
-                    ctx.stroke();
-                    ctx.restore();
-                } else {
-                    renderScene();
-                }
-                if (blinks >= 6) {
-                    clearInterval(interval);
-                    renderScene();
-                }
-            }, 300);
+            const targetScale = Math.max(state.scale, Math.min(MAX_SCALE, Math.max(1.45, state.scale * 1.18)));
+            const driftX = (state.hintRandom() - 0.5) * vw * 0.18;
+            const driftY = (state.hintRandom() - 0.5) * vh * 0.18;
+            const targetOffsetX = vw / 2 - target.x * targetScale + driftX;
+            const targetOffsetY = vh / 2 - target.y * targetScale + driftY;
+            animateViewTo(targetScale, targetOffsetX, targetOffsetY, 560, () => showHintMarker(target));
         });
 
         btnResetView.addEventListener("click", () => {
@@ -1482,7 +1629,7 @@
         btnRestart.addEventListener("click", () => {
             stopTimer();
             hideWinModal();
-            generateLevel(state.level);
+            generateLevel(state.level, state.levelSeed);
         });
 
         btnNext.addEventListener("click", () => {

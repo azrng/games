@@ -37,6 +37,7 @@ function createCanvasContext() {
         ellipse: noop,
         fill: noop,
         stroke: noop,
+        drawImage: noop,
         fillRect: noop,
         strokeRect: noop,
         clearRect: noop,
@@ -111,10 +112,17 @@ function createSandbox() {
             return 1;
         },
         clearTimeout() {},
+        requestAnimationFrame(callback) {
+            callback(16);
+            return 1;
+        },
         setInterval() {
             return 1;
         },
         clearInterval() {},
+        performance: {
+            now() { return 0; },
+        },
         localStorage: {
             getItem() { return null; },
             setItem() {},
@@ -126,7 +134,11 @@ function createSandbox() {
                 return element;
             },
             createElement(tagName) {
-                return createElement(tagName);
+                const element = createElement(tagName);
+                if (tagName === "canvas") {
+                    element.getContext = () => createCanvasContext();
+                }
+                return element;
             },
         },
         window: {
@@ -144,6 +156,17 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("id=\"gameCanvas\""), "page should include a canvas");
     assert(html.includes("id=\"btnHint\""), "page should include hint control");
     assert(html.includes("sceneSeed"), "page should generate a randomized scene seed per level");
+    assert(html.includes("levelSeed"), "page should keep a stable level seed for reproducible restarts");
+    assert(html.includes("catSeed"), "page should derive a dedicated cat seed");
+    assert(html.includes("obstacleSeed"), "page should derive a dedicated obstacle seed");
+    assert(html.includes("hintSeed"), "page should derive a dedicated hint seed");
+    assert(html.includes("semanticCatRegions"), "cat placement should include semantic scene regions beyond fixed anchors");
+    assert(html.includes("pickCatCandidates"), "cat placement should select from a larger seeded candidate pool");
+    assert(html.includes("generateLevel(state.level, state.levelSeed)"), "restart should replay the current level seed");
+    assert(html.includes("buildBackgroundCache"), "static sketch background should be cached before active rendering");
+    assert(html.includes("requestAnimationFrame"), "hint navigation should use frame-based animation");
+    assert(!html.includes("const j = randInt(0, i);"), "anchor shuffle should not use unseeded Math.random");
+    assert(!html.includes("const target = unfound[Math.floor(Math.random()"), "hint target should not use unseeded Math.random");
     assert(!html.includes("CAT_ACCENT"), "hidden cats should not use a high-contrast accent color");
     assert(!html.includes("#d94f7d"), "hidden cats should not use pink fill that makes targets obvious");
     assert(html.includes("drawTravelSketchScene"), "page should render a generated sketch scene");
