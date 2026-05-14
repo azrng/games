@@ -160,6 +160,16 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("catSeed"), "page should derive a dedicated cat seed");
     assert(html.includes("obstacleSeed"), "page should derive a dedicated obstacle seed");
     assert(html.includes("hintSeed"), "page should derive a dedicated hint seed");
+    assert(html.includes("SCENE_TEMPLATES"), "page should define multiple scene templates");
+    assert(html.includes("\"travel\", \"harbor\", \"library\""), "scene templates should include travel, harbor, and library");
+    assert(html.includes("LEVEL_DIFFICULTY"), "level progression should use a difficulty configuration table");
+    assert(html.includes("sceneTemplateForLevel"), "levels should select scene templates through a stable helper");
+    assert(html.includes("drawHarborScene"), "page should include a harbor sketch scene");
+    assert(html.includes("drawLibraryScene"), "page should include a library sketch scene");
+    assert(html.includes("regionsByScene"), "cat semantic regions should vary by scene template");
+    assert(html.includes("anchorSets"), "fixed cat anchors should vary by scene template");
+    assert(html.includes("textureBoost"), "difficulty config should control dense linework intensity");
+    assert(html.includes("minCatSpacing"), "difficulty config should control cat spacing");
     assert(html.includes("semanticCatRegions"), "cat placement should include semantic scene regions beyond fixed anchors");
     assert(html.includes("pickCatCandidates"), "cat placement should select from a larger seeded candidate pool");
     assert(html.includes("generateLevel(state.level, state.levelSeed)"), "restart should replay the current level seed");
