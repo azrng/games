@@ -214,6 +214,16 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("drawGardenScene"), "page should include a garden sketch scene");
     assert(html.includes("drawKitchenScene"), "page should include a kitchen sketch scene");
     assert(html.includes("drawMuseumScene"), "page should include a museum sketch scene");
+    assert(html.includes("SCENE_DRAWERS"), "scene drawing should use a dispatch lookup");
+    assert(html.includes("SCENE_OBSTACLES"), "obstacles should be filtered by scene theme");
+    assert(html.includes("SCENE_DECOY_REGIONS"), "decoy placement should be constrained by scene geometry");
+    assert(html.includes("SCENE_TEXTURES"), "scene-specific texture hooks should be available");
+    assert(html.includes("drawGardenTexture"), "garden should have dedicated texture marks");
+    assert(html.includes("drawKitchenTexture"), "kitchen should have dedicated texture marks");
+    assert(html.includes("drawMuseumTexture"), "museum should have dedicated texture marks");
+    assert(html.includes("try {") && html.includes("finally {"), "background cache should restore canvas context with try/finally");
+    assert(html.includes("sceneObstacles()"), "level generation should use themed obstacle lists");
+    assert(html.includes("const bhx = size * (0.72 + (random() - 0.5) * 0.04)"), "garden birdhouse should be jittered");
     assert(html.includes("花园线稿"), "scene labels should include garden");
     assert(html.includes("厨房线稿"), "scene labels should include kitchen");
     assert(html.includes("博物馆线稿"), "scene labels should include museum");

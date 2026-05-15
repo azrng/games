@@ -1332,11 +1332,13 @@
             ctx.moveTo(size * 0.08, size * 0.84);
             ctx.quadraticCurveTo(size * 0.5, size * 0.96, size * 0.92, size * 0.84);
             ctx.stroke();
-            ctx.strokeRect(size * 0.72, size * 0.34, size * 0.12, size * 0.1);
+            const bhx = size * (0.72 + (random() - 0.5) * 0.04);
+            const bhy = size * (0.34 + (random() - 0.5) * 0.03);
+            ctx.strokeRect(bhx, bhy, size * 0.12, size * 0.1);
             ctx.beginPath();
-            ctx.moveTo(size * 0.71, size * 0.34);
-            ctx.lineTo(size * 0.78, size * 0.27);
-            ctx.lineTo(size * 0.85, size * 0.34);
+            ctx.moveTo(bhx - size * 0.01, bhy);
+            ctx.lineTo(bhx + size * 0.06, bhy - size * 0.07);
+            ctx.lineTo(bhx + size * 0.13, bhy);
             ctx.stroke();
         }
 
@@ -1503,13 +1505,75 @@
             }
 
             const decoyCount = difficulty.decoyBase + Math.floor(random() * 12);
+            const decoyRegions = SCENE_DECOY_REGIONS[state.sceneTemplate] || SCENE_DECOY_REGIONS.travel;
             for (let i = 0; i < decoyCount; i++) {
+                const region = pickFrom(decoyRegions, random);
                 drawCatDecoy(
-                    size * (0.04 + random() * 0.9),
-                    size * (0.18 + random() * 0.74),
+                    size * (region.xMin + random() * (region.xMax - region.xMin)),
+                    size * (region.yMin + random() * (region.yMax - region.yMin)),
                     size * (0.018 + random() * 0.014),
                     random() * 1.2 - 0.6
                 );
+            }
+        }
+
+        function drawGardenTexture(size, random, boost) {
+            sketchStyle(1, "rgba(117,123,132,0.62)");
+            const count = Math.floor(40 * boost);
+            for (let i = 0; i < count; i++) {
+                const x = size * (0.06 + random() * 0.88);
+                const y = size * (0.56 + random() * 0.36);
+                ctx.beginPath();
+                ctx.moveTo(x, y + size * 0.018);
+                ctx.quadraticCurveTo(x + size * 0.018, y - size * 0.02, x + size * 0.04, y + size * 0.012);
+                ctx.moveTo(x, y + size * 0.018);
+                ctx.quadraticCurveTo(x - size * 0.018, y - size * 0.015, x - size * 0.034, y + size * 0.008);
+                ctx.stroke();
+            }
+        }
+
+        function drawKitchenTexture(size, random, boost) {
+            sketchStyle(1, "rgba(117,123,132,0.64)");
+            const count = Math.floor(26 * boost);
+            for (let i = 0; i < count; i++) {
+                const x = size * (0.08 + random() * 0.84);
+                const y = size * (0.18 + random() * 0.66);
+                if (random() < 0.5) {
+                    strokeEllipse(x, y, size * (0.018 + random() * 0.016), size * 0.01, random() * 0.4);
+                } else {
+                    ctx.strokeRect(x, y, size * (0.018 + random() * 0.02), size * (0.024 + random() * 0.02));
+                }
+            }
+        }
+
+        function drawMuseumTexture(size, random, boost) {
+            sketchStyle(1, "rgba(117,123,132,0.58)");
+            const count = Math.floor(22 * boost);
+            for (let i = 0; i < count; i++) {
+                const x = size * (0.1 + random() * 0.78);
+                const y = size * (0.22 + random() * 0.64);
+                const w = size * (0.035 + random() * 0.035);
+                const h = size * (0.028 + random() * 0.03);
+                ctx.strokeRect(x, y, w, h);
+                ctx.beginPath();
+                ctx.moveTo(x + w * 0.15, y + h * 0.72);
+                ctx.lineTo(x + w * 0.45, y + h * 0.36);
+                ctx.lineTo(x + w * 0.82, y + h * 0.68);
+                ctx.stroke();
+            }
+        }
+
+        const SCENE_TEXTURES = {
+            garden: drawGardenTexture,
+            kitchen: drawKitchenTexture,
+            museum: drawMuseumTexture,
+        };
+
+        function drawSceneTexture(size, random) {
+            const difficulty = state.difficulty || levelDifficulty(state.level || 1);
+            const textureFn = SCENE_TEXTURES[state.sceneTemplate];
+            if (textureFn) {
+                textureFn(size, random, difficulty.textureBoost || 1);
             }
         }
 
@@ -1656,40 +1720,7 @@
             ctx.restore();
         }
 
-        function drawSceneBackground(size, random) {
-            ctx.fillStyle = "#fbfbf8";
-            ctx.fillRect(0, 0, size, size);
-
-            if (state.sceneTemplate === "harbor") {
-                drawHarborScene(size, random);
-                drawDenseLinework(size, random);
-                return;
-            }
-
-            if (state.sceneTemplate === "library") {
-                drawLibraryScene(size, random);
-                drawDenseLinework(size, random);
-                return;
-            }
-
-            if (state.sceneTemplate === "garden") {
-                drawGardenScene(size, random);
-                drawDenseLinework(size, random);
-                return;
-            }
-
-            if (state.sceneTemplate === "kitchen") {
-                drawKitchenScene(size, random);
-                drawDenseLinework(size, random);
-                return;
-            }
-
-            if (state.sceneTemplate === "museum") {
-                drawMuseumScene(size, random);
-                drawDenseLinework(size, random);
-                return;
-            }
-
+        function drawTravelScene(size, random) {
             const cloudCount = 4 + Math.floor(random() * 3);
             for (let i = 0; i < cloudCount; i++) {
                 drawCloud(size * (0.08 + random() * 0.86), size * (0.04 + random() * 0.16), size / (1050 + random() * 360), random);
@@ -1708,6 +1739,23 @@
             drawStreetBlocks(size, random);
             drawHillsAndRoads(size, random);
             drawArtistAndTable(size, random);
+        }
+
+        const SCENE_DRAWERS = {
+            travel: drawTravelScene,
+            harbor: drawHarborScene,
+            library: drawLibraryScene,
+            garden: drawGardenScene,
+            kitchen: drawKitchenScene,
+            museum: drawMuseumScene,
+        };
+
+        function drawSceneBackground(size, random) {
+            ctx.fillStyle = "#fbfbf8";
+            ctx.fillRect(0, 0, size, size);
+            const drawer = SCENE_DRAWERS[state.sceneTemplate] || SCENE_DRAWERS.travel;
+            drawer(size, random);
+            drawSceneTexture(size, random);
             drawDenseLinework(size, random);
         }
 
@@ -1719,6 +1767,42 @@
 
         /* ===== 场景生成 ===== */
         const OBSTACLE_TYPES = ["tree", "house", "flower", "bottle", "book", "star", "cloud", "fish", "mushroom", "window", "plate", "leaf"];
+        const SCENE_OBSTACLES = {
+            travel: ["house", "tree", "cloud", "star", "window", "flower", "leaf", "book"],
+            harbor: ["fish", "cloud", "bottle", "star", "window", "house", "plate"],
+            library: ["book", "bottle", "star", "cloud", "window", "leaf", "plate"],
+            garden: ["tree", "flower", "leaf", "mushroom", "cloud", "star"],
+            kitchen: ["bottle", "plate", "book", "star", "leaf", "window"],
+            museum: ["book", "plate", "window", "star", "leaf", "bottle"],
+        };
+
+        const SCENE_DECOY_REGIONS = {
+            travel: [{ xMin: 0.04, xMax: 0.94, yMin: 0.18, yMax: 0.92 }],
+            harbor: [
+                { xMin: 0.08, xMax: 0.9, yMin: 0.18, yMax: 0.64 },
+                { xMin: 0.05, xMax: 0.94, yMin: 0.62, yMax: 0.9 },
+            ],
+            library: [
+                { xMin: 0.08, xMax: 0.92, yMin: 0.12, yMax: 0.72 },
+                { xMin: 0.18, xMax: 0.82, yMin: 0.72, yMax: 0.9 },
+            ],
+            garden: [
+                { xMin: 0.08, xMax: 0.92, yMin: 0.28, yMax: 0.58 },
+                { xMin: 0.07, xMax: 0.92, yMin: 0.68, yMax: 0.94 },
+            ],
+            kitchen: [
+                { xMin: 0.08, xMax: 0.92, yMin: 0.16, yMax: 0.62 },
+                { xMin: 0.18, xMax: 0.84, yMin: 0.66, yMax: 0.88 },
+            ],
+            museum: [
+                { xMin: 0.14, xMax: 0.86, yMin: 0.24, yMax: 0.72 },
+                { xMin: 0.16, xMax: 0.86, yMin: 0.72, yMax: 0.9 },
+            ],
+        };
+
+        function sceneObstacles() {
+            return SCENE_OBSTACLES[state.sceneTemplate] || OBSTACLE_TYPES;
+        }
 
         function sceneCatAnchors(size) {
             const random = seededRandom(state.sceneSeed + 31);
@@ -1907,6 +1991,7 @@
             const catRandom = seededRandom(state.catSeed);
             const obstacleRandom = seededRandom(state.obstacleSeed);
             const hintRandom = seededRandom(state.hintSeed);
+            const obstacleTypes = sceneObstacles();
             state.hintRandom = hintRandom;
 
             /* 生成猫咪位置：从固定锚点和场景语义区域共同取样，保持同一 seed 可复现。 */
@@ -1927,7 +2012,7 @@
                 state.obstacles.push({
                     x: randFloat(padding * 0.5, size - padding * 0.5, obstacleRandom),
                     y: randFloat(padding * 0.5, size - padding * 0.5, obstacleRandom),
-                    type: OBSTACLE_TYPES[randInt(0, OBSTACLE_TYPES.length - 1, obstacleRandom)],
+                    type: obstacleTypes[randInt(0, obstacleTypes.length - 1, obstacleRandom)],
                     size: randInt(35, 65, obstacleRandom),
                     scale: randFloat(0.7, 1.3, obstacleRandom),
                     rotation: randFloat(-0.6, 0.6, obstacleRandom),
@@ -1969,10 +2054,13 @@
             cache.height = size;
             canvas = cache;
             ctx = cacheCtx;
-            drawTravelSketchScene(size);
-            state.obstacles.forEach(drawObstacle);
-            canvas = activeCanvas;
-            ctx = activeCtx;
+            try {
+                drawTravelSketchScene(size);
+                state.obstacles.forEach(drawObstacle);
+            } finally {
+                canvas = activeCanvas;
+                ctx = activeCtx;
+            }
             state.backgroundCanvas = cache;
         }
 
