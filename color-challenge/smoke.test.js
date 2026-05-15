@@ -64,6 +64,9 @@ function runScriptWithContext() {
         createElement(tag) {
             return createElement(`${tag}-${elements.size}`);
         },
+        createDocumentFragment() {
+            return { children: [], appendChild(child) { this.children.push(child); } };
+        },
         getElementById(id) {
             return elements.get(id) || null;
         },

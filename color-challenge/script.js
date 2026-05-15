@@ -4,7 +4,10 @@
     const SLUG = 'color-challenge';
     const HIGH_SCORE_KEY = 'color-challenge-high-score';
     const BEST_ROUNDS_KEY = 'color-challenge-best-rounds';
-    const MIN_COLOR_DELTA = 7;
+    const MIN_COLOR_DELTA = 12;
+    const MIN_HUE_DELTA = 8;
+    const MIN_LIGHT_DELTA = 5;
+    const memoryFallback = {};
 
     const state = {
         round: 1,
@@ -14,7 +17,8 @@
         acceptingInput: false,
         answerIndex: 0,
         tiles: [],
-        timerId: 0
+        timerId: 0,
+        cachedRecords: null
     };
 
     const elements = {
@@ -32,26 +36,48 @@
         restartBtn: documentObject.getElementById('restart-btn')
     };
 
+    function safeGetItem(key) {
+        try {
+            return windowObject.localStorage.getItem(key);
+        } catch (_) {
+            return memoryFallback[key] || null;
+        }
+    }
+
+    function safeSetItem(key, value) {
+        try {
+            windowObject.localStorage.setItem(key, value);
+        } catch (_) {
+            memoryFallback[key] = value;
+        }
+    }
+
     function getStorageNumber(key) {
-        const value = windowObject.localStorage.getItem(key);
+        const value = safeGetItem(key);
         const parsed = Number.parseInt(value || '0', 10);
         return Number.isFinite(parsed) ? parsed : 0;
     }
 
     function loadRecords() {
-        return {
+        if (state.cachedRecords) {
+            return { highScore: state.cachedRecords.highScore, bestRounds: state.cachedRecords.bestRounds };
+        }
+        const records = {
             highScore: getStorageNumber(HIGH_SCORE_KEY),
             bestRounds: getStorageNumber(BEST_ROUNDS_KEY)
         };
+        state.cachedRecords = records;
+        return { highScore: records.highScore, bestRounds: records.bestRounds };
     }
 
     function saveRecords(result) {
         const records = loadRecords();
         const nextHighScore = Math.max(records.highScore, result.score);
         const nextBestRounds = Math.max(records.bestRounds, result.rounds);
-        windowObject.localStorage.setItem(HIGH_SCORE_KEY, String(nextHighScore));
-        windowObject.localStorage.setItem(BEST_ROUNDS_KEY, String(nextBestRounds));
-        return { highScore: nextHighScore, bestRounds: nextBestRounds };
+        safeSetItem(HIGH_SCORE_KEY, String(nextHighScore));
+        safeSetItem(BEST_ROUNDS_KEY, String(nextBestRounds));
+        state.cachedRecords = { highScore: nextHighScore, bestRounds: nextBestRounds };
+        return state.cachedRecords;
     }
 
     function getGridSize(round) {
@@ -80,8 +106,8 @@
         const lightness = randomInt(40, 64);
         const delta = getColorDelta(round);
         const direction = Math.random() > 0.5 ? 1 : -1;
-        const hueDelta = Math.max(4, Math.round(delta * 0.7)) * direction;
-        const lightDelta = Math.max(3, Math.round(delta * 0.36)) * direction;
+        const hueDelta = Math.max(MIN_HUE_DELTA, Math.round(delta * 0.7)) * direction;
+        const lightDelta = Math.max(MIN_LIGHT_DELTA, Math.round(delta * 0.36)) * direction;
 
         return {
             base: `hsl(${hue} ${saturation}% ${lightness}%)`,
@@ -103,7 +129,7 @@
         const total = gridSize * gridSize;
         const colors = createRoundColors(state.round);
         const answerIndex = randomInt(0, total - 1);
-        const fragment = documentObject.createDocumentFragment ? documentObject.createDocumentFragment() : null;
+        const fragment = documentObject.createDocumentFragment();
         const tiles = [];
 
         state.answerIndex = answerIndex;
@@ -121,17 +147,10 @@
             tile.setAttribute('aria-label', `色块 ${index + 1}`);
             tile.addEventListener('click', () => handleTileClick(index, tile));
             tiles.push(tile);
-
-            if (fragment) {
-                fragment.appendChild(tile);
-            }
+            fragment.appendChild(tile);
         }
 
-        if (fragment) {
-            elements.grid.replaceChildren(fragment);
-        } else {
-            elements.grid.replaceChildren(...tiles);
-        }
+        elements.grid.replaceChildren(fragment);
         state.tiles = tiles;
     }
 
@@ -151,6 +170,7 @@
         state.round = 1;
         state.score = 0;
         state.acceptingInput = false;
+        state.cachedRecords = null;
         elements.resultModal.hidden = true;
         startTimer();
         updateHeader();
@@ -186,6 +206,7 @@
         setTimeout(() => {
             elements.resultModal.hidden = false;
             updateHeader();
+            elements.restartBtn.focus();
         }, 180);
     }
 

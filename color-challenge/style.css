@@ -253,7 +253,7 @@ h2 {
     }
 }
 
-@media (min-width: 721px) {
+@media (min-width: 769px) {
     body {
         display: grid;
         place-items: center;
