@@ -335,6 +335,49 @@
             100% { transform: scale(1); opacity: 0.5; }
         }
 
+        .hit-particle {
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--warning);
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: hitParticle 620ms ease-out forwards;
+            z-index: 18;
+        }
+
+        @keyframes hitParticle {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.72); }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.35); }
+        }
+
+        .combo-toast {
+            position: absolute;
+            left: 50%;
+            top: 18px;
+            min-width: 88px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--warning);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 800;
+            text-align: center;
+            pointer-events: none;
+            transform: translateX(-50%) translateY(-8px) scale(0.92);
+            opacity: 0;
+            transition: opacity 160ms ease, transform 180ms ease;
+            box-shadow: 0 10px 22px rgba(245, 158, 11, 0.24);
+            z-index: 22;
+        }
+
+        .combo-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+
         .miss-marker {
             position: absolute;
             pointer-events: none;
@@ -426,6 +469,25 @@
             transform: translateX(-50%) translateY(0);
         }
 
+        .win-confetti {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 7px;
+            height: 12px;
+            border-radius: 2px;
+            background: var(--primary);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: winConfetti 780ms ease-out forwards;
+            z-index: 115;
+        }
+
+        @keyframes winConfetti {
+            0% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg); }
+            100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(360deg); }
+        }
+
         .intro-panel,
         .level-panel {
             text-align: left;
@@ -496,6 +558,16 @@
             cursor: not-allowed;
         }
 
+        @media (prefers-reduced-motion: reduce) {
+            .hit-marker,
+            .miss-marker,
+            .hint-marker,
+            .hit-particle,
+            .win-confetti {
+                animation-duration: 1ms;
+            }
+        }
+
         @media (max-width: 360px), (max-height: 680px) {
             .game-header {
                 padding-top: 8px;
@@ -554,6 +626,7 @@
         <div class="canvas-wrap" id="canvasWrap">
             <canvas id="gameCanvas" role="img" aria-label="找猫咪游戏画布：在线稿场景中寻找隐藏猫咪，可拖拽平移、双指或滚轮缩放"></canvas>
             <div class="proximity-toast" id="proximityToast" aria-live="polite"></div>
+            <div class="combo-toast" id="comboToast" aria-live="polite"></div>
         </div>
         <div class="share-toast" id="shareToast" aria-live="polite"></div>
 
@@ -662,8 +735,39 @@
             };
         }
 
+        function rawShuffledSceneTemplatesForCycle(cycle) {
+            const shuffled = SCENE_TEMPLATES.slice();
+            const random = seededRandom(deriveSeed((cycle + 1) * 2654435761, 71));
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function shuffledSceneTemplatesForCycle(cycle) {
+            const shuffled = rawShuffledSceneTemplatesForCycle(cycle);
+            if (cycle > 0) {
+                const previous = shuffledSceneTemplatesForCycle(cycle - 1);
+                for (let i = 0; i < shuffled.length; i++) {
+                    if (shuffled[i] !== previous[i]) continue;
+                    const swapIndex = shuffled.findIndex((item, candidateIndex) => (
+                        candidateIndex !== i &&
+                        item !== previous[i] &&
+                        shuffled[i] !== previous[candidateIndex]
+                    ));
+                    if (swapIndex >= 0) {
+                        [shuffled[i], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[i]];
+                    }
+                }
+            }
+            return shuffled;
+        }
+
         function sceneTemplateForLevel(level) {
-            return SCENE_TEMPLATES[(level - 1) % SCENE_TEMPLATES.length];
+            const cycle = Math.floor((level - 1) / SCENE_TEMPLATES.length);
+            const index = (level - 1) % SCENE_TEMPLATES.length;
+            return shuffledSceneTemplatesForCycle(cycle)[index];
         }
 
         /* 每关猫咪数量由难度配置表控制 */
@@ -714,6 +818,7 @@
         const btnIntroStart = $("#btnIntroStart");
         const btnCloseLevels = $("#btnCloseLevels");
         const proximityToast = $("#proximityToast");
+        const comboToast = $("#comboToast");
         const shareToast = $("#shareToast");
 
         /* ===== 游戏状态 ===== */
@@ -749,6 +854,10 @@
                 won: false,
                 backgroundCanvas: null,
                 currentStars: 0,
+                dpr: 1,
+                lastFoundAt: 0,
+                comboCount: 0,
+                maxCombo: 0,
             };
         }
 
@@ -783,6 +892,25 @@
 
         function pickFrom(list, random) {
             return list[Math.floor(random() * list.length)];
+        }
+
+        function canvasDpr() {
+            return Math.max(1, Math.min(window.devicePixelRatio || 1, 2.5));
+        }
+
+        function configureCanvasForDpr(targetCanvas, targetCtx, size, dpr = canvasDpr()) {
+            targetCanvas.width = Math.round(size * dpr);
+            targetCanvas.height = Math.round(size * dpr);
+            if (targetCanvas.style) {
+                targetCanvas.style.width = `${size}px`;
+                targetCanvas.style.height = `${size}px`;
+            }
+            if (targetCtx.setTransform) {
+                targetCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            } else {
+                targetCtx.scale(dpr, dpr);
+            }
+            return dpr;
         }
 
         /* 绘制隐藏在线稿中的小猫轮廓 */
@@ -1388,9 +1516,16 @@
             }
 
             sketchStyle(1.3, SKETCH_LIGHT);
-            for (let row = 0; row < 7; row++) {
-                for (let col = 0; col < 10; col++) {
-                    ctx.strokeRect(size * (0.06 + col * 0.09), size * (0.03 + row * 0.08), size * 0.07, size * 0.045);
+            drawKitchenTileBand(size, 0.07, 0.045, 10, 2);
+            drawKitchenTileBand(size, 0.07, 0.64, 10, 2);
+        }
+
+        function drawKitchenTileBand(size, xRatio, yRatio, cols, rows) {
+            const tileW = size * 0.07;
+            const tileH = size * 0.045;
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    ctx.strokeRect(size * (xRatio + col * 0.085), size * (yRatio + row * 0.055), tileW, tileH);
                 }
             }
         }
@@ -2020,8 +2155,7 @@
             }
 
             /* 设置画布像素尺寸 */
-            canvas.width = size;
-            canvas.height = size;
+            state.dpr = configureCanvasForDpr(canvas, ctx, size);
             buildBackgroundCache();
 
             /* 初始缩放：让画布适应视口 */
@@ -2050,8 +2184,7 @@
                 return;
             }
 
-            cache.width = size;
-            cache.height = size;
+            configureCanvasForDpr(cache, cacheCtx, size, state.dpr);
             canvas = cache;
             ctx = cacheCtx;
             try {
@@ -2069,7 +2202,7 @@
             ctx.clearRect(0, 0, size, size);
 
             if (state.backgroundCanvas) {
-                ctx.drawImage(state.backgroundCanvas, 0, 0);
+                ctx.drawImage(state.backgroundCanvas, 0, 0, size, size);
             } else {
                 drawTravelSketchScene(size);
                 state.obstacles.forEach(drawObstacle);
@@ -2264,8 +2397,11 @@
             if (hit) {
                 hit.found = true;
                 state.foundCount++;
+                const combo = registerCombo();
                 hideProximityToast();
+                if (combo >= 2) showComboToast(combo);
                 showHitMarker(sx, sy);
+                showHitParticles(sx, sy);
                 renderScene();
                 updateUI();
 
@@ -2275,6 +2411,7 @@
                     setTimeout(showWinModal, 400);
                 }
             } else {
+                resetCombo();
                 showMissMarker(sx, sy);
                 showProximityFeedback(x, y);
             }
@@ -2289,6 +2426,25 @@
             el.style.cssText = `left:${sx - rect.left - size / 2}px;top:${sy - rect.top - size / 2}px;width:${size}px;height:${size}px;`;
             wrap.appendChild(el);
             setTimeout(() => el.remove(), 600);
+        }
+
+        function showHitParticles(sx, sy) {
+            const rect = wrap.getBoundingClientRect();
+            for (let i = 0; i < 8; i++) {
+                const angle = i / 8 * Math.PI * 2 + Math.random() * 0.28;
+                const distance = 22 + Math.random() * 18;
+                const el = document.createElement("span");
+                el.className = "hit-particle";
+                el.style.cssText = [
+                    `left:${sx - rect.left}px`,
+                    `top:${sy - rect.top}px`,
+                    `--dx:${Math.cos(angle) * distance}px`,
+                    `--dy:${Math.sin(angle) * distance}px`,
+                    `animation-delay:${i * 12}ms`,
+                ].join(";");
+                wrap.appendChild(el);
+                setTimeout(() => el.remove(), 760);
+            }
         }
 
         function showMissMarker(sx, sy) {
@@ -2312,6 +2468,30 @@
         }
 
         let proximityTimer = null;
+        let comboTimer = null;
+
+        function registerCombo() {
+            const now = Date.now();
+            state.comboCount = state.lastFoundAt && now - state.lastFoundAt <= 3000 ? state.comboCount + 1 : 1;
+            state.lastFoundAt = now;
+            state.maxCombo = Math.max(state.maxCombo, state.comboCount);
+            return state.comboCount;
+        }
+
+        function resetCombo() {
+            state.comboCount = 0;
+            state.lastFoundAt = 0;
+        }
+
+        function showComboToast(combo) {
+            comboToast.textContent = `${combo} 连击`;
+            comboToast.classList.add("show");
+            if (comboTimer) clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                comboToast.classList.remove("show");
+                comboTimer = null;
+            }, 900);
+        }
 
         function showProximityFeedback(x, y) {
             const nearest = state.cats
@@ -2399,10 +2579,12 @@
             };
         }
 
-        function calculateStars(level, cats, steps, elapsed) {
+        function calculateStars(level, cats, steps, elapsed, maxCombo = 0) {
             const targets = starTargets(level, cats);
-            if (steps <= targets.steps3 && elapsed <= targets.time3) return 3;
-            if (steps <= targets.steps2 && elapsed <= targets.time2) return 2;
+            const comboBonus = Math.min(2, Math.max(0, maxCombo - 1));
+            const effectiveSteps = Math.max(cats, steps - comboBonus);
+            if (effectiveSteps <= targets.steps3 && elapsed <= targets.time3) return 3;
+            if (effectiveSteps <= targets.steps2 && elapsed <= targets.time2) return 2;
             return 1;
         }
 
@@ -2422,7 +2604,7 @@
             if (state.level > best) {
                 saveBestLevel(state.level);
             }
-            const stars = calculateStars(state.level, state.totalCats, state.steps, state.elapsed);
+            const stars = calculateStars(state.level, state.totalCats, state.steps, state.elapsed, state.maxCombo);
             state.currentStars = stars;
             const levelBest = saveLevelRecord(state.level, {
                 stars,
@@ -2430,6 +2612,7 @@
                 elapsed: state.elapsed,
                 scene: state.sceneTemplate,
                 cats: state.totalCats,
+                maxCombo: state.maxCombo,
                 updatedAt: new Date().toISOString(),
             });
 
@@ -2441,13 +2624,32 @@
             $("#modalLevelBest").textContent = levelBest ? `${starText(levelBest.stars)} / ${formatTime(levelBest.elapsed)} / ${levelBest.steps} 次` : "--";
             $("#modalStars").textContent = starText(stars);
             $("#modalStars").setAttribute("aria-label", `本关 ${stars} 星`);
-            $("#modalRating").textContent = ratingText(stars);
+            $("#modalRating").textContent = state.maxCombo >= 2 ? `${ratingText(stars)} 最高 ${state.maxCombo} 连击已计入星级。` : ratingText(stars);
 
             winOverlay.classList.add("show");
+            showWinConfetti();
         }
 
         function hideWinModal() {
             winOverlay.classList.remove("show");
+        }
+
+        function showWinConfetti() {
+            const colors = ["var(--primary)", "var(--success)", "var(--warning)", "var(--error)"];
+            for (let i = 0; i < 22; i++) {
+                const angle = i / 22 * Math.PI * 2;
+                const distance = 64 + Math.random() * 54;
+                const el = document.createElement("span");
+                el.className = "win-confetti";
+                el.style.cssText = [
+                    `background:${colors[i % colors.length]}`,
+                    `--dx:${Math.cos(angle) * distance}px`,
+                    `--dy:${Math.sin(angle) * distance - 42}px`,
+                    `animation-delay:${(i % 6) * 18}ms`,
+                ].join(";");
+                winOverlay.appendChild(el);
+                setTimeout(() => el.remove(), 980);
+            }
         }
 
         /* ===== 持久化 ===== */
@@ -2629,6 +2831,12 @@
         window.addEventListener("resize", () => {
             if (resizeTimer) clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
+                const nextDpr = canvasDpr();
+                if (Math.abs(nextDpr - state.dpr) > 0.01) {
+                    state.dpr = configureCanvasForDpr(canvas, ctx, state.size, nextDpr);
+                    buildBackgroundCache();
+                    renderScene();
+                }
                 fitCanvasToView();
             }, 120);
         });

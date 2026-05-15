@@ -41,6 +41,7 @@ function createCanvasContext() {
         fillRect: noop,
         strokeRect: noop,
         clearRect: noop,
+        setTransform: noop,
         set fillStyle(value) { this._fillStyle = value; },
         get fillStyle() { return this._fillStyle; },
         set strokeStyle(value) { this._strokeStyle = value; },
@@ -117,6 +118,7 @@ function createSandbox() {
         "btnIntroStart",
         "btnCloseLevels",
         "proximityToast",
+        "comboToast",
         "shareToast",
         "modalStars",
         "modalRating",
@@ -167,6 +169,7 @@ function createSandbox() {
             },
         },
         window: {
+            devicePixelRatio: 2,
             addEventListener() {},
         },
     };
@@ -185,6 +188,7 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("id=\"levelOverlay\""), "page should include level picker overlay");
     assert(html.includes("id=\"btnShare\""), "win modal should include share control");
     assert(html.includes("id=\"shareToast\""), "share feedback should use a dedicated toast");
+    assert(html.includes("id=\"comboToast\""), "quick finds should use a dedicated combo toast");
     assert(html.includes("id=\"levelScrollHint\""), "level picker should show a scroll hint");
     assert(html.includes("modalStars"), "win modal should show a star rating");
     assert(html.includes("proximityToast"), "miss feedback should include proximity toast");
@@ -209,10 +213,14 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("\"travel\", \"harbor\", \"library\", \"garden\", \"kitchen\", \"museum\""), "scene templates should include six scene categories");
     assert(html.includes("LEVEL_DIFFICULTY"), "level progression should use a difficulty configuration table");
     assert(html.includes("sceneTemplateForLevel"), "levels should select scene templates through a stable helper");
+    assert(html.includes("shuffledSceneTemplatesForCycle"), "scene templates should be shuffled by seeded cycles");
+    assert(html.includes("rawShuffledSceneTemplatesForCycle"), "scene template shuffling should keep a raw seeded permutation helper");
+    assert(html.includes("if (shuffled[i] !== previous[i]) continue;"), "scene cycles should avoid repeating the same slot across cycles");
     assert(html.includes("drawHarborScene"), "page should include a harbor sketch scene");
     assert(html.includes("drawLibraryScene"), "page should include a library sketch scene");
     assert(html.includes("drawGardenScene"), "page should include a garden sketch scene");
     assert(html.includes("drawKitchenScene"), "page should include a kitchen sketch scene");
+    assert(html.includes("drawKitchenTileBand"), "kitchen tiles should be limited to visible bands");
     assert(html.includes("drawMuseumScene"), "page should include a museum sketch scene");
     assert(html.includes("SCENE_DRAWERS"), "scene drawing should use a dispatch lookup");
     assert(html.includes("SCENE_OBSTACLES"), "obstacles should be filtered by scene theme");
@@ -235,6 +243,16 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("pickCatCandidates"), "cat placement should select from a larger seeded candidate pool");
     assert(html.includes("generateLevel(state.level, state.levelSeed)"), "restart should replay the current level seed");
     assert(html.includes("buildBackgroundCache"), "static sketch background should be cached before active rendering");
+    assert(html.includes("canvasDpr"), "canvas rendering should account for device pixel ratio");
+    assert(html.includes("configureCanvasForDpr"), "canvas backing store should be configured for high DPI");
+    assert(html.includes("targetCtx.setTransform(dpr, 0, 0, dpr, 0, 0)"), "high DPI canvas should use a scaled transform");
+    assert(html.includes("ctx.drawImage(state.backgroundCanvas, 0, 0, size, size)"), "cached background should draw back at logical canvas size");
+    assert(html.includes("registerCombo"), "quick consecutive hits should register combo state");
+    assert(html.includes("maxCombo"), "best combo should be tracked for scoring");
+    assert(html.includes("showComboToast"), "combo hits should show feedback");
+    assert(html.includes("comboBonus"), "combo should affect star calculation");
+    assert(html.includes("showHitParticles"), "hits should spawn lightweight particles");
+    assert(html.includes("showWinConfetti"), "win modal should show a lightweight celebration effect");
     assert(html.includes("requestAnimationFrame"), "hint navigation should use frame-based animation");
     assert(!html.includes("const j = randInt(0, i);"), "anchor shuffle should not use unseeded Math.random");
     assert(!html.includes("const target = unfound[Math.floor(Math.random()"), "hint target should not use unseeded Math.random");
