@@ -441,24 +441,23 @@
         if (!lv) return;
 
         const drawnKeys = new Set(state.drawnEdges);
-        let posInPath = -1;
+        let hintKey = '';
+
         for (let i = 0; i < lv.eulerPath.length - 1; i++) {
             const k = edgeKey(lv.eulerPath[i], lv.eulerPath[i + 1]);
-            if (!drawnKeys.has(k)) {
-                posInPath = i;
+            if (lv.eulerPath[i] === state.currentNodeId && !drawnKeys.has(k)) {
+                hintKey = k;
                 break;
             }
         }
-        if (posInPath === -1) return;
 
-        const fromNode = lv.eulerPath[posInPath];
-        const toNode = lv.eulerPath[posInPath + 1];
-        const hintKey = edgeKey(fromNode, toNode);
-
-        if (fromNode !== state.currentNodeId) {
-            state.drawnEdges = [];
-            state.path = [fromNode];
-            state.currentNodeId = fromNode;
+        if (!hintKey) {
+            const nextEdge = lv.edges.find((edge) => {
+                if (drawnKeys.has(edge.key)) return false;
+                return edge.from === state.currentNodeId || edge.to === state.currentNodeId;
+            });
+            if (!nextEdge) return;
+            hintKey = nextEdge.key;
         }
 
         const hintLine = elements.board.querySelector(`.edge-line[data-key="${hintKey}"]`);
@@ -570,15 +569,6 @@
         }
         elements.levelsGrid.innerHTML = html;
         elements.levelsModal.hidden = false;
-
-        elements.levelsGrid.addEventListener('click', function handler(e) {
-            const cell = e.target.closest('.level-cell');
-            if (!cell || cell.classList.contains('is-locked')) return;
-            const lv = Number(cell.dataset.level);
-            elements.levelsGrid.removeEventListener('click', handler);
-            elements.levelsModal.hidden = true;
-            loadLevel(lv);
-        });
     }
 
     function loadLevel(lv) {
@@ -588,10 +578,19 @@
         startTimer();
     }
 
+    function handleLevelGridClick(e) {
+        const cell = e.target.closest('.level-cell');
+        if (!cell || cell.classList.contains('is-locked')) return;
+        const lv = Number(cell.dataset.level);
+        elements.levelsModal.hidden = true;
+        loadLevel(lv);
+    }
+
     /* ---- event bindings ---- */
     elements.undoBtn.addEventListener('click', handleUndo);
     elements.hintBtn.addEventListener('click', handleHint);
     elements.levelsBtn.addEventListener('click', showLevelsModal);
+    elements.levelsGrid.addEventListener('click', handleLevelGridClick);
     elements.resetBtn.addEventListener('click', handleReset);
     elements.levelsCloseBtn.addEventListener('click', () => {
         elements.levelsModal.hidden = true;

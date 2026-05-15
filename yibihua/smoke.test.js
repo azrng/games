@@ -9,30 +9,87 @@ function read(file) {
     return fs.readFileSync(path.join(root, file), 'utf8');
 }
 
-function runScriptWithContext() {
-    const storage = new Map();
+function runScriptWithContext(initialStorage = {}) {
+    const storage = new Map(Object.entries(initialStorage));
     const elements = new Map();
+
+    function createClassList() {
+        const classes = new Set();
+        return {
+            add(...names) { names.forEach((name) => classes.add(name)); },
+            remove(...names) { names.forEach((name) => classes.delete(name)); },
+            contains(name) { return classes.has(name); }
+        };
+    }
+
+    function matchesSelector(element, selector) {
+        const classMatch = selector.match(/^\.([a-z0-9-]+)(?:\[data-key="([^"]+)"\])?$/i);
+        if (classMatch) {
+            const [, className, key] = classMatch;
+            return element.classList.contains(className) &&
+                (key === undefined || element.dataset.key === key);
+        }
+        return false;
+    }
+
+    function collectMatches(element, selector, result) {
+        if (matchesSelector(element, selector)) result.push(element);
+        for (const child of element.children) collectMatches(child, selector, result);
+    }
 
     function createElement(id) {
         const element = {
             id,
             textContent: '',
-            innerHTML: '',
             hidden: false,
+            disabled: false,
             dataset: {},
             style: {},
             className: '',
-            classList: {
-                add() {},
-                remove() {},
-                toggle() {}
+            children: [],
+            listeners: {},
+            classList: createClassList(),
+            addEventListener(type, handler) {
+                if (!this.listeners[type]) this.listeners[type] = [];
+                this.listeners[type].push(handler);
             },
-            addEventListener() {},
-            querySelectorAll() { return []; },
-            querySelector() { return null; },
-            setAttribute() {},
-            removeAttribute() {}
+            removeEventListener(type, handler) {
+                this.listeners[type] = (this.listeners[type] || [])
+                    .filter((item) => item !== handler);
+            },
+            dispatch(type, target = this) {
+                for (const handler of this.listeners[type] || []) handler({ target });
+            },
+            querySelectorAll(selector) {
+                const result = [];
+                collectMatches(this, selector, result);
+                return result;
+            },
+            querySelector(selector) { return this.querySelectorAll(selector)[0] || null; },
+            setAttribute(name, value) { this[name] = String(value); },
+            removeAttribute(name) { delete this[name]; },
+            appendChild(child) {
+                child.parentNode = this;
+                this.children.push(child);
+                return child;
+            },
+            focus() {},
+            closest(selector) {
+                let cur = this;
+                while (cur) {
+                    if (matchesSelector(cur, selector)) return cur;
+                    cur = cur.parentNode;
+                }
+                return null;
+            }
         };
+        Object.defineProperty(element, 'innerHTML', {
+            get() { return this._innerHTML || ''; },
+            set(value) {
+                this._innerHTML = String(value);
+                if (value === '') this.children = [];
+            }
+        });
         elements.set(id, element);
         return element;
     }
@@ -47,14 +104,6 @@ function runScriptWithContext() {
 
     function makeSvgEl(tag) {
         const el = createElement(`svg-${tag}-${elements.size}`);
-        el.classList = {
-            add() {},
-            remove() {},
-            contains() { return false; }
-        };
-        el.appendChild = function(child) { this._children = this._children || []; this._children.push(child); };
-        el.setAttribute = function() {};
-        el.addEventListener = function() {};
         el.dataset = {};
         return el;
     }
@@ -62,9 +111,6 @@ function runScriptWithContext() {
     const boardEl = elements.get('board');
     if (boardEl) {
         boardEl.innerHTML = '';
-        boardEl.appendChild = function(child) { this._children = []; this._children.push(child); };
-        boardEl.querySelectorAll = function() { return []; };
-        boardEl.querySelector = function() { return null; };
     }
 
     const document = {
@@ -88,13 +134,21 @@ function runScriptWithContext() {
         Date,
         JSON,
         setInterval() { return 1; },
-        clearInterval() {}
+        clearInterval() {},
+        setTimeout(fn) { fn(); return 1; }
     };
     context.window.window = context.window;
     context.window.document = document;
 
     vm.runInNewContext(read('script.js'), context);
     return { api: context.window.YibiHua, storage, elements };
+}
+
+function clickNode(elements, nodeId) {
+    const hit = elements.get('board').querySelectorAll('.node-hit')
+        .find((node) => node.dataset.id === String(nodeId));
+    assert(hit, `node ${nodeId} hit area should exist`);
+    hit.dispatch('click');
 }
 
 /* ---- tests ---- */
@@ -192,11 +246,41 @@ function testStorage() {
     assert.strictEqual(parsed.stars, 2);
 }
 
+function testHintKeepsCurrentValidPath() {
+    const { elements } = runScriptWithContext({ 'yibihua-max-unlocked': '6' });
+
+    clickNode(elements, 4);
+    elements.get('hint-btn').dispatch('click');
+    clickNode(elements, 5);
+
+    const continuedEdge = elements.get('board').querySelector('.edge-line[data-key="4-5"]');
+    assert(continuedEdge.classList.contains('is-drawn'),
+        'hint should not reset a valid player path away from current node');
+    assert.strictEqual(elements.get('steps-text').textContent, '2',
+        'continuing after hint should count the next valid step');
+}
+
+function testLevelsModalDoesNotAccumulateClickHandlers() {
+    const { elements } = runScriptWithContext();
+
+    elements.get('levels-btn').dispatch('click');
+    elements.get('levels-close-btn').dispatch('click');
+    elements.get('levels-btn').dispatch('click');
+    elements.get('levels-close-btn').dispatch('click');
+    elements.get('levels-btn').dispatch('click');
+
+    const clickHandlers = elements.get('levels-grid').listeners.click || [];
+    assert.strictEqual(clickHandlers.length, 1,
+        'levels grid should keep a single click handler after repeated opens');
+}
+
 testFilesAndCatalogExist();
 testLevelConfig();
 testGetConfigForLevel();
 testLevelGeneration();
 testStars();
 testStorage();
+testHintKeepsCurrentValidPath();
+testLevelsModalDoesNotAccumulateClickHandlers();
 
 console.log('yibihua smoke test passed');
