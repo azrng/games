@@ -71,6 +71,9 @@ function createElement(id) {
         remove() {},
         addEventListener() {},
         setAttribute() {},
+        scrollTop: 0,
+        scrollHeight: 360,
+        clientHeight: 260,
         getBoundingClientRect() {
             return { left: 0, top: 0, width: 390, height: 620 };
         },
@@ -108,10 +111,13 @@ function createSandbox() {
         "winOverlay",
         "introOverlay",
         "levelOverlay",
+        "levelPanel",
         "levelGrid",
+        "levelScrollHint",
         "btnIntroStart",
         "btnCloseLevels",
         "proximityToast",
+        "shareToast",
         "modalStars",
         "modalRating",
         "modalLevelBest",
@@ -178,12 +184,19 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("id=\"introOverlay\""), "page should include first-run onboarding");
     assert(html.includes("id=\"levelOverlay\""), "page should include level picker overlay");
     assert(html.includes("id=\"btnShare\""), "win modal should include share control");
+    assert(html.includes("id=\"shareToast\""), "share feedback should use a dedicated toast");
+    assert(html.includes("id=\"levelScrollHint\""), "level picker should show a scroll hint");
     assert(html.includes("modalStars"), "win modal should show a star rating");
     assert(html.includes("proximityToast"), "miss feedback should include proximity toast");
     assert(html.includes("hintsForLevel"), "hint count should scale by level and cat count");
     assert(html.includes("calculateStars"), "completion should calculate star ratings");
+    assert(html.includes("steps3: cats + Math.ceil(cats * 1.25) + 1"), "three-star click target should allow a few beginner mistakes");
     assert(html.includes("level-records"), "page should persist per-level records");
     assert(html.includes("openLevelPicker"), "page should support replaying unlocked levels");
+    assert(html.includes("updateLevelScrollHint"), "level picker should update its scroll indicator");
+    assert(html.includes("shareToast.textContent"), "share feedback should not reuse proximity feedback");
+    assert(html.includes("whiskerSpread"), "cat variants should vary whiskers");
+    assert(html.includes("ctx.arc(tailDir * s * 0.45"), "cat variants should include curled tails");
     assert(html.includes("addEventListener(\"wheel\""), "desktop mouse wheel zoom should be supported");
     assert(html.includes("resizeTimer"), "resize handling should be debounced");
     assert(!html.includes(".found-ring"), "unused found-ring CSS should be removed");
