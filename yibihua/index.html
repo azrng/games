@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>一笔画 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="一笔画">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">One Stroke</p>
+                <h1>一笔画</h1>
+            </div>
+            <div class="header-actions">
+                <button id="undo-btn" class="icon-btn" type="button" aria-label="撤销" title="撤销">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </button>
+                <button id="hint-btn" class="icon-btn" type="button" aria-label="提示" title="提示">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </button>
+                <button id="levels-btn" class="icon-btn" type="button" aria-label="选关" title="选关">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">关卡</span>
+                <strong id="level-text">1</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">星级</span>
+                <strong id="stars-text">-</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">步数</span>
+                <strong id="steps-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">提示</span>
+                <strong id="hints-text">0</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="一笔画画布">
+            <svg id="board" class="board-svg" viewBox="0 0 100 100" aria-live="polite"></svg>
+        </section>
+
+        <footer class="game-footer">
+            <p class="hint-text">点击相邻节点画线，一笔画完所有边。</p>
+            <button id="reset-btn" class="reset-btn" type="button">重置本关</button>
+        </footer>
+    </main>
+
+    <section id="result-modal" class="result-modal" hidden>
+        <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="result-title">通关</h2>
+            <div class="result-stars" id="result-stars" aria-label="星级"></div>
+            <div class="result-grid">
+                <div>
+                    <span class="label">关卡</span>
+                    <strong id="result-level">1</strong>
+                </div>
+                <div>
+                    <span class="label">步数</span>
+                    <strong id="result-steps">0</strong>
+                </div>
+                <div>
+                    <span class="label">用时</span>
+                    <strong id="result-time">0秒</strong>
+                </div>
+                <div>
+                    <span class="label">提示</span>
+                    <strong id="result-hints">0</strong>
+                </div>
+            </div>
+            <div class="result-actions">
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+                <button id="replay-btn" class="secondary-btn" type="button">再玩一次</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="levels-modal" class="result-modal" hidden>
+        <div class="levels-card" role="dialog" aria-modal="true" aria-labelledby="levels-title">
+            <div class="levels-header">
+                <h2 id="levels-title">选择关卡</h2>
+                <button id="levels-close-btn" class="icon-btn" type="button" aria-label="关闭">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div id="levels-grid" class="levels-grid"></div>
+        </div>
+    </section>
+
+    <section class="desktop-notice" aria-label="移动端提示">
+        <div>
+            <p class="eyebrow">Mobile Only</p>
+            <h2>请在手机上体验</h2>
+            <p>一笔画按触控和竖屏节奏设计，移动端会获得完整体验。</p>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

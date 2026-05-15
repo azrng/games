@@ -66,6 +66,16 @@
             desc: "在程序生成的素描画中找出隐藏的所有猫咪，关卡逐步升级。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "yibihua",
+            title: "一笔画",
+            path: "yibihua/index.html",
+            mobilePath: "yibihua/index.html",
+            icon: "img/game.svg",
+            desc: "经典欧拉路径挑战，一笔画完所有边不重复，50 关闯关递进。",
+            readme: null,
+            meta: null
         }
     ];
 
