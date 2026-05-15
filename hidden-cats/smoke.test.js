@@ -59,6 +59,7 @@ function createElement(id) {
         id,
         style: {},
         textContent: "",
+        innerHTML: "",
         disabled: false,
         className: "",
         classList: {
@@ -69,6 +70,7 @@ function createElement(id) {
         appendChild() {},
         remove() {},
         addEventListener() {},
+        setAttribute() {},
         getBoundingClientRect() {
             return { left: 0, top: 0, width: 390, height: 620 };
         },
@@ -98,9 +100,21 @@ function createSandbox() {
         "hintBadge",
         "btnHint",
         "btnResetView",
+        "btnLevels",
         "btnRestart",
+        "btnReplay",
+        "btnShare",
         "btnNext",
         "winOverlay",
+        "introOverlay",
+        "levelOverlay",
+        "levelGrid",
+        "btnIntroStart",
+        "btnCloseLevels",
+        "proximityToast",
+        "modalStars",
+        "modalRating",
+        "modalLevelBest",
     ].forEach((id) => elements.set(`#${id}`, createElement(id)));
 
     return {
@@ -126,6 +140,11 @@ function createSandbox() {
         localStorage: {
             getItem() { return null; },
             setItem() {},
+        },
+        navigator: {
+            clipboard: {
+                writeText() { return Promise.resolve(); },
+            },
         },
         document: {
             querySelector(selector) {
@@ -154,7 +173,20 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("width=device-width"), "page should declare mobile viewport");
     assert(html.includes("user-scalable=no"), "page should disable browser zoom for touch gestures");
     assert(html.includes("id=\"gameCanvas\""), "page should include a canvas");
+    assert(html.includes("aria-label=\"找猫咪游戏画布"), "canvas should expose an accessible label");
     assert(html.includes("id=\"btnHint\""), "page should include hint control");
+    assert(html.includes("id=\"introOverlay\""), "page should include first-run onboarding");
+    assert(html.includes("id=\"levelOverlay\""), "page should include level picker overlay");
+    assert(html.includes("id=\"btnShare\""), "win modal should include share control");
+    assert(html.includes("modalStars"), "win modal should show a star rating");
+    assert(html.includes("proximityToast"), "miss feedback should include proximity toast");
+    assert(html.includes("hintsForLevel"), "hint count should scale by level and cat count");
+    assert(html.includes("calculateStars"), "completion should calculate star ratings");
+    assert(html.includes("level-records"), "page should persist per-level records");
+    assert(html.includes("openLevelPicker"), "page should support replaying unlocked levels");
+    assert(html.includes("addEventListener(\"wheel\""), "desktop mouse wheel zoom should be supported");
+    assert(html.includes("resizeTimer"), "resize handling should be debounced");
+    assert(!html.includes(".found-ring"), "unused found-ring CSS should be removed");
     assert(html.includes("sceneSeed"), "page should generate a randomized scene seed per level");
     assert(html.includes("levelSeed"), "page should keep a stable level seed for reproducible restarts");
     assert(html.includes("catSeed"), "page should derive a dedicated cat seed");

@@ -83,6 +83,13 @@
             color: var(--muted);
         }
 
+        .game-level small {
+            display: block;
+            margin-top: 2px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
         .game-stats {
             display: flex;
             flex-wrap: wrap;
@@ -280,6 +287,20 @@
         .modal-stat-value.primary { color: var(--primary); }
         .modal-stat-value.success { color: var(--success); }
 
+        .modal-stars {
+            margin: -4px 0 16px;
+            font-size: 28px;
+            letter-spacing: 2px;
+            color: var(--warning);
+        }
+
+        .modal-rating {
+            margin: -8px 0 16px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
         .modal-best {
             display: flex;
             justify-content: center;
@@ -357,13 +378,86 @@
             100% { opacity: 0; transform: scale(1.34); box-shadow: 0 0 0 26px rgba(47,158,68,0); }
         }
 
-        /* ===== 猫咪已找到标记 ===== */
-        .found-ring {
+        .proximity-toast {
             position: absolute;
+            left: 50%;
+            bottom: 18px;
+            max-width: min(320px, calc(100% - 32px));
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 24, 39, 0.86);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
             pointer-events: none;
-            border: 2.5px solid var(--success);
-            border-radius: 50%;
-            opacity: 0.6;
+            transform: translateX(-50%) translateY(8px);
+            opacity: 0;
+            transition: opacity 160ms ease, transform 160ms ease;
+            z-index: 20;
+        }
+
+        .proximity-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .intro-panel,
+        .level-panel {
+            text-align: left;
+        }
+
+        .intro-panel .modal-title,
+        .level-panel .modal-title {
+            text-align: center;
+        }
+
+        .intro-list {
+            display: grid;
+            gap: 10px;
+            margin: 0 0 18px;
+            padding: 0;
+            list-style: none;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .intro-list strong {
+            color: var(--text);
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-height: 260px;
+            overflow: auto;
+            margin-bottom: 16px;
+            padding-right: 2px;
+        }
+
+        .level-choice {
+            min-height: 54px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            background: var(--panel-muted);
+            color: var(--text);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .level-choice small {
+            display: block;
+            margin-top: 3px;
+            color: var(--warning);
+            font-size: 11px;
+            letter-spacing: 0;
+        }
+
+        .level-choice.locked {
+            opacity: 0.42;
+            cursor: not-allowed;
         }
 
         @media (max-width: 360px), (max-height: 680px) {
@@ -422,7 +516,8 @@
         </div>
 
         <div class="canvas-wrap" id="canvasWrap">
-            <canvas id="gameCanvas"></canvas>
+            <canvas id="gameCanvas" role="img" aria-label="找猫咪游戏画布：在线稿场景中寻找隐藏猫咪，可拖拽平移、双指或滚轮缩放"></canvas>
+            <div class="proximity-toast" id="proximityToast" aria-live="polite"></div>
         </div>
 
         <footer class="game-footer">
@@ -431,6 +526,7 @@
                 <span class="hint-badge" id="hintBadge">2</span>
             </button>
             <button class="btn" id="btnResetView" type="button">重置缩放</button>
+            <button class="btn" id="btnLevels" type="button">选关</button>
             <button class="btn" id="btnRestart" type="button">重新开始</button>
         </footer>
     </div>
@@ -440,6 +536,8 @@
         <div class="modal">
             <div class="modal-icon">🎉</div>
             <div class="modal-title">通关成功</div>
+            <div class="modal-stars" id="modalStars" aria-label="本关星级">☆☆☆</div>
+            <div class="modal-rating" id="modalRating">继续挑战，争取更少点击和更快通关。</div>
             <div class="modal-stats">
                 <div class="modal-stat">
                     <div class="modal-stat-label">当前关卡</div>
@@ -460,10 +558,34 @@
             </div>
             <div class="modal-best">
                 <div>最高关卡: <span id="modalBestLevel">0</span></div>
+                <div>本关最佳: <span id="modalLevelBest">--</span></div>
             </div>
             <div class="modal-actions">
+                <button class="btn" id="btnShare" type="button">分享</button>
+                <button class="btn" id="btnReplay" type="button">再来一次</button>
                 <button class="btn btn-primary" id="btnNext" type="button">下一关</button>
             </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="introOverlay">
+        <div class="modal intro-panel">
+            <div class="modal-icon">🐾</div>
+            <div class="modal-title">找到藏在线稿里的猫</div>
+            <ul class="intro-list">
+                <li><strong>点击猫咪轮廓</strong>即可收集，找到全部猫咪通关。</li>
+                <li><strong>拖拽平移</strong>画布，双指或鼠标滚轮可以缩放。</li>
+                <li><strong>点错也有冷热反馈</strong>，靠近猫咪时会提示方向感。</li>
+            </ul>
+            <button class="btn btn-primary" id="btnIntroStart" type="button">开始寻找</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="levelOverlay">
+        <div class="modal level-panel">
+            <div class="modal-title">选择关卡</div>
+            <div class="level-grid" id="levelGrid"></div>
+            <button class="btn" id="btnCloseLevels" type="button">关闭</button>
         </div>
     </div>
 
@@ -478,6 +600,7 @@
         const HIT_RADIUS_MULT = 1.3;
         const SKETCH_LINE = "#757b84";
         const SKETCH_LIGHT = "#a7adb5";
+        const CAT_LINE = "#4f5662";
 
         const SCENE_TEMPLATES = ["travel", "harbor", "library"];
         const LEVEL_DIFFICULTY = [
@@ -521,8 +644,9 @@
             return cats * difficulty.obstaclePerCat + difficulty.extraObstacles;
         }
 
-        /* 每关提示次数 */
-        const HINTS_PER_LEVEL = 2;
+        function hintsForLevel(cats, level) {
+            return Math.max(2, Math.min(5, Math.ceil(cats / 3) + (level >= 10 ? 1 : 0)));
+        }
 
         /* ===== DOM 引用 ===== */
         const $ = (s) => document.querySelector(s);
@@ -538,9 +662,18 @@
         const uiHintBadge = $("#hintBadge");
         const btnHint = $("#btnHint");
         const btnResetView = $("#btnResetView");
+        const btnLevels = $("#btnLevels");
         const btnRestart = $("#btnRestart");
+        const btnReplay = $("#btnReplay");
+        const btnShare = $("#btnShare");
         const btnNext = $("#btnNext");
         const winOverlay = $("#winOverlay");
+        const introOverlay = $("#introOverlay");
+        const levelOverlay = $("#levelOverlay");
+        const levelGrid = $("#levelGrid");
+        const btnIntroStart = $("#btnIntroStart");
+        const btnCloseLevels = $("#btnCloseLevels");
+        const proximityToast = $("#proximityToast");
 
         /* ===== 游戏状态 ===== */
         let state = {};
@@ -565,7 +698,7 @@
                 foundCount: 0,
                 totalCats: cats,
                 steps: 0,
-                hints: HINTS_PER_LEVEL,
+                hints: hintsForLevel(cats, level),
                 startTime: null,
                 elapsed: 0,
                 timerInterval: null,
@@ -574,6 +707,7 @@
                 offsetY: 0,
                 won: false,
                 backgroundCanvas: null,
+                currentStars: 0,
             };
         }
 
@@ -618,7 +752,7 @@
 
             const s = size;
             const fillColor = found ? "rgba(16,185,129,0.16)" : "rgba(251,251,248,0.02)";
-            const lineColor = found ? "rgba(16,185,129,0.95)" : "#666d76";
+            const lineColor = found ? "rgba(16,185,129,0.95)" : CAT_LINE;
             ctx.fillStyle = fillColor;
             ctx.strokeStyle = lineColor;
             ctx.lineWidth = Math.max(1.1, s * 0.038);
@@ -662,7 +796,7 @@
             ctx.fill();
             ctx.stroke();
 
-            ctx.fillStyle = found ? "rgba(16,185,129,0.95)" : "#737983";
+            ctx.fillStyle = found ? "rgba(16,185,129,0.95)" : "#5f6671";
             ctx.beginPath();
             ctx.arc(-s * 0.09, headY - s * 0.02, s * 0.022, 0, Math.PI * 2);
             ctx.fill();
@@ -1674,6 +1808,22 @@
             handleTap(e.clientX, e.clientY);
         });
 
+        wrap.addEventListener("wheel", (e) => {
+            if (state.won) return;
+            e.preventDefault();
+            const rect = wrap.getBoundingClientRect();
+            const cx = e.clientX - rect.left;
+            const cy = e.clientY - rect.top;
+            const direction = e.deltaY > 0 ? -1 : 1;
+            const factor = direction > 0 ? 1.12 : 0.9;
+            const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, state.scale * factor));
+            const ratio = newScale / state.scale;
+            state.offsetX = cx - ratio * (cx - state.offsetX);
+            state.offsetY = cy - ratio * (cy - state.offsetY);
+            state.scale = newScale;
+            applyTransform();
+        }, { passive: false });
+
         /* ===== 点击判定 ===== */
         function screenToCanvas(sx, sy) {
             const rect = wrap.getBoundingClientRect();
@@ -1702,6 +1852,7 @@
             if (hit) {
                 hit.found = true;
                 state.foundCount++;
+                hideProximityToast();
                 showHitMarker(sx, sy);
                 renderScene();
                 updateUI();
@@ -1713,6 +1864,7 @@
                 }
             } else {
                 showMissMarker(sx, sy);
+                showProximityFeedback(x, y);
             }
         }
 
@@ -1747,6 +1899,33 @@
             setTimeout(() => el.remove(), 1250);
         }
 
+        let proximityTimer = null;
+
+        function showProximityFeedback(x, y) {
+            const nearest = state.cats
+                .filter((cat) => !cat.found)
+                .map((cat) => ({ cat, dist: Math.hypot(cat.x - x, cat.y - y) }))
+                .sort((a, b) => a.dist - b.dist)[0];
+            if (!nearest) return;
+
+            const near = nearest.dist <= nearest.cat.r * 4.2;
+            const warm = nearest.dist <= nearest.cat.r * 8;
+            const message = near ? "很近了，猫就在附近" : warm ? "有点接近，继续缩放观察" : "离猫还远，换个区域找找";
+            proximityToast.textContent = message;
+            proximityToast.classList.add("show");
+
+            if (proximityTimer) clearTimeout(proximityTimer);
+            proximityTimer = setTimeout(hideProximityToast, 1100);
+        }
+
+        function hideProximityToast() {
+            proximityToast.classList.remove("show");
+            if (proximityTimer) {
+                clearTimeout(proximityTimer);
+                proximityTimer = null;
+            }
+        }
+
         /* ===== 计时器 ===== */
         function startTimer() {
             if (state.timerInterval) return;
@@ -1772,7 +1951,7 @@
 
         /* ===== UI 更新 ===== */
         function updateUI() {
-            uiLevel.textContent = `第 ${state.level} 关`;
+            uiLevel.innerHTML = `第 ${state.level} 关<small>${sceneLabel(state.sceneTemplate)}</small>`;
             uiSteps.textContent = state.steps;
             uiProgressCount.textContent = `${state.foundCount} / ${state.totalCats}`;
             const pct = state.totalCats > 0 ? (state.foundCount / state.totalCats * 100) : 0;
@@ -1787,18 +1966,67 @@
             }
         }
 
+        function sceneLabel(template) {
+            const labels = {
+                travel: "旅行线稿",
+                harbor: "港口线稿",
+                library: "图书馆线稿",
+            };
+            return labels[template] || "线稿场景";
+        }
+
+        function starTargets(level, cats) {
+            return {
+                steps3: cats + Math.ceil(cats * 0.8) + Math.floor(level / 4),
+                steps2: cats + Math.ceil(cats * 1.8) + Math.floor(level / 2),
+                time3: 22 + cats * 8 + level * 2,
+                time2: 42 + cats * 12 + level * 3,
+            };
+        }
+
+        function calculateStars(level, cats, steps, elapsed) {
+            const targets = starTargets(level, cats);
+            if (steps <= targets.steps3 && elapsed <= targets.time3) return 3;
+            if (steps <= targets.steps2 && elapsed <= targets.time2) return 2;
+            return 1;
+        }
+
+        function starText(stars) {
+            return "★".repeat(stars) + "☆".repeat(3 - stars);
+        }
+
+        function ratingText(stars) {
+            if (stars >= 3) return "满星通关。点击和用时都控制得很好。";
+            if (stars === 2) return "表现不错，再减少误点或更快找到猫咪可冲击满星。";
+            return "已通关。熟悉场景后再来一次，可以争取更高星级。";
+        }
+
         /* ===== 通关弹层 ===== */
         function showWinModal() {
             const best = getBestLevel();
             if (state.level > best) {
                 saveBestLevel(state.level);
             }
+            const stars = calculateStars(state.level, state.totalCats, state.steps, state.elapsed);
+            state.currentStars = stars;
+            const levelBest = saveLevelRecord(state.level, {
+                stars,
+                steps: state.steps,
+                elapsed: state.elapsed,
+                scene: state.sceneTemplate,
+                cats: state.totalCats,
+                updatedAt: new Date().toISOString(),
+            });
 
             $("#modalLevel").textContent = state.level;
             $("#modalCats").textContent = state.totalCats;
             $("#modalSteps").textContent = state.steps;
             $("#modalTime").textContent = formatTime(state.elapsed);
             $("#modalBestLevel").textContent = Math.max(state.level, best);
+            $("#modalLevelBest").textContent = levelBest ? `${starText(levelBest.stars)} / ${formatTime(levelBest.elapsed)} / ${levelBest.steps} 次` : "--";
+            $("#modalStars").textContent = starText(stars);
+            $("#modalStars").setAttribute("aria-label", `本关 ${stars} 星`);
+            $("#modalRating").textContent = ratingText(stars);
 
             winOverlay.classList.add("show");
         }
@@ -1816,6 +2044,100 @@
 
         function saveBestLevel(level) {
             try { localStorage.setItem(STORAGE_PREFIX + "best-level", level); } catch {}
+        }
+
+        function getLevelRecords() {
+            try {
+                return JSON.parse(localStorage.getItem(STORAGE_PREFIX + "level-records")) || {};
+            } catch { return {}; }
+        }
+
+        function saveLevelRecords(records) {
+            try { localStorage.setItem(STORAGE_PREFIX + "level-records", JSON.stringify(records)); } catch {}
+        }
+
+        function isBetterRecord(next, prev) {
+            if (!prev) return true;
+            if (next.stars !== prev.stars) return next.stars > prev.stars;
+            if (next.elapsed !== prev.elapsed) return next.elapsed < prev.elapsed;
+            return next.steps < prev.steps;
+        }
+
+        function saveLevelRecord(level, record) {
+            const records = getLevelRecords();
+            const key = String(level);
+            if (isBetterRecord(record, records[key])) {
+                records[key] = record;
+                saveLevelRecords(records);
+            }
+            return records[key];
+        }
+
+        function markIntroSeen() {
+            try { localStorage.setItem(STORAGE_PREFIX + "intro-seen", "1"); } catch {}
+        }
+
+        function hasSeenIntro() {
+            try { return localStorage.getItem(STORAGE_PREFIX + "intro-seen") === "1"; } catch { return true; }
+        }
+
+        function openLevelPicker() {
+            const best = Math.max(getBestLevel(), state.level);
+            const records = getLevelRecords();
+            const maxVisible = Math.max(best + 3, 12);
+            levelGrid.innerHTML = "";
+            for (let level = 1; level <= maxVisible; level++) {
+                const button = document.createElement("button");
+                const locked = level > best + 1;
+                const record = records[String(level)];
+                button.type = "button";
+                button.className = `level-choice${locked ? " locked" : ""}`;
+                button.innerHTML = `第 ${level} 关<small>${record ? starText(record.stars) : sceneLabel(sceneTemplateForLevel(level))}</small>`;
+                button.disabled = locked;
+                button.addEventListener("click", () => {
+                    if (locked) return;
+                    hideLevelPicker();
+                    hideWinModal();
+                    generateLevel(level);
+                });
+                levelGrid.appendChild(button);
+            }
+            levelOverlay.classList.add("show");
+        }
+
+        function hideLevelPicker() {
+            levelOverlay.classList.remove("show");
+        }
+
+        function showIntroIfNeeded() {
+            if (!hasSeenIntro()) {
+                introOverlay.classList.add("show");
+            }
+        }
+
+        function closeIntro() {
+            markIntroSeen();
+            introOverlay.classList.remove("show");
+        }
+
+        function shareResult() {
+            const text = `我在找猫咪第 ${state.level} 关拿到 ${starText(state.currentStars || 1)}，用时 ${formatTime(state.elapsed)}，点击 ${state.steps} 次。`;
+            if (navigator.share) {
+                navigator.share({ title: "找猫咪", text }).catch(() => {});
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showShareFeedback("成绩已复制"));
+                return;
+            }
+            showShareFeedback(text);
+        }
+
+        function showShareFeedback(text) {
+            proximityToast.textContent = text;
+            proximityToast.classList.add("show");
+            if (proximityTimer) clearTimeout(proximityTimer);
+            proximityTimer = setTimeout(hideProximityToast, 1400);
         }
 
         /* ===== 按钮事件 ===== */
@@ -1844,10 +2166,24 @@
             fitCanvasToView();
         });
 
+        btnLevels.addEventListener("click", () => {
+            openLevelPicker();
+        });
+
         btnRestart.addEventListener("click", () => {
             stopTimer();
             hideWinModal();
             generateLevel(state.level, state.levelSeed);
+        });
+
+        btnReplay.addEventListener("click", () => {
+            stopTimer();
+            hideWinModal();
+            generateLevel(state.level, state.levelSeed);
+        });
+
+        btnShare.addEventListener("click", () => {
+            shareResult();
         });
 
         btnNext.addEventListener("click", () => {
@@ -1855,13 +2191,26 @@
             generateLevel(state.level + 1);
         });
 
+        btnIntroStart.addEventListener("click", () => {
+            closeIntro();
+        });
+
+        btnCloseLevels.addEventListener("click", () => {
+            hideLevelPicker();
+        });
+
         /* 窗口大小变化 */
+        let resizeTimer = null;
         window.addEventListener("resize", () => {
-            fitCanvasToView();
+            if (resizeTimer) clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                fitCanvasToView();
+            }, 120);
         });
 
         /* ===== 启动 ===== */
         generateLevel(1);
+        showIntroIfNeeded();
     })();
     </script>
     <script src="../js/game-back.js"></script>
