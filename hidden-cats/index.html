@@ -640,7 +640,7 @@
         const SKETCH_LIGHT = "#a7adb5";
         const CAT_LINE = "#4f5662";
 
-        const SCENE_TEMPLATES = ["travel", "harbor", "library"];
+        const SCENE_TEMPLATES = ["travel", "harbor", "library", "garden", "kitchen", "museum"];
         const LEVEL_DIFFICULTY = [
             { from: 1, cats: 3, size: 1120, obstaclePerCat: 4, extraObstacles: 14, textureBoost: 0.82, decoyBase: 12, minCatSpacing: 0.13, candidateMultiplier: 5 },
             { from: 4, cats: 4, size: 1280, obstaclePerCat: 5, extraObstacles: 18, textureBoost: 0.96, decoyBase: 16, minCatSpacing: 0.12, candidateMultiplier: 5 },
@@ -1276,6 +1276,187 @@
             }
         }
 
+        function drawGardenScene(size, random) {
+            drawCloud(size * 0.18, size * 0.08, size / 1350, random);
+            drawCloud(size * 0.72, size * 0.12, size / 1280, random);
+
+            sketchStyle(1.5, SKETCH_LIGHT);
+            for (let i = 0; i < 5; i++) {
+                const y = size * (0.56 + i * 0.055);
+                ctx.beginPath();
+                ctx.moveTo(size * 0.05, y);
+                for (let x = size * 0.12; x < size * 0.96; x += size * 0.12) {
+                    ctx.quadraticCurveTo(x, y - size * (0.025 + random() * 0.015), x + size * 0.08, y);
+                }
+                ctx.stroke();
+            }
+
+            sketchStyle(1.8, SKETCH_LINE);
+            for (let i = 0; i < 7; i++) {
+                const x = size * (0.08 + i * 0.135 + random() * 0.018);
+                const y = size * (0.32 + random() * 0.08);
+                const h = size * (0.28 + random() * 0.1);
+                ctx.beginPath();
+                ctx.moveTo(x, y + h);
+                ctx.lineTo(x, y + h * 0.24);
+                ctx.stroke();
+                for (let b = 0; b < 4; b++) {
+                    const side = b % 2 === 0 ? -1 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + h * (0.32 + b * 0.13));
+                    ctx.quadraticCurveTo(x + side * size * 0.055, y + h * (0.2 + b * 0.12), x + side * size * 0.11, y + h * (0.28 + b * 0.12));
+                    ctx.stroke();
+                }
+                strokeEllipse(x, y + h * 0.18, size * 0.055, size * 0.035, random() * 0.5);
+            }
+
+            for (let row = 0; row < 3; row++) {
+                for (let i = 0; i < 8; i++) {
+                    const x = size * (0.08 + i * 0.115 + random() * 0.03);
+                    const y = size * (0.72 + row * 0.07 + random() * 0.025);
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + size * 0.035);
+                    ctx.lineTo(x, y - size * 0.025);
+                    ctx.stroke();
+                    for (let p = 0; p < 5; p++) {
+                        const a = p / 5 * Math.PI * 2;
+                        ctx.beginPath();
+                        ctx.arc(x + Math.cos(a) * size * 0.022, y - size * 0.04 + Math.sin(a) * size * 0.018, size * 0.012, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            sketchStyle(1.6, SKETCH_LINE);
+            ctx.beginPath();
+            ctx.moveTo(size * 0.08, size * 0.84);
+            ctx.quadraticCurveTo(size * 0.5, size * 0.96, size * 0.92, size * 0.84);
+            ctx.stroke();
+            ctx.strokeRect(size * 0.72, size * 0.34, size * 0.12, size * 0.1);
+            ctx.beginPath();
+            ctx.moveTo(size * 0.71, size * 0.34);
+            ctx.lineTo(size * 0.78, size * 0.27);
+            ctx.lineTo(size * 0.85, size * 0.34);
+            ctx.stroke();
+        }
+
+        function drawKitchenScene(size, random) {
+            sketchStyle(1.8, SKETCH_LINE);
+            ctx.strokeRect(size * 0.06, size * 0.18, size * 0.88, size * 0.18);
+            ctx.strokeRect(size * 0.08, size * 0.38, size * 0.84, size * 0.24);
+            for (let i = 0; i < 8; i++) {
+                const x = size * (0.1 + i * 0.1);
+                ctx.beginPath();
+                ctx.moveTo(x, size * 0.18);
+                ctx.lineTo(x, size * 0.36);
+                ctx.moveTo(x, size * 0.38);
+                ctx.lineTo(x, size * 0.62);
+                ctx.stroke();
+                ctx.strokeRect(x + size * 0.025, size * 0.45, size * 0.026, size * 0.012);
+            }
+
+            sketchStyle(1.5, SKETCH_LINE);
+            for (let i = 0; i < 7; i++) {
+                const x = size * (0.14 + i * 0.11);
+                const y = size * (0.22 + random() * 0.06);
+                ctx.beginPath();
+                ctx.moveTo(x, size * 0.18);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                if (i % 2 === 0) {
+                    strokeEllipse(x, y + size * 0.035, size * 0.025, size * 0.045);
+                } else {
+                    ctx.strokeRect(x - size * 0.018, y, size * 0.036, size * 0.075);
+                }
+            }
+
+            const tableY = size * 0.74;
+            sketchStyle(1.9, SKETCH_LINE);
+            ctx.strokeRect(size * 0.16, tableY, size * 0.68, size * 0.06);
+            ctx.beginPath();
+            ctx.moveTo(size * 0.21, tableY + size * 0.06);
+            ctx.lineTo(size * 0.17, size * 0.95);
+            ctx.moveTo(size * 0.79, tableY + size * 0.06);
+            ctx.lineTo(size * 0.83, size * 0.95);
+            ctx.stroke();
+            for (let i = 0; i < 10; i++) {
+                const x = size * (0.22 + random() * 0.56);
+                const y = tableY - size * (0.02 + random() * 0.08);
+                strokeEllipse(x, y, size * (0.025 + random() * 0.02), size * 0.016, random() * 0.6);
+            }
+
+            sketchStyle(1.3, SKETCH_LIGHT);
+            for (let row = 0; row < 7; row++) {
+                for (let col = 0; col < 10; col++) {
+                    ctx.strokeRect(size * (0.06 + col * 0.09), size * (0.03 + row * 0.08), size * 0.07, size * 0.045);
+                }
+            }
+        }
+
+        function drawMuseumScene(size, random) {
+            sketchStyle(2, SKETCH_LINE);
+            ctx.beginPath();
+            ctx.moveTo(size * 0.08, size * 0.22);
+            ctx.lineTo(size * 0.5, size * 0.08);
+            ctx.lineTo(size * 0.92, size * 0.22);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.strokeRect(size * 0.12, size * 0.22, size * 0.76, size * 0.52);
+            for (let i = 0; i < 6; i++) {
+                const x = size * (0.18 + i * 0.125);
+                ctx.beginPath();
+                ctx.moveTo(x, size * 0.26);
+                ctx.lineTo(x, size * 0.72);
+                ctx.moveTo(x - size * 0.035, size * 0.26);
+                ctx.lineTo(x + size * 0.035, size * 0.26);
+                ctx.moveTo(x - size * 0.04, size * 0.72);
+                ctx.lineTo(x + size * 0.04, size * 0.72);
+                ctx.stroke();
+            }
+
+            const frames = [
+                { x: 0.16, y: 0.33, w: 0.16, h: 0.14 },
+                { x: 0.42, y: 0.31, w: 0.18, h: 0.16 },
+                { x: 0.68, y: 0.34, w: 0.15, h: 0.13 },
+            ];
+            frames.forEach((frame, index) => {
+                const x = size * frame.x;
+                const y = size * frame.y;
+                const w = size * frame.w;
+                const h = size * frame.h;
+                ctx.strokeRect(x, y, w, h);
+                ctx.strokeRect(x + size * 0.012, y + size * 0.012, w - size * 0.024, h - size * 0.024);
+                ctx.beginPath();
+                if (index === 0) {
+                    ctx.moveTo(x + w * 0.18, y + h * 0.75);
+                    ctx.quadraticCurveTo(x + w * 0.5, y + h * 0.25, x + w * 0.82, y + h * 0.72);
+                } else if (index === 1) {
+                    ctx.arc(x + w * 0.5, y + h * 0.5, Math.min(w, h) * 0.28, 0, Math.PI * 2);
+                } else {
+                    ctx.moveTo(x + w * 0.18, y + h * 0.2);
+                    ctx.lineTo(x + w * 0.82, y + h * 0.8);
+                    ctx.moveTo(x + w * 0.82, y + h * 0.2);
+                    ctx.lineTo(x + w * 0.18, y + h * 0.8);
+                }
+                ctx.stroke();
+            });
+
+            sketchStyle(1.6, SKETCH_LINE);
+            for (let i = 0; i < 4; i++) {
+                const x = size * (0.2 + i * 0.18);
+                ctx.strokeRect(x, size * 0.78, size * 0.11, size * 0.08);
+                strokeEllipse(x + size * 0.055, size * 0.74, size * 0.035, size * 0.05);
+            }
+
+            sketchStyle(1.2, SKETCH_LIGHT);
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(size * (0.08 + i * 0.12), size * 0.9);
+                ctx.lineTo(size * (0.18 + i * 0.12), size * 0.78);
+                ctx.stroke();
+            }
+        }
+
         function drawDenseLinework(size, random) {
             const difficulty = state.difficulty || levelDifficulty(state.level || 1);
             const textureBoost = difficulty.textureBoost || 1;
@@ -1491,6 +1672,24 @@
                 return;
             }
 
+            if (state.sceneTemplate === "garden") {
+                drawGardenScene(size, random);
+                drawDenseLinework(size, random);
+                return;
+            }
+
+            if (state.sceneTemplate === "kitchen") {
+                drawKitchenScene(size, random);
+                drawDenseLinework(size, random);
+                return;
+            }
+
+            if (state.sceneTemplate === "museum") {
+                drawMuseumScene(size, random);
+                drawDenseLinework(size, random);
+                return;
+            }
+
             const cloudCount = 4 + Math.floor(random() * 3);
             for (let i = 0; i < cloudCount; i++) {
                 drawCloud(size * (0.08 + random() * 0.86), size * (0.04 + random() * 0.16), size / (1050 + random() * 360), random);
@@ -1561,6 +1760,33 @@
                     { x: jitter(size * 0.52, size * 0.05), y: jitter(size * 0.77, size * 0.04), r: size * 0.016, variant: 1, rotation: -0.16 },
                     { x: jitter(size * 0.78, size * 0.05), y: jitter(size * 0.83, size * 0.04), r: size * 0.015, variant: 3, rotation: 0.1 },
                 ],
+                garden: [
+                    { x: jitter(size * 0.14, size * 0.05), y: jitter(size * 0.5, size * 0.04), r: size * 0.015, variant: 0, rotation: -0.16 },
+                    { x: jitter(size * 0.31, size * 0.05), y: jitter(size * 0.36, size * 0.04), r: size * 0.014, variant: 2, rotation: 0.18 },
+                    { x: jitter(size * 0.49, size * 0.05), y: jitter(size * 0.58, size * 0.04), r: size * 0.016, variant: 1, rotation: -0.08 },
+                    { x: jitter(size * 0.72, size * 0.05), y: jitter(size * 0.39, size * 0.04), r: size * 0.015, variant: 3, rotation: 0.2 },
+                    { x: jitter(size * 0.82, size * 0.04), y: jitter(size * 0.78, size * 0.04), r: size * 0.016, variant: 2, rotation: -0.22 },
+                    { x: jitter(size * 0.28, size * 0.05), y: jitter(size * 0.82, size * 0.04), r: size * 0.015, variant: 0, rotation: 0.12 },
+                    { x: jitter(size * 0.58, size * 0.05), y: jitter(size * 0.86, size * 0.04), r: size * 0.014, variant: 3, rotation: -0.1 },
+                ],
+                kitchen: [
+                    { x: jitter(size * 0.16, size * 0.04), y: jitter(size * 0.25, size * 0.04), r: size * 0.014, variant: 1, rotation: 0.12 },
+                    { x: jitter(size * 0.34, size * 0.04), y: jitter(size * 0.48, size * 0.04), r: size * 0.015, variant: 2, rotation: -0.18 },
+                    { x: jitter(size * 0.56, size * 0.04), y: jitter(size * 0.29, size * 0.04), r: size * 0.014, variant: 3, rotation: 0.16 },
+                    { x: jitter(size * 0.78, size * 0.04), y: jitter(size * 0.5, size * 0.04), r: size * 0.015, variant: 0, rotation: -0.12 },
+                    { x: jitter(size * 0.25, size * 0.05), y: jitter(size * 0.72, size * 0.04), r: size * 0.016, variant: 1, rotation: 0.22 },
+                    { x: jitter(size * 0.52, size * 0.05), y: jitter(size * 0.68, size * 0.04), r: size * 0.016, variant: 3, rotation: -0.16 },
+                    { x: jitter(size * 0.78, size * 0.05), y: jitter(size * 0.78, size * 0.04), r: size * 0.015, variant: 2, rotation: 0.1 },
+                ],
+                museum: [
+                    { x: jitter(size * 0.18, size * 0.04), y: jitter(size * 0.34, size * 0.04), r: size * 0.014, variant: 0, rotation: -0.08 },
+                    { x: jitter(size * 0.34, size * 0.04), y: jitter(size * 0.63, size * 0.04), r: size * 0.015, variant: 2, rotation: 0.18 },
+                    { x: jitter(size * 0.5, size * 0.04), y: jitter(size * 0.2, size * 0.04), r: size * 0.014, variant: 3, rotation: -0.14 },
+                    { x: jitter(size * 0.64, size * 0.04), y: jitter(size * 0.42, size * 0.04), r: size * 0.015, variant: 1, rotation: 0.12 },
+                    { x: jitter(size * 0.82, size * 0.04), y: jitter(size * 0.62, size * 0.04), r: size * 0.015, variant: 0, rotation: -0.22 },
+                    { x: jitter(size * 0.28, size * 0.05), y: jitter(size * 0.82, size * 0.04), r: size * 0.016, variant: 3, rotation: 0.2 },
+                    { x: jitter(size * 0.7, size * 0.05), y: jitter(size * 0.81, size * 0.04), r: size * 0.016, variant: 2, rotation: -0.1 },
+                ],
             };
             return anchorSets[state.sceneTemplate] || anchorSets.travel;
         }
@@ -1591,6 +1817,27 @@
                     { name: "lower-shelves", xMin: 0.08, xMax: 0.92, yMin: 0.5, yMax: 0.72, r: 0.015, variants: [0, 1, 2], rot: [-0.16, 0.2] },
                     { name: "desk-books", xMin: 0.18, xMax: 0.82, yMin: 0.72, yMax: 0.86, r: 0.016, variants: [1, 2, 3], rot: [-0.28, 0.28] },
                     { name: "floor-notes", xMin: 0.12, xMax: 0.88, yMin: 0.82, yMax: 0.94, r: 0.014, variants: [0, 3], rot: [-0.24, 0.24] },
+                ],
+                garden: [
+                    { name: "flower-beds", xMin: 0.07, xMax: 0.92, yMin: 0.68, yMax: 0.92, r: 0.015, variants: [0, 1, 2], rot: [-0.24, 0.24] },
+                    { name: "tree-branches", xMin: 0.08, xMax: 0.9, yMin: 0.28, yMax: 0.58, r: 0.014, variants: [1, 3], rot: [-0.22, 0.22] },
+                    { name: "garden-path", xMin: 0.12, xMax: 0.88, yMin: 0.78, yMax: 0.94, r: 0.015, variants: [0, 2, 3], rot: [-0.3, 0.28] },
+                    { name: "birdhouse", xMin: 0.68, xMax: 0.88, yMin: 0.25, yMax: 0.48, r: 0.014, variants: [1, 2], rot: [-0.18, 0.2] },
+                    { name: "cloud-garden", xMin: 0.1, xMax: 0.86, yMin: 0.08, yMax: 0.2, r: 0.013, variants: [2, 3], rot: [-0.24, 0.24] },
+                ],
+                kitchen: [
+                    { name: "upper-cabinets", xMin: 0.08, xMax: 0.92, yMin: 0.16, yMax: 0.36, r: 0.014, variants: [0, 2], rot: [-0.2, 0.2] },
+                    { name: "counter-objects", xMin: 0.1, xMax: 0.9, yMin: 0.42, yMax: 0.62, r: 0.015, variants: [1, 2, 3], rot: [-0.24, 0.24] },
+                    { name: "tableware", xMin: 0.18, xMax: 0.82, yMin: 0.66, yMax: 0.82, r: 0.016, variants: [0, 1, 3], rot: [-0.28, 0.28] },
+                    { name: "tile-lines", xMin: 0.06, xMax: 0.94, yMin: 0.04, yMax: 0.62, r: 0.013, variants: [2, 3], rot: [-0.16, 0.18] },
+                    { name: "table-legs", xMin: 0.16, xMax: 0.84, yMin: 0.78, yMax: 0.94, r: 0.015, variants: [0, 2], rot: [-0.22, 0.22] },
+                ],
+                museum: [
+                    { name: "painting-frames", xMin: 0.14, xMax: 0.84, yMin: 0.3, yMax: 0.52, r: 0.014, variants: [0, 1, 3], rot: [-0.2, 0.2] },
+                    { name: "columns", xMin: 0.16, xMax: 0.86, yMin: 0.24, yMax: 0.72, r: 0.015, variants: [1, 2], rot: [-0.18, 0.18] },
+                    { name: "pedestals", xMin: 0.18, xMax: 0.84, yMin: 0.72, yMax: 0.88, r: 0.016, variants: [0, 2, 3], rot: [-0.24, 0.24] },
+                    { name: "museum-floor", xMin: 0.1, xMax: 0.92, yMin: 0.78, yMax: 0.94, r: 0.014, variants: [1, 3], rot: [-0.28, 0.28] },
+                    { name: "roof-lines", xMin: 0.12, xMax: 0.88, yMin: 0.08, yMax: 0.24, r: 0.013, variants: [0, 2], rot: [-0.2, 0.2] },
                 ],
             };
             return regionsByScene[state.sceneTemplate] || regionsByScene.travel;
@@ -2048,6 +2295,9 @@
                 travel: "旅行线稿",
                 harbor: "港口线稿",
                 library: "图书馆线稿",
+                garden: "花园线稿",
+                kitchen: "厨房线稿",
+                museum: "博物馆线稿",
             };
             return labels[template] || "线稿场景";
         }
