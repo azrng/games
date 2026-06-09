@@ -8,7 +8,11 @@
     --accent: #e67e22;
     --accent-light: #f39c12;
     --player-a: #e74c3c;
+    --player-a-soft: #fdecea;
+    --player-a-strong: #b53a2f;
     --player-b: #3498db;
+    --player-b-soft: #eaf4fd;
+    --player-b-strong: #1f6fa8;
     --border: #ddd;
     --shadow: 0 2px 8px rgba(0,0,0,0.1);
     --radius: 12px;
@@ -154,6 +158,8 @@ body {
     aspect-ratio: 1;
     perspective: 600px;
     cursor: pointer;
+    border-radius: var(--radius);
+    touch-action: manipulation;
 }
 
 .card-inner {
@@ -180,6 +186,7 @@ body {
     font-size: 2rem;
     font-weight: 700;
     box-shadow: var(--shadow);
+    overflow: hidden;
 }
 
 .card-back {
@@ -202,6 +209,7 @@ body {
     background: var(--card-bg);
     flex-direction: column;
     gap: 2px;
+    border: 2px solid transparent;
 }
 
 .card-front .animal-icon {
@@ -214,22 +222,57 @@ body {
     color: var(--text-light);
 }
 
+.owner-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    min-width: 24px;
+    padding: 2px 5px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.empty-label {
+    color: var(--text-light);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
 /* Card States */
 .card.selected .card-front {
-    box-shadow: 0 0 0 3px var(--accent), var(--shadow);
+    box-shadow: 0 0 0 4px var(--accent), 0 10px 20px rgba(230, 126, 34, 0.25);
+    transform: rotateY(180deg) translateY(-3px);
 }
 
 .card.player-a .card-front {
-    border: 2px solid var(--player-a);
+    background: linear-gradient(145deg, #fff 0%, var(--player-a-soft) 100%);
+    border-color: var(--player-a);
+}
+
+.card.player-a .owner-badge {
+    background: var(--player-a-strong);
 }
 
 .card.player-b .card-front {
-    border: 2px solid var(--player-b);
+    background: linear-gradient(145deg, #fff 0%, var(--player-b-soft) 100%);
+    border-color: var(--player-b);
+}
+
+.card.player-b .owner-badge {
+    background: var(--player-b-strong);
 }
 
 .card.captured {
-    opacity: 0.4;
-    pointer-events: none;
+    opacity: 1;
+}
+
+.card.captured .card-front {
+    background: repeating-linear-gradient(135deg, #f4f4f4 0, #f4f4f4 8px, #e8e8e8 8px, #e8e8e8 16px);
+    border: 2px dashed var(--border);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
 }
 
 .card.captured .card-inner {
@@ -247,7 +290,29 @@ body {
 }
 
 .card.valid-move {
-    box-shadow: 0 0 0 3px var(--accent-light);
+    box-shadow: 0 0 0 3px var(--accent-light), 0 8px 18px rgba(243, 156, 18, 0.25);
+}
+
+.card.valid-move::after {
+    content: '可吃';
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    z-index: 2;
+    padding: 2px 5px;
+    border-radius: 999px;
+    background: var(--accent-light);
+    color: #fff;
+    font-size: 0.56rem;
+    font-weight: 800;
+}
+
+.card.valid-move.captured::after {
+    content: '可走';
+}
+
+.card.actionable:not(.selected):not(.valid-move) .card-inner {
+    filter: saturate(1.05);
 }
 
 /* Touch feedback */

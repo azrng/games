@@ -1,7 +1,7 @@
 (() => {
     'use strict';
 
-    // Animal hierarchy: higher rank beats lower, except rat beats elephant
+    // 动物等级：大吃小，鼠吃象
     const ANIMALS = {
         elephant: { name: '象', rank: 8, icon: '🐘' },
         lion:     { name: '狮', rank: 7, icon: '🦁' },
@@ -17,20 +17,18 @@
     const BOARD_SIZE = 4;
     const TOTAL_CARDS = BOARD_SIZE * BOARD_SIZE;
 
-    // Touch interaction constants
-    const TAP_THRESHOLD = 10;      // Max pixels moved to count as tap
-    const DEBOUNCE_DELAY = 300;    // Min ms between taps
-    const AI_DELAY = 700;          // AI thinking delay in ms
+    const TAP_THRESHOLD = 10;
+    const DEBOUNCE_DELAY = 180;
+    const AI_DELAY = 700;
 
-    // Game state
-    let board = [];          // 4x4 array of card objects
+    let board = [];
     let currentPlayer = 'a'; // 'a' (human) or 'b' (AI)
     let phase = 'rps';       // 'rps', 'play', 'end'
     let selectedCard = null; // currently selected card for moving
     let moveHistory = [];    // for undo
     let playerPieces = { a: 0, b: 0 };
     let rpsChoices = { a: null, b: null };
-    let lastTapTime = 0;     // For debounce
+    let lastTap = { time: 0, row: null, col: null };
     let touchStartPos = null; // For distinguishing tap vs swipe
     let aiThinking = false;  // Is AI currently thinking
     let rpsPhase = 'a-turn'; // RPS phase: 'a-turn', 'b-turn', 'result'
@@ -102,28 +100,34 @@
                 cardEl.dataset.row = r;
                 cardEl.dataset.col = c;
 
-                if (card.flipped) cardEl.classList.add('flipped');
+                if (card.flipped || card.captured) cardEl.classList.add('flipped');
                 if (card.captured) cardEl.classList.add('captured');
                 if (card.owner === 'a') cardEl.classList.add('player-a');
                 if (card.owner === 'b') cardEl.classList.add('player-b');
+                if (phase === 'play' && currentPlayer === 'a' && !aiThinking && !card.captured) {
+                    if (!card.flipped || card.owner === 'a') {
+                        cardEl.classList.add('actionable');
+                    }
+                }
                 if (selectedCard && selectedCard.row === r && selectedCard.col === c) {
                     cardEl.classList.add('selected');
                 }
 
                 // Check if this is a valid move target
-                if (selectedCard && !card.captured) {
+                if (selectedCard) {
                     if (isValidMoveTarget(r, c)) {
                         cardEl.classList.add('valid-move');
                     }
                 }
 
                 const animal = ANIMALS[card.animal];
+                const ownerLabel = card.owner === 'a' ? '你' : card.owner === 'b' ? '电脑' : '';
                 cardEl.innerHTML = `
                     <div class="card-inner">
                         <div class="card-face card-back"></div>
                         <div class="card-face card-front">
-                            <span class="animal-icon">${animal.icon}</span>
-                            <span class="animal-name">${animal.name}</span>
+                            ${ownerLabel ? `<span class="owner-badge">${ownerLabel}</span>` : ''}
+                            ${card.captured ? '<span class="empty-label">空</span>' : `<span class="animal-icon">${animal.icon}</span><span class="animal-name">${animal.name}</span>`}
                         </div>
                     </div>
                 `;
@@ -175,8 +179,11 @@
             // Only count as tap if didn't move far
             if (dx <= TAP_THRESHOLD && dy <= TAP_THRESHOLD) {
                 const now = Date.now();
-                if (now - lastTapTime >= DEBOUNCE_DELAY) {
-                    lastTapTime = now;
+                const isRepeatedSameCell = lastTap.row === row &&
+                    lastTap.col === col &&
+                    now - lastTap.time < DEBOUNCE_DELAY;
+                if (!isRepeatedSameCell) {
+                    lastTap = { time: now, row, col };
                     onCardClick(row, col);
                 }
             }
@@ -312,12 +319,12 @@
     // Card click handler
     function onCardClick(row, col) {
         if (phase === 'end' || phase === 'rps') return;
+        if (currentPlayer === 'b' || aiThinking) return;
 
         const card = board[row][col];
-        if (card.captured) return;
 
         // In 'play' phase, player can flip or move
-        if (card.flipped) {
+        if (card.flipped || card.captured) {
             // Card is already flipped - handle as move
             handleMove(row, col, card);
         } else {
@@ -358,15 +365,28 @@
 
     // Handle move action
     function handleMove(row, col, card) {
+        if (selectedCard && selectedCard.row === row && selectedCard.col === col) {
+            selectedCard = null;
+            renderBoard();
+            showHintMessage('已取消选择');
+            return;
+        }
+
         // If clicking own piece, select it
-        if (card.owner === currentPlayer && card.flipped) {
+        if (card.owner === currentPlayer && card.flipped && !card.captured) {
             selectedCard = { row, col };
             renderBoard();
+            showHintMessage('请选择相邻可吃的牌或空格');
             return;
         }
 
         // If clicking enemy piece without selecting own piece first
-        if (card.owner && card.owner !== currentPlayer && card.flipped && !selectedCard) {
+        if (card.owner && card.owner !== currentPlayer && card.flipped && !card.captured && !selectedCard) {
+            showHintMessage('请先选择你的棋子');
+            return;
+        }
+
+        if (card.captured && !selectedCard) {
             showHintMessage('请先选择你的棋子');
             return;
         }
@@ -416,7 +436,7 @@
         // Can't move to own piece
         if (target.owner === currentPlayer && target.flipped && !target.captured) return false;
 
-        // Can move to empty (flipped no owner or captured) or enemy
+        // Can move to empty (captured) or enemy
         if (target.captured) return true;
         if (!target.flipped) return false; // Can't move to unflipped card
 
@@ -462,7 +482,7 @@
 
         // Move source to target position
         board[toRow][toCol] = { ...source };
-        board[fromRow][fromCol] = { animal: source.animal, owner: null, flipped: false, captured: false };
+        board[fromRow][fromCol] = { animal: source.animal, owner: null, flipped: true, captured: true };
 
         selectedCard = null;
 
@@ -662,9 +682,8 @@
         const bestMoves = moves.filter(m => m.score === bestScore);
         const chosen = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
-        // Execute move
-        executeMove(chosen.fromRow, chosen.fromCol, chosen.toRow, chosen.toCol);
         aiThinking = false;
+        executeMove(chosen.fromRow, chosen.fromCol, chosen.toRow, chosen.toCol);
     }
 
     // Check win condition
@@ -839,4 +858,28 @@
 
     // Start game
     initGame();
+
+    window.AnimalFlipChess = {
+        ANIMALS,
+        canBattle,
+        getStateForTest() {
+            return {
+                board: board.map((row) => row.map((card) => ({ ...card }))),
+                currentPlayer,
+                phase,
+                selectedCard: selectedCard ? { ...selectedCard } : null,
+                aiThinking
+            };
+        },
+        setStateForTest(nextState) {
+            board = nextState.board.map((row) => row.map((card) => ({ ...card })));
+            currentPlayer = nextState.currentPlayer || 'a';
+            phase = nextState.phase || 'play';
+            selectedCard = nextState.selectedCard || null;
+            aiThinking = Boolean(nextState.aiThinking);
+            moveHistory = [];
+            renderBoard();
+            updateUI();
+        }
+    };
 })();
