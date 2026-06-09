@@ -31,6 +31,8 @@
     let touchStartPos = null; // For distinguishing tap vs swipe
     let aiThinking = false;  // Is AI currently thinking
     let openingTurn = false;
+    let shownFlippedIds = new Set();
+    let animatingFlipIds = new Set();
 
     // DOM elements
     const boardEl = document.getElementById('board');
@@ -58,12 +60,14 @@
         moveHistory = [];
         playerPieces = { a: 0, b: 0 };
         openingTurn = true;
+        shownFlippedIds = new Set();
+        animatingFlipIds = new Set();
 
         // Create one full animal set for each side.
         let cards = [];
         for (const key of ANIMAL_KEYS) {
-            cards.push({ animal: key, owner: 'a', flipped: false, captured: false });
-            cards.push({ animal: key, owner: 'b', flipped: false, captured: false });
+            cards.push({ id: `a-${key}`, animal: key, owner: 'a', flipped: false, captured: false });
+            cards.push({ id: `b-${key}`, animal: key, owner: 'b', flipped: false, captured: false });
         }
 
         // Shuffle
@@ -103,6 +107,9 @@
 
                 if (card.flipped || card.captured) cardEl.classList.add('flipped');
                 if (card.captured) cardEl.classList.add('captured');
+                if ((card.flipped || card.captured) && !animatingFlipIds.has(card.id)) {
+                    cardEl.classList.add('no-flip-animation');
+                }
                 if (card.flipped || card.captured) {
                     if (card.owner === 'a') cardEl.classList.add('player-a');
                     if (card.owner === 'b') cardEl.classList.add('player-b');
@@ -139,6 +146,24 @@
                 // Touch event handling
                 addTouchEventListeners(cardEl, r, c);
                 boardEl.appendChild(cardEl);
+            }
+        }
+        syncShownFlippedCards();
+        animatingFlipIds = new Set();
+    }
+
+    function markCardForFlipAnimation(card) {
+        if (!card || shownFlippedIds.has(card.id)) return;
+        animatingFlipIds.add(card.id);
+    }
+
+    function syncShownFlippedCards() {
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const card = board[r][c];
+                if (card.flipped || card.captured) {
+                    shownFlippedIds.add(card.id);
+                }
             }
         }
     }
@@ -287,10 +312,13 @@
     function handleFlip(row, col, card) {
         if (card.flipped) return;
 
+        markCardForFlipAnimation(card);
+
         // Save state for undo
         moveHistory.push({
             type: 'flip',
             row, col,
+            cardId: card.id,
             prevOwner: card.owner,
             prevFlipped: card.flipped,
             prevPlayer: currentPlayer
@@ -421,6 +449,7 @@
             targetFlipped: target.flipped,
             targetCaptured: target.captured,
             targetAnimal: target.animal,
+            targetId: target.id,
             prevPlayer: currentPlayer
         });
 
@@ -432,7 +461,7 @@
 
         // Move source to target position
         board[toRow][toCol] = { ...source };
-        board[fromRow][fromCol] = { animal: source.animal, owner: null, flipped: true, captured: true };
+        board[fromRow][fromCol] = { id: `empty-${fromRow}-${fromCol}-${Date.now()}`, animal: source.animal, owner: null, flipped: true, captured: true };
 
         selectedCard = null;
 
@@ -555,6 +584,7 @@
 
         // Execute flip
         const card = board[chosen.row][chosen.col];
+        markCardForFlipAnimation(card);
         card.flipped = true;
         renderBoard();
         updateUI();
@@ -700,11 +730,13 @@
             card.flipped = action.prevFlipped;
             card.owner = action.prevOwner;
             card.captured = false;
+            shownFlippedIds.delete(action.cardId);
             currentPlayer = action.prevPlayer;
         } else if (action.type === 'move') {
             // Restore source
             board[action.fromRow][action.fromCol] = {
                 animal: board[action.toRow][action.toCol].animal,
+                id: board[action.toRow][action.toCol].id,
                 owner: action.sourceOwner,
                 flipped: true,
                 captured: false
@@ -712,6 +744,7 @@
             // Restore target
             board[action.toRow][action.toCol] = {
                 animal: action.targetAnimal,
+                id: action.targetId,
                 owner: action.targetOwner,
                 flipped: action.targetFlipped,
                 captured: action.targetCaptured
@@ -792,12 +825,22 @@
             };
         },
         setStateForTest(nextState) {
-            board = nextState.board.map((row) => row.map((card) => ({ ...card })));
+            board = nextState.board.map((row, rowIndex) => row.map((card, colIndex) => ({
+                id: card.id || `${card.owner || 'none'}-${card.animal}-${rowIndex}-${colIndex}`,
+                ...card
+            })));
             currentPlayer = nextState.currentPlayer || 'a';
             phase = nextState.phase || 'play';
             selectedCard = nextState.selectedCard || null;
             aiThinking = Boolean(nextState.aiThinking);
             openingTurn = Boolean(nextState.openingTurn);
+            shownFlippedIds = new Set();
+            for (const row of board) {
+                for (const card of row) {
+                    if (card.flipped || card.captured) shownFlippedIds.add(card.id);
+                }
+            }
+            animatingFlipIds = new Set(nextState.animatingFlipIds || []);
             moveHistory = [];
             renderBoard();
             updateUI();

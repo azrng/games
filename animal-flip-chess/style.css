@@ -170,6 +170,10 @@ body {
     transform-style: preserve-3d;
 }
 
+.card.no-flip-animation .card-inner {
+    transition: none;
+}
+
 .card.flipped .card-inner {
     transform: rotateY(180deg);
 }

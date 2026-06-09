@@ -302,6 +302,47 @@ function testFlipKeepsPresetOwnerAndShowsTurnPrompt() {
     assert.strictEqual(elements.get('hint-text').textContent, '电脑回合：正在思考下一步。');
 }
 
+function testOnlyNewlyFlippedCardAnimates() {
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { animal: 'cat', owner: 'b', flipped: false, captured: false },
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    cell(elements, 0, 1).dispatch('click');
+
+    assert(cell(elements, 0, 0).classList.contains('no-flip-animation'),
+        'previously flipped card should not replay flip animation');
+    assert(!cell(elements, 0, 1).classList.contains('no-flip-animation'),
+        'newly flipped card should keep flip animation');
+}
+
 function testOwnerClassesAndMoveHintsRender() {
     const { api, elements } = runScriptWithContext();
     setBattleBoard(api);
@@ -458,6 +499,7 @@ function testFlipDoesNotAutoCaptureAdjacentEnemy() {
 testFilesAndStylesExist();
 testInitialDeckHasOneAnimalPerOwner();
 testFlipKeepsPresetOwnerAndShowsTurnPrompt();
+testOnlyNewlyFlippedCardAnimates();
 testOwnerClassesAndMoveHintsRender();
 testFastMobileDoubleTapCanCapture();
 testCapturedCellCanBeMoveTarget();
