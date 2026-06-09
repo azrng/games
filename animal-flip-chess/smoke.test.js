@@ -310,9 +310,93 @@ function testCapturedCellCanBeMoveTarget() {
     assert.strictEqual(state.board[0][1].captured, false, 'target cell should become an active piece');
 }
 
+function testFlipDoesNotEmptyAdjacentUnflippedCard() {
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: null, flipped: false, captured: false },
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false },
+                { animal: 'rat', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false },
+                { animal: 'elephant', owner: null, flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    cell(elements, 0, 0).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.board[0][0].flipped, true, 'clicked card should be flipped');
+    assert.strictEqual(state.board[0][0].captured, false, 'clicked card should stay on board');
+    assert.strictEqual(state.board[0][1].flipped, false, 'adjacent unflipped card should stay face down');
+    assert.strictEqual(state.board[0][1].captured, false, 'adjacent unflipped card should not become empty');
+}
+
+function testFlipDoesNotAutoCaptureAdjacentEnemy() {
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: null, flipped: false, captured: false },
+                { animal: 'cat', owner: 'b', flipped: true, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false },
+                { animal: 'rat', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false },
+                { animal: 'elephant', owner: null, flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    cell(elements, 0, 0).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.board[0][1].owner, 'b', 'adjacent enemy should remain until explicit move');
+    assert.strictEqual(state.board[0][1].captured, false, 'adjacent enemy should not be auto-captured by flip');
+}
+
 testFilesAndStylesExist();
 testOwnerClassesAndMoveHintsRender();
 testFastMobileDoubleTapCanCapture();
 testCapturedCellCanBeMoveTarget();
+testFlipDoesNotEmptyAdjacentUnflippedCard();
+testFlipDoesNotAutoCaptureAdjacentEnemy();
 
 console.log('animal flip chess smoke test passed');

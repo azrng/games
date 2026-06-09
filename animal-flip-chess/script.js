@@ -349,9 +349,6 @@
         card.flipped = true;
         card.owner = currentPlayer;
 
-        // Check for battle with adjacent enemy pieces
-        checkAdjacentBattle(row, col);
-
         selectedCard = null;
         renderBoard();
         updateUI();
@@ -495,34 +492,6 @@
         switchPlayer();
     }
 
-    // Check adjacent battle after flip
-    function checkAdjacentBattle(row, col) {
-        const card = board[row][col];
-        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-
-        for (const [dr, dc] of directions) {
-            const nr = row + dr;
-            const nc = col + dc;
-            if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
-
-            const neighbor = board[nr][nc];
-            if (neighbor.captured || !neighbor.flipped) continue;
-            if (neighbor.owner === currentPlayer) continue;
-
-            // Check if current card can eat neighbor
-            if (canBattle(card.animal, neighbor.animal)) {
-                neighbor.captured = true;
-                neighbor.owner = null;
-            }
-            // Check if neighbor can eat current card
-            else if (canBattle(neighbor.animal, card.animal)) {
-                card.captured = true;
-                card.owner = null;
-                break; // Card was eaten, no need to check more
-            }
-        }
-    }
-
     // Switch player
     function switchPlayer() {
         currentPlayer = currentPlayer === 'a' ? 'b' : 'a';
@@ -632,8 +601,6 @@
         const card = board[chosen.row][chosen.col];
         card.flipped = true;
         card.owner = 'b';
-        checkAdjacentBattle(chosen.row, chosen.col);
-
         renderBoard();
         updateUI();
 
