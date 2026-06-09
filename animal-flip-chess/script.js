@@ -19,19 +19,18 @@
 
     const TAP_THRESHOLD = 10;
     const DEBOUNCE_DELAY = 180;
-    const AI_DELAY = 700;
+    const AI_DELAY = 1300;
 
     let board = [];
     let currentPlayer = 'a'; // 'a' (human) or 'b' (AI)
-    let phase = 'rps';       // 'rps', 'play', 'end'
+    let phase = 'play';      // 'play', 'end'
     let selectedCard = null; // currently selected card for moving
     let moveHistory = [];    // for undo
     let playerPieces = { a: 0, b: 0 };
-    let rpsChoices = { a: null, b: null };
     let lastTap = { time: 0, row: null, col: null };
     let touchStartPos = null; // For distinguishing tap vs swipe
     let aiThinking = false;  // Is AI currently thinking
-    let rpsPhase = 'a-turn'; // RPS phase: 'a-turn', 'b-turn', 'result'
+    let openingTurn = false;
 
     // DOM elements
     const boardEl = document.getElementById('board');
@@ -40,8 +39,6 @@
     const playerBInfo = document.getElementById('player-b-info');
     const playerACount = document.getElementById('player-a-count');
     const playerBCount = document.getElementById('player-b-count');
-    const rpsModal = document.getElementById('rps-modal');
-    const rpsStatus = document.getElementById('rps-status');
     const resultModal = document.getElementById('result-modal');
     const resultTitle = document.getElementById('result-title');
     const resultDesc = document.getElementById('result-desc');
@@ -55,19 +52,18 @@
     // Initialize game
     function initGame() {
         board = [];
-        currentPlayer = 'a';
-        phase = 'rps';
+        currentPlayer = Math.random() < 0.5 ? 'a' : 'b';
+        phase = 'play';
         selectedCard = null;
         moveHistory = [];
         playerPieces = { a: 0, b: 0 };
-        rpsChoices = { a: null, b: null };
-        rpsPhase = 'a-turn';
+        openingTurn = true;
 
-        // Create 8 pairs of animals
+        // Create one full animal set for each side.
         let cards = [];
         for (const key of ANIMAL_KEYS) {
-            cards.push({ animal: key, owner: null, flipped: false, captured: false });
-            cards.push({ animal: key, owner: null, flipped: false, captured: false });
+            cards.push({ animal: key, owner: 'a', flipped: false, captured: false });
+            cards.push({ animal: key, owner: 'b', flipped: false, captured: false });
         }
 
         // Shuffle
@@ -86,7 +82,12 @@
 
         renderBoard();
         updateUI();
-        showRPSModal();
+
+        if (currentPlayer === 'b') {
+            aiThinking = true;
+            updateUI();
+            setTimeout(() => aiTurn(), AI_DELAY);
+        }
     }
 
     // Render board
@@ -102,10 +103,12 @@
 
                 if (card.flipped || card.captured) cardEl.classList.add('flipped');
                 if (card.captured) cardEl.classList.add('captured');
-                if (card.owner === 'a') cardEl.classList.add('player-a');
-                if (card.owner === 'b') cardEl.classList.add('player-b');
+                if (card.flipped || card.captured) {
+                    if (card.owner === 'a') cardEl.classList.add('player-a');
+                    if (card.owner === 'b') cardEl.classList.add('player-b');
+                }
                 if (phase === 'play' && currentPlayer === 'a' && !aiThinking && !card.captured) {
-                    if (!card.flipped || card.owner === 'a') {
+                    if (!card.flipped || (card.flipped && card.owner === 'a')) {
                         cardEl.classList.add('actionable');
                     }
                 }
@@ -121,7 +124,8 @@
                 }
 
                 const animal = ANIMALS[card.animal];
-                const ownerLabel = card.owner === 'a' ? '你' : card.owner === 'b' ? '电脑' : '';
+                const ownerLabel = card.flipped && card.owner === 'a' ? '你' :
+                    card.flipped && card.owner === 'b' ? '电脑' : '';
                 cardEl.innerHTML = `
                     <div class="card-inner">
                         <div class="card-face card-back"></div>
@@ -211,17 +215,42 @@
 
         if (phase === 'play') {
             if (aiThinking) {
-                turnText.textContent = '电脑思考中...';
+                turnText.textContent = openingTurn ? '电脑先手' : '电脑思考中';
             } else {
-                turnText.textContent = currentPlayer === 'a' ? '你的回合' : '电脑回合';
+                turnText.textContent = currentPlayer === 'a'
+                    ? (openingTurn ? '你先手' : '你的回合')
+                    : '电脑回合';
             }
         } else if (phase === 'end') {
             turnText.textContent = '游戏结束';
         } else {
-            turnText.textContent = '猜拳先手';
+            turnText.textContent = '准备开始';
         }
 
+        updateHintText();
+
         undoBtn.disabled = moveHistory.length === 0 || currentPlayer === 'b';
+    }
+
+    function updateHintText() {
+        const hintEl = document.querySelector('.hint-text');
+        if (!hintEl || hintEl.dataset.locked === 'true') return;
+
+        if (phase === 'end') {
+            hintEl.textContent = '本局结束，可以重新开始。';
+        } else if (aiThinking || currentPlayer === 'b') {
+            if (openingTurn) {
+                hintEl.textContent = '电脑先手：正在思考第一步。';
+                return;
+            }
+            hintEl.textContent = '电脑回合：正在思考下一步。';
+        } else if (selectedCard) {
+            hintEl.textContent = '轮到你：点相邻高亮格移动或吃子。';
+        } else if (openingTurn) {
+            hintEl.textContent = '你先手：点背面牌翻开，或选择你的棋子移动吃子。';
+        } else {
+            hintEl.textContent = '轮到你：点背面牌翻开，或选择你的棋子移动吃子。';
+        }
     }
 
     // Count pieces for a player
@@ -237,88 +266,9 @@
         return count;
     }
 
-    // RPS Modal
-    function showRPSModal() {
-        rpsModal.hidden = false;
-        rpsStatus.textContent = '请选择...';
-        document.querySelectorAll('.rps-btn').forEach(btn => {
-            btn.classList.remove('selected');
-            btn.disabled = false;
-        });
-    }
-
-    function handleRPS(choice) {
-        // Player chooses
-        rpsChoices.a = choice;
-        document.querySelectorAll('.rps-btn').forEach(btn => {
-            btn.disabled = true;
-            if (btn.dataset.choice === choice) {
-                btn.classList.add('selected');
-            }
-        });
-
-        rpsStatus.textContent = '电脑思考中...';
-
-        // AI chooses after delay
-        setTimeout(() => {
-            const aiChoice = getRandomRPSChoice();
-            rpsChoices.b = aiChoice;
-
-            // Show AI choice
-            document.querySelectorAll('.rps-btn').forEach(btn => {
-                if (btn.dataset.choice === aiChoice) {
-                    btn.classList.add('selected');
-                }
-            });
-
-            // Determine winner
-            const winner = getRPSWinner(rpsChoices.a, rpsChoices.b);
-            const choiceNames = { rock: '石头', scissors: '剪刀', paper: '布' };
-
-            if (winner === 'draw') {
-                rpsStatus.textContent = `平局！都是${choiceNames[rpsChoices.a]}，再来一次`;
-                setTimeout(() => {
-                    rpsChoices = { a: null, b: null };
-                    showRPSModal();
-                }, 1500);
-            } else {
-                const winnerName = winner === 'a' ? '你' : '电脑';
-                rpsStatus.textContent = `${winnerName}赢了！`;
-                setTimeout(() => {
-                    rpsModal.hidden = true;
-                    currentPlayer = winner;
-                    phase = 'play';
-                    renderBoard();
-                    updateUI();
-
-                    // If AI goes first, let AI make a move
-                    if (currentPlayer === 'b') {
-                        setTimeout(() => aiTurn(), AI_DELAY);
-                    }
-                }, 1000);
-            }
-        }, AI_DELAY);
-    }
-
-    // AI random RPS choice
-    function getRandomRPSChoice() {
-        const choices = ['rock', 'scissors', 'paper'];
-        return choices[Math.floor(Math.random() * choices.length)];
-    }
-
-    function getRPSWinner(a, b) {
-        if (a === b) return 'draw';
-        if ((a === 'rock' && b === 'scissors') ||
-            (a === 'scissors' && b === 'paper') ||
-            (a === 'paper' && b === 'rock')) {
-            return 'a';
-        }
-        return 'b';
-    }
-
     // Card click handler
     function onCardClick(row, col) {
-        if (phase === 'end' || phase === 'rps') return;
+        if (phase === 'end') return;
         if (currentPlayer === 'b' || aiThinking) return;
 
         const card = board[row][col];
@@ -347,7 +297,6 @@
         });
 
         card.flipped = true;
-        card.owner = currentPlayer;
 
         selectedCard = null;
         renderBoard();
@@ -357,6 +306,7 @@
         if (checkWinCondition()) return;
 
         // Switch player
+        openingTurn = false;
         switchPlayer();
     }
 
@@ -406,11 +356,14 @@
         const hintEl = document.querySelector('.hint-text');
         if (hintEl) {
             const originalText = hintEl.textContent;
+            hintEl.dataset.locked = 'true';
             hintEl.textContent = msg;
             hintEl.style.color = 'var(--player-a)';
             setTimeout(() => {
                 hintEl.textContent = originalText;
                 hintEl.style.color = '';
+                hintEl.dataset.locked = 'false';
+                updateHintText();
             }, 1500);
         }
     }
@@ -489,6 +442,7 @@
         // Check win condition
         if (checkWinCondition()) return;
 
+        openingTurn = false;
         switchPlayer();
     }
 
@@ -500,6 +454,8 @@
 
         // If it's AI's turn, let AI play
         if (currentPlayer === 'b' && phase === 'play') {
+            aiThinking = true;
+            updateUI();
             setTimeout(() => aiTurn(), AI_DELAY);
         }
     }
@@ -600,13 +556,13 @@
         // Execute flip
         const card = board[chosen.row][chosen.col];
         card.flipped = true;
-        card.owner = 'b';
         renderBoard();
         updateUI();
 
         if (checkWinCondition()) return;
 
         aiThinking = false;
+        openingTurn = false;
         switchPlayer();
     }
 
@@ -639,6 +595,7 @@
 
         if (moves.length === 0) {
             aiThinking = false;
+            openingTurn = false;
             switchPlayer();
             return;
         }
@@ -809,11 +766,6 @@
         }
     }
 
-    // Event listeners
-    document.querySelectorAll('.rps-btn').forEach(btn => {
-        btn.addEventListener('click', () => handleRPS(btn.dataset.choice));
-    });
-
     restartBtn.addEventListener('click', initGame);
     playAgainBtn.addEventListener('click', () => {
         resultModal.hidden = true;
@@ -835,7 +787,8 @@
                 currentPlayer,
                 phase,
                 selectedCard: selectedCard ? { ...selectedCard } : null,
-                aiThinking
+                aiThinking,
+                openingTurn
             };
         },
         setStateForTest(nextState) {
@@ -844,6 +797,7 @@
             phase = nextState.phase || 'play';
             selectedCard = nextState.selectedCard || null;
             aiThinking = Boolean(nextState.aiThinking);
+            openingTurn = Boolean(nextState.openingTurn);
             moveHistory = [];
             renderBoard();
             updateUI();

@@ -120,18 +120,10 @@ function runScriptWithContext() {
 
     [
         'board', 'turn-text', 'player-a-info', 'player-b-info',
-        'player-a-count', 'player-b-count', 'rps-modal', 'rps-status',
-        'result-modal', 'result-title', 'result-desc', 'result-a',
+        'player-a-count', 'player-b-count', 'result-modal', 'result-title', 'result-desc', 'result-a',
         'result-b', 'restart-btn', 'play-again-btn', 'hint-btn',
         'undo-btn'
     ].forEach(createElement);
-
-    const rpsButtons = ['rock', 'scissors', 'paper'].map((choice) => {
-        const btn = createElement(`rps-${choice}`);
-        btn.dataset.choice = choice;
-        btn.classList.add('rps-btn');
-        return btn;
-    });
 
     const hintText = createElement('hint-text');
     hintText.classList.add('hint-text');
@@ -145,7 +137,6 @@ function runScriptWithContext() {
             return elements.get(id) || null;
         },
         querySelectorAll(selector) {
-            if (selector === '.rps-btn') return rpsButtons;
             return [];
         },
         querySelector(selector) {
@@ -233,10 +224,82 @@ function testFilesAndStylesExist() {
     const script = read('script.js');
 
     assert(html.includes('viewport-fit=cover'), 'mobile page should use viewport-fit=cover');
+    assert(!html.includes('id="rps-modal"'), 'page should not render RPS modal');
     assert(css.includes('owner-badge'), 'cards should display visible owner badges');
     assert(css.includes('valid-move'), 'selected pieces should reveal valid move targets');
     assert(css.includes('card.valid-move.captured'), 'captured empty cells should be rendered as valid walk targets');
     assert(script.includes('AnimalFlipChess'), 'script should expose test API');
+}
+
+function testInitialDeckHasOneAnimalPerOwner() {
+    const { api, elements } = runScriptWithContext();
+    const state = api.getStateForTest();
+    const ownerAnimals = { a: new Map(), b: new Map() };
+
+    assert.strictEqual(state.phase, 'play', 'game should start directly without RPS modal');
+    assert(['你先手', '电脑先手'].includes(elements.get('turn-text').textContent),
+        'turn indicator should immediately show who starts');
+
+    for (const row of state.board) {
+        for (const card of row) {
+            assert(card.owner === 'a' || card.owner === 'b', 'each hidden card should have a preset owner');
+            ownerAnimals[card.owner].set(card.animal, (ownerAnimals[card.owner].get(card.animal) || 0) + 1);
+        }
+    }
+
+    assert.strictEqual(ownerAnimals.a.size, 8, 'human should have 8 distinct animals');
+    assert.strictEqual(ownerAnimals.b.size, 8, 'AI should have 8 distinct animals');
+    for (const [animal, count] of ownerAnimals.a) {
+        assert.strictEqual(count, 1, `human should have one ${animal}`);
+    }
+    for (const [animal, count] of ownerAnimals.b) {
+        assert.strictEqual(count, 1, `AI should have one ${animal}`);
+    }
+}
+
+function testFlipKeepsPresetOwnerAndShowsTurnPrompt() {
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        openingTurn: true,
+        board: [
+            [
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false },
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: 'b', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'a', flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    assert.strictEqual(elements.get('turn-text').textContent, '你先手');
+    assert.strictEqual(elements.get('hint-text').textContent, '你先手：点背面牌翻开，或选择你的棋子移动吃子。');
+
+    cell(elements, 0, 0).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.board[0][0].owner, 'b', 'flipping should reveal preset owner, not current player');
+    assert.strictEqual(elements.get('turn-text').textContent, '电脑思考中');
+    assert.strictEqual(elements.get('hint-text').textContent, '电脑回合：正在思考下一步。');
 }
 
 function testOwnerClassesAndMoveHintsRender() {
@@ -317,28 +380,28 @@ function testFlipDoesNotEmptyAdjacentUnflippedCard() {
         phase: 'play',
         board: [
             [
-                { animal: 'elephant', owner: null, flipped: false, captured: false },
-                { animal: 'cat', owner: null, flipped: false, captured: false },
-                { animal: 'dog', owner: null, flipped: false, captured: false },
-                { animal: 'wolf', owner: null, flipped: false, captured: false }
+                { animal: 'elephant', owner: 'a', flipped: false, captured: false },
+                { animal: 'cat', owner: 'b', flipped: false, captured: false },
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
             ],
             [
-                { animal: 'rat', owner: null, flipped: false, captured: false },
-                { animal: 'lion', owner: null, flipped: false, captured: false },
-                { animal: 'tiger', owner: null, flipped: false, captured: false },
-                { animal: 'leopard', owner: null, flipped: false, captured: false }
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
             ],
             [
-                { animal: 'cat', owner: null, flipped: false, captured: false },
-                { animal: 'dog', owner: null, flipped: false, captured: false },
-                { animal: 'wolf', owner: null, flipped: false, captured: false },
-                { animal: 'rat', owner: null, flipped: false, captured: false }
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
             ],
             [
-                { animal: 'lion', owner: null, flipped: false, captured: false },
-                { animal: 'tiger', owner: null, flipped: false, captured: false },
-                { animal: 'leopard', owner: null, flipped: false, captured: false },
-                { animal: 'elephant', owner: null, flipped: false, captured: false }
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false }
             ]
         ]
     });
@@ -359,28 +422,28 @@ function testFlipDoesNotAutoCaptureAdjacentEnemy() {
         phase: 'play',
         board: [
             [
-                { animal: 'elephant', owner: null, flipped: false, captured: false },
+                { animal: 'elephant', owner: 'a', flipped: false, captured: false },
                 { animal: 'cat', owner: 'b', flipped: true, captured: false },
-                { animal: 'dog', owner: null, flipped: false, captured: false },
-                { animal: 'wolf', owner: null, flipped: false, captured: false }
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
             ],
             [
-                { animal: 'rat', owner: null, flipped: false, captured: false },
-                { animal: 'lion', owner: null, flipped: false, captured: false },
-                { animal: 'tiger', owner: null, flipped: false, captured: false },
-                { animal: 'leopard', owner: null, flipped: false, captured: false }
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
             ],
             [
-                { animal: 'cat', owner: null, flipped: false, captured: false },
-                { animal: 'dog', owner: null, flipped: false, captured: false },
-                { animal: 'wolf', owner: null, flipped: false, captured: false },
-                { animal: 'rat', owner: null, flipped: false, captured: false }
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
             ],
             [
-                { animal: 'lion', owner: null, flipped: false, captured: false },
-                { animal: 'tiger', owner: null, flipped: false, captured: false },
-                { animal: 'leopard', owner: null, flipped: false, captured: false },
-                { animal: 'elephant', owner: null, flipped: false, captured: false }
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false }
             ]
         ]
     });
@@ -393,6 +456,8 @@ function testFlipDoesNotAutoCaptureAdjacentEnemy() {
 }
 
 testFilesAndStylesExist();
+testInitialDeckHasOneAnimalPerOwner();
+testFlipKeepsPresetOwnerAndShowsTurnPrompt();
 testOwnerClassesAndMoveHintsRender();
 testFastMobileDoubleTapCanCapture();
 testCapturedCellCanBeMoveTarget();

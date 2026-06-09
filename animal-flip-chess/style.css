@@ -405,51 +405,6 @@ body {
     margin-bottom: 20px;
 }
 
-/* RPS */
-.rps-choices {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-bottom: 16px;
-}
-
-.rps-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 16px 20px;
-    border: 2px solid var(--border);
-    background: var(--card-bg);
-    border-radius: var(--radius);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.rps-btn:active {
-    transform: scale(0.95);
-}
-
-.rps-btn.selected {
-    border-color: var(--accent);
-    background: #fef3e2;
-}
-
-.rps-icon {
-    font-size: 2rem;
-}
-
-.rps-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.rps-status {
-    font-size: 0.9rem;
-    color: var(--text-light);
-    min-height: 1.2em;
-}
-
 /* Result */
 .result-desc {
     font-size: 0.95rem;
