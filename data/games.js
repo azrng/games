@@ -76,6 +76,16 @@
             desc: "经典欧拉路径挑战，一笔画完所有边不重复，50 关闯关递进。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "animal-flip-chess",
+            title: "动物翻翻棋",
+            path: "animal-flip-chess/index.html",
+            mobilePath: "animal-flip-chess/index.html",
+            icon: "img/game.svg",
+            desc: "双人对战翻翻棋，翻牌收集动物棋子，大吃小，鼠吃象。",
+            readme: null,
+            meta: null
         }
     ];
 

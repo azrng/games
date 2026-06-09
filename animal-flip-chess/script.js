@@ -1,0 +1,842 @@
+(() => {
+    'use strict';
+
+    // Animal hierarchy: higher rank beats lower, except rat beats elephant
+    const ANIMALS = {
+        elephant: { name: '象', rank: 8, icon: '🐘' },
+        lion:     { name: '狮', rank: 7, icon: '🦁' },
+        tiger:    { name: '虎', rank: 6, icon: '🐯' },
+        leopard:  { name: '豹', rank: 5, icon: '🐆' },
+        wolf:     { name: '狼', rank: 4, icon: '🐺' },
+        dog:      { name: '狗', rank: 3, icon: '🐶' },
+        cat:      { name: '猫', rank: 2, icon: '🐱' },
+        rat:      { name: '鼠', rank: 1, icon: '🐭' }
+    };
+
+    const ANIMAL_KEYS = Object.keys(ANIMALS);
+    const BOARD_SIZE = 4;
+    const TOTAL_CARDS = BOARD_SIZE * BOARD_SIZE;
+
+    // Touch interaction constants
+    const TAP_THRESHOLD = 10;      // Max pixels moved to count as tap
+    const DEBOUNCE_DELAY = 300;    // Min ms between taps
+    const AI_DELAY = 700;          // AI thinking delay in ms
+
+    // Game state
+    let board = [];          // 4x4 array of card objects
+    let currentPlayer = 'a'; // 'a' (human) or 'b' (AI)
+    let phase = 'rps';       // 'rps', 'play', 'end'
+    let selectedCard = null; // currently selected card for moving
+    let moveHistory = [];    // for undo
+    let playerPieces = { a: 0, b: 0 };
+    let rpsChoices = { a: null, b: null };
+    let lastTapTime = 0;     // For debounce
+    let touchStartPos = null; // For distinguishing tap vs swipe
+    let aiThinking = false;  // Is AI currently thinking
+    let rpsPhase = 'a-turn'; // RPS phase: 'a-turn', 'b-turn', 'result'
+
+    // DOM elements
+    const boardEl = document.getElementById('board');
+    const turnText = document.getElementById('turn-text');
+    const playerAInfo = document.getElementById('player-a-info');
+    const playerBInfo = document.getElementById('player-b-info');
+    const playerACount = document.getElementById('player-a-count');
+    const playerBCount = document.getElementById('player-b-count');
+    const rpsModal = document.getElementById('rps-modal');
+    const rpsStatus = document.getElementById('rps-status');
+    const resultModal = document.getElementById('result-modal');
+    const resultTitle = document.getElementById('result-title');
+    const resultDesc = document.getElementById('result-desc');
+    const resultA = document.getElementById('result-a');
+    const resultB = document.getElementById('result-b');
+    const restartBtn = document.getElementById('restart-btn');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const hintBtn = document.getElementById('hint-btn');
+    const undoBtn = document.getElementById('undo-btn');
+
+    // Initialize game
+    function initGame() {
+        board = [];
+        currentPlayer = 'a';
+        phase = 'rps';
+        selectedCard = null;
+        moveHistory = [];
+        playerPieces = { a: 0, b: 0 };
+        rpsChoices = { a: null, b: null };
+        rpsPhase = 'a-turn';
+
+        // Create 8 pairs of animals
+        let cards = [];
+        for (const key of ANIMAL_KEYS) {
+            cards.push({ animal: key, owner: null, flipped: false, captured: false });
+            cards.push({ animal: key, owner: null, flipped: false, captured: false });
+        }
+
+        // Shuffle
+        for (let i = cards.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [cards[i], cards[j]] = [cards[j], cards[i]];
+        }
+
+        // Place on board
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            board[r] = [];
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                board[r][c] = cards[r * BOARD_SIZE + c];
+            }
+        }
+
+        renderBoard();
+        updateUI();
+        showRPSModal();
+    }
+
+    // Render board
+    function renderBoard() {
+        boardEl.innerHTML = '';
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const card = board[r][c];
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.dataset.row = r;
+                cardEl.dataset.col = c;
+
+                if (card.flipped) cardEl.classList.add('flipped');
+                if (card.captured) cardEl.classList.add('captured');
+                if (card.owner === 'a') cardEl.classList.add('player-a');
+                if (card.owner === 'b') cardEl.classList.add('player-b');
+                if (selectedCard && selectedCard.row === r && selectedCard.col === c) {
+                    cardEl.classList.add('selected');
+                }
+
+                // Check if this is a valid move target
+                if (selectedCard && !card.captured) {
+                    if (isValidMoveTarget(r, c)) {
+                        cardEl.classList.add('valid-move');
+                    }
+                }
+
+                const animal = ANIMALS[card.animal];
+                cardEl.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front">
+                            <span class="animal-icon">${animal.icon}</span>
+                            <span class="animal-name">${animal.name}</span>
+                        </div>
+                    </div>
+                `;
+
+                // Touch event handling
+                addTouchEventListeners(cardEl, r, c);
+                boardEl.appendChild(cardEl);
+            }
+        }
+    }
+
+    // Add touch event listeners with debounce and tap/swipe detection
+    function addTouchEventListeners(element, row, col) {
+        let startX, startY;
+
+        element.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            touchStartPos = { x: startX, y: startY };
+
+            // Add press feedback
+            element.classList.add('pressing');
+        }, { passive: false });
+
+        element.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const dx = Math.abs(touch.clientX - startX);
+            const dy = Math.abs(touch.clientY - startY);
+
+            // If moved too far, it's a swipe not a tap
+            if (dx > TAP_THRESHOLD || dy > TAP_THRESHOLD) {
+                element.classList.remove('pressing');
+            }
+        }, { passive: false });
+
+        element.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            element.classList.remove('pressing');
+
+            if (!touchStartPos) return;
+
+            const touch = e.changedTouches[0];
+            const dx = Math.abs(touch.clientX - touchStartPos.x);
+            const dy = Math.abs(touch.clientY - touchStartPos.y);
+
+            // Only count as tap if didn't move far
+            if (dx <= TAP_THRESHOLD && dy <= TAP_THRESHOLD) {
+                const now = Date.now();
+                if (now - lastTapTime >= DEBOUNCE_DELAY) {
+                    lastTapTime = now;
+                    onCardClick(row, col);
+                }
+            }
+
+            touchStartPos = null;
+        }, { passive: false });
+
+        // Also support mouse click for desktop
+        element.addEventListener('click', (e) => {
+            // Prevent double-firing on touch devices
+            if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+            onCardClick(row, col);
+        });
+    }
+
+    // Update UI state
+    function updateUI() {
+        const aCount = countPieces('a');
+        const bCount = countPieces('b');
+        playerACount.textContent = aCount;
+        playerBCount.textContent = bCount;
+
+        playerAInfo.classList.toggle('active', currentPlayer === 'a' && phase === 'play');
+        playerBInfo.classList.toggle('active', currentPlayer === 'b' && phase === 'play');
+
+        if (phase === 'play') {
+            if (aiThinking) {
+                turnText.textContent = '电脑思考中...';
+            } else {
+                turnText.textContent = currentPlayer === 'a' ? '你的回合' : '电脑回合';
+            }
+        } else if (phase === 'end') {
+            turnText.textContent = '游戏结束';
+        } else {
+            turnText.textContent = '猜拳先手';
+        }
+
+        undoBtn.disabled = moveHistory.length === 0 || currentPlayer === 'b';
+    }
+
+    // Count pieces for a player
+    function countPieces(player) {
+        let count = 0;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (board[r][c].owner === player && !board[r][c].captured) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // RPS Modal
+    function showRPSModal() {
+        rpsModal.hidden = false;
+        rpsStatus.textContent = '请选择...';
+        document.querySelectorAll('.rps-btn').forEach(btn => {
+            btn.classList.remove('selected');
+            btn.disabled = false;
+        });
+    }
+
+    function handleRPS(choice) {
+        // Player chooses
+        rpsChoices.a = choice;
+        document.querySelectorAll('.rps-btn').forEach(btn => {
+            btn.disabled = true;
+            if (btn.dataset.choice === choice) {
+                btn.classList.add('selected');
+            }
+        });
+
+        rpsStatus.textContent = '电脑思考中...';
+
+        // AI chooses after delay
+        setTimeout(() => {
+            const aiChoice = getRandomRPSChoice();
+            rpsChoices.b = aiChoice;
+
+            // Show AI choice
+            document.querySelectorAll('.rps-btn').forEach(btn => {
+                if (btn.dataset.choice === aiChoice) {
+                    btn.classList.add('selected');
+                }
+            });
+
+            // Determine winner
+            const winner = getRPSWinner(rpsChoices.a, rpsChoices.b);
+            const choiceNames = { rock: '石头', scissors: '剪刀', paper: '布' };
+
+            if (winner === 'draw') {
+                rpsStatus.textContent = `平局！都是${choiceNames[rpsChoices.a]}，再来一次`;
+                setTimeout(() => {
+                    rpsChoices = { a: null, b: null };
+                    showRPSModal();
+                }, 1500);
+            } else {
+                const winnerName = winner === 'a' ? '你' : '电脑';
+                rpsStatus.textContent = `${winnerName}赢了！`;
+                setTimeout(() => {
+                    rpsModal.hidden = true;
+                    currentPlayer = winner;
+                    phase = 'play';
+                    renderBoard();
+                    updateUI();
+
+                    // If AI goes first, let AI make a move
+                    if (currentPlayer === 'b') {
+                        setTimeout(() => aiTurn(), AI_DELAY);
+                    }
+                }, 1000);
+            }
+        }, AI_DELAY);
+    }
+
+    // AI random RPS choice
+    function getRandomRPSChoice() {
+        const choices = ['rock', 'scissors', 'paper'];
+        return choices[Math.floor(Math.random() * choices.length)];
+    }
+
+    function getRPSWinner(a, b) {
+        if (a === b) return 'draw';
+        if ((a === 'rock' && b === 'scissors') ||
+            (a === 'scissors' && b === 'paper') ||
+            (a === 'paper' && b === 'rock')) {
+            return 'a';
+        }
+        return 'b';
+    }
+
+    // Card click handler
+    function onCardClick(row, col) {
+        if (phase === 'end' || phase === 'rps') return;
+
+        const card = board[row][col];
+        if (card.captured) return;
+
+        // In 'play' phase, player can flip or move
+        if (card.flipped) {
+            // Card is already flipped - handle as move
+            handleMove(row, col, card);
+        } else {
+            // Card is face down - handle as flip
+            handleFlip(row, col, card);
+        }
+    }
+
+    // Handle flip action
+    function handleFlip(row, col, card) {
+        if (card.flipped) return;
+
+        // Save state for undo
+        moveHistory.push({
+            type: 'flip',
+            row, col,
+            prevOwner: card.owner,
+            prevFlipped: card.flipped,
+            prevPlayer: currentPlayer
+        });
+
+        card.flipped = true;
+        card.owner = currentPlayer;
+
+        // Check for battle with adjacent enemy pieces
+        checkAdjacentBattle(row, col);
+
+        selectedCard = null;
+        renderBoard();
+        updateUI();
+
+        // Check win condition
+        if (checkWinCondition()) return;
+
+        // Switch player
+        switchPlayer();
+    }
+
+    // Handle move action
+    function handleMove(row, col, card) {
+        // If clicking own piece, select it
+        if (card.owner === currentPlayer && card.flipped) {
+            selectedCard = { row, col };
+            renderBoard();
+            return;
+        }
+
+        // If clicking enemy piece without selecting own piece first
+        if (card.owner && card.owner !== currentPlayer && card.flipped && !selectedCard) {
+            showHintMessage('请先选择你的棋子');
+            return;
+        }
+
+        // If a piece is selected and clicking valid target
+        if (selectedCard) {
+            if (isValidMoveTarget(row, col)) {
+                executeMove(selectedCard.row, selectedCard.col, row, col);
+            } else {
+                // Deselect if clicking invalid target
+                selectedCard = null;
+                renderBoard();
+                showHintMessage('无法移动到该位置');
+            }
+        }
+    }
+
+    // Show hint message temporarily
+    function showHintMessage(msg) {
+        const hintEl = document.querySelector('.hint-text');
+        if (hintEl) {
+            const originalText = hintEl.textContent;
+            hintEl.textContent = msg;
+            hintEl.style.color = 'var(--player-a)';
+            setTimeout(() => {
+                hintEl.textContent = originalText;
+                hintEl.style.color = '';
+            }, 1500);
+        }
+    }
+
+    // Check if target is valid move
+    function isValidMoveTarget(targetRow, targetCol) {
+        if (!selectedCard) return false;
+
+        const sr = selectedCard.row;
+        const sc = selectedCard.col;
+        const dr = Math.abs(targetRow - sr);
+        const dc = Math.abs(targetCol - sc);
+
+        // Must be adjacent (up, down, left, right)
+        if (!((dr === 1 && dc === 0) || (dr === 0 && dc === 1))) return false;
+
+        const target = board[targetRow][targetCol];
+        const source = board[sr][sc];
+
+        // Can't move to own piece
+        if (target.owner === currentPlayer && target.flipped && !target.captured) return false;
+
+        // Can move to empty (flipped no owner or captured) or enemy
+        if (target.captured) return true;
+        if (!target.flipped) return false; // Can't move to unflipped card
+
+        // Battle check
+        return canBattle(source.animal, target.animal);
+    }
+
+    // Battle logic: can attacker beat defender?
+    function canBattle(attacker, defender) {
+        const a = ANIMALS[attacker];
+        const d = ANIMALS[defender];
+
+        // Rat beats elephant
+        if (attacker === 'rat' && defender === 'elephant') return true;
+        // Elephant can't beat rat
+        if (attacker === 'elephant' && defender === 'rat') return false;
+
+        return a.rank >= d.rank;
+    }
+
+    // Execute move
+    function executeMove(fromRow, fromCol, toRow, toCol) {
+        const source = board[fromRow][fromCol];
+        const target = board[toRow][toCol];
+
+        // Save state for undo
+        moveHistory.push({
+            type: 'move',
+            fromRow, fromCol, toRow, toCol,
+            sourceOwner: source.owner,
+            targetOwner: target.owner,
+            targetFlipped: target.flipped,
+            targetCaptured: target.captured,
+            targetAnimal: target.animal,
+            prevPlayer: currentPlayer
+        });
+
+        // If target is enemy, capture it
+        if (target.owner && target.owner !== currentPlayer && target.flipped) {
+            target.captured = true;
+            target.owner = null;
+        }
+
+        // Move source to target position
+        board[toRow][toCol] = { ...source };
+        board[fromRow][fromCol] = { animal: source.animal, owner: null, flipped: false, captured: false };
+
+        selectedCard = null;
+
+        renderBoard();
+        updateUI();
+
+        // Check win condition
+        if (checkWinCondition()) return;
+
+        switchPlayer();
+    }
+
+    // Check adjacent battle after flip
+    function checkAdjacentBattle(row, col) {
+        const card = board[row][col];
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+
+        for (const [dr, dc] of directions) {
+            const nr = row + dr;
+            const nc = col + dc;
+            if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+
+            const neighbor = board[nr][nc];
+            if (neighbor.captured || !neighbor.flipped) continue;
+            if (neighbor.owner === currentPlayer) continue;
+
+            // Check if current card can eat neighbor
+            if (canBattle(card.animal, neighbor.animal)) {
+                neighbor.captured = true;
+                neighbor.owner = null;
+            }
+            // Check if neighbor can eat current card
+            else if (canBattle(neighbor.animal, card.animal)) {
+                card.captured = true;
+                card.owner = null;
+                break; // Card was eaten, no need to check more
+            }
+        }
+    }
+
+    // Switch player
+    function switchPlayer() {
+        currentPlayer = currentPlayer === 'a' ? 'b' : 'a';
+        selectedCard = null;
+        updateUI();
+
+        // If it's AI's turn, let AI play
+        if (currentPlayer === 'b' && phase === 'play') {
+            setTimeout(() => aiTurn(), AI_DELAY);
+        }
+    }
+
+    // AI turn logic
+    function aiTurn() {
+        if (phase !== 'play' || currentPlayer !== 'b') return;
+        aiThinking = true;
+        updateUI();
+
+        // Decide whether to flip or move
+        const hasUnflipped = hasUnflippedCards();
+        const hasMovable = hasMovablePieces('b');
+
+        if (hasUnflipped && (!hasMovable || Math.random() < 0.5)) {
+            // Flip a card
+            aiFlipCard();
+        } else if (hasMovable) {
+            // Move a piece
+            aiMovePiece();
+        } else {
+            // No valid moves, skip
+            aiThinking = false;
+            switchPlayer();
+        }
+    }
+
+    // Check if there are unflipped cards
+    function hasUnflippedCards() {
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (!board[r][c].flipped && !board[r][c].captured) return true;
+            }
+        }
+        return false;
+    }
+
+    // Check if player has movable pieces
+    function hasMovablePieces(player) {
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const card = board[r][c];
+                if (card.owner !== player || card.captured || !card.flipped) continue;
+
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+
+                    const target = board[nr][nc];
+                    if (target.captured) return true;
+                    if (!target.flipped) continue;
+                    if (target.owner === player) continue;
+                    if (canBattle(card.animal, target.animal)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // AI flip card logic
+    function aiFlipCard() {
+        // Find best card to flip (prioritize near player's pieces)
+        const candidates = [];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (!board[r][c].flipped && !board[r][c].captured) {
+                    let score = 0;
+                    // Check if adjacent to player's pieces (higher priority)
+                    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                    for (const [dr, dc] of directions) {
+                        const nr = r + dr;
+                        const nc = c + dc;
+                        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                        const neighbor = board[nr][nc];
+                        if (neighbor.owner === 'a' && neighbor.flipped) {
+                            score += ANIMALS[board[r][c].animal].rank; // Higher rank = better
+                        }
+                    }
+                    candidates.push({ row: r, col: c, score });
+                }
+            }
+        }
+
+        if (candidates.length === 0) {
+            aiThinking = false;
+            switchPlayer();
+            return;
+        }
+
+        // Sort by score (descending) and pick best with some randomness
+        candidates.sort((a, b) => b.score - a.score);
+        const topScore = candidates[0].score;
+        const topCandidates = candidates.filter(c => c.score === topScore);
+        const chosen = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+
+        // Execute flip
+        const card = board[chosen.row][chosen.col];
+        card.flipped = true;
+        card.owner = 'b';
+        checkAdjacentBattle(chosen.row, chosen.col);
+
+        renderBoard();
+        updateUI();
+
+        if (checkWinCondition()) return;
+
+        aiThinking = false;
+        switchPlayer();
+    }
+
+    // AI move piece logic
+    function aiMovePiece() {
+        const moves = [];
+
+        // Find all valid moves
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const card = board[r][c];
+                if (card.owner !== 'b' || card.captured || !card.flipped) continue;
+
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+
+                    const target = board[nr][nc];
+                    if (target.captured) {
+                        moves.push({ fromRow: r, fromCol: c, toRow: nr, toCol: nc, score: 0 });
+                    } else if (target.flipped && target.owner === 'a' && canBattle(card.animal, target.animal)) {
+                        // Can eat player's piece - higher priority
+                        moves.push({ fromRow: r, fromCol: c, toRow: nr, toCol: nc, score: ANIMALS[target.animal].rank });
+                    }
+                }
+            }
+        }
+
+        if (moves.length === 0) {
+            aiThinking = false;
+            switchPlayer();
+            return;
+        }
+
+        // Sort by score (descending) and pick best
+        moves.sort((a, b) => b.score - a.score);
+        const bestScore = moves[0].score;
+        const bestMoves = moves.filter(m => m.score === bestScore);
+        const chosen = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+
+        // Execute move
+        executeMove(chosen.fromRow, chosen.fromCol, chosen.toRow, chosen.toCol);
+        aiThinking = false;
+    }
+
+    // Check win condition
+    function checkWinCondition() {
+        // If there are still unflipped cards, don't end the game based on piece count
+        const hasUnflipped = hasUnflippedCards();
+
+        if (!hasUnflipped) {
+            // All cards are flipped, check piece counts
+            const aCount = countPieces('a');
+            const bCount = countPieces('b');
+
+            if (aCount === 0) {
+                endGame('b', '你的棋子全部被吃掉');
+                return true;
+            }
+            if (bCount === 0) {
+                endGame('a', '电脑的棋子全部被吃掉');
+                return true;
+            }
+        }
+
+        // Check if current player has any valid moves
+        if (!hasValidMoves(currentPlayer)) {
+            const winner = currentPlayer === 'a' ? 'b' : 'a';
+            const loserName = currentPlayer === 'a' ? '你' : '电脑';
+            endGame(winner, `${loserName}无可用操作`);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Check if player has valid moves
+    function hasValidMoves(player) {
+        // Check for unflipped cards (can flip)
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (!board[r][c].flipped && !board[r][c].captured) return true;
+            }
+        }
+
+        // Check for movable pieces
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const card = board[r][c];
+                if (card.owner !== player || card.captured || !card.flipped) continue;
+
+                // Check adjacent cells
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+
+                    const target = board[nr][nc];
+                    if (target.captured) return true; // Can move to empty
+                    if (!target.flipped) continue;
+                    if (target.owner === player) continue;
+                    if (canBattle(card.animal, target.animal)) return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // End game
+    function endGame(winner, reason) {
+        phase = 'end';
+        aiThinking = false;
+        updateUI();
+
+        const winnerName = winner === 'a' ? '你' : '电脑';
+        resultTitle.textContent = `${winnerName}获胜！`;
+        resultDesc.textContent = reason;
+        resultA.textContent = countPieces('a');
+        resultB.textContent = countPieces('b');
+        resultModal.hidden = false;
+    }
+
+    // Undo last move
+    function undoMove() {
+        if (moveHistory.length === 0) return;
+
+        const action = moveHistory.pop();
+
+        if (action.type === 'flip') {
+            const card = board[action.row][action.col];
+            card.flipped = action.prevFlipped;
+            card.owner = action.prevOwner;
+            card.captured = false;
+            currentPlayer = action.prevPlayer;
+        } else if (action.type === 'move') {
+            // Restore source
+            board[action.fromRow][action.fromCol] = {
+                animal: board[action.toRow][action.toCol].animal,
+                owner: action.sourceOwner,
+                flipped: true,
+                captured: false
+            };
+            // Restore target
+            board[action.toRow][action.toCol] = {
+                animal: action.targetAnimal,
+                owner: action.targetOwner,
+                flipped: action.targetFlipped,
+                captured: action.targetCaptured
+            };
+            currentPlayer = action.prevPlayer;
+        }
+
+        phase = 'play';
+        selectedCard = null;
+        renderBoard();
+        updateUI();
+    }
+
+    // Hint: highlight a valid action
+    function showHint() {
+        if (phase !== 'play') return;
+
+        // First try to find a good flip target
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (!board[r][c].flipped && !board[r][c].captured) {
+                    const cardEl = boardEl.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                    if (cardEl) {
+                        cardEl.style.boxShadow = '0 0 0 3px var(--accent-light)';
+                        setTimeout(() => { cardEl.style.boxShadow = ''; }, 1500);
+                    }
+                    return;
+                }
+            }
+        }
+
+        // If no cards to flip, find a valid move
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const card = board[r][c];
+                if (card.owner !== currentPlayer || card.captured || !card.flipped) continue;
+
+                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                for (const [dr, dc] of directions) {
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+
+                    const target = board[nr][nc];
+                    if (target.captured || (target.flipped && target.owner !== currentPlayer && canBattle(card.animal, target.animal))) {
+                        selectedCard = { row: r, col: c };
+                        renderBoard();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    // Event listeners
+    document.querySelectorAll('.rps-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleRPS(btn.dataset.choice));
+    });
+
+    restartBtn.addEventListener('click', initGame);
+    playAgainBtn.addEventListener('click', () => {
+        resultModal.hidden = true;
+        initGame();
+    });
+
+    undoBtn.addEventListener('click', undoMove);
+    hintBtn.addEventListener('click', showHint);
+
+    // Start game
+    initGame();
+})();
