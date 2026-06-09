@@ -343,6 +343,46 @@ function testOnlyNewlyFlippedCardAnimates() {
         'newly flipped card should keep flip animation');
 }
 
+function testOldFlippedCardNodeIsPreservedOnNextFlip() {
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { animal: 'cat', owner: 'b', flipped: false, captured: false },
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    const oldFlippedCard = cell(elements, 0, 0);
+    cell(elements, 0, 1).dispatch('click');
+
+    assert.strictEqual(cell(elements, 0, 0), oldFlippedCard,
+        'previously flipped card DOM node should be preserved when another card flips');
+}
+
 function testOwnerClassesAndMoveHintsRender() {
     const { api, elements } = runScriptWithContext();
     setBattleBoard(api);
@@ -500,6 +540,7 @@ testFilesAndStylesExist();
 testInitialDeckHasOneAnimalPerOwner();
 testFlipKeepsPresetOwnerAndShowsTurnPrompt();
 testOnlyNewlyFlippedCardAnimates();
+testOldFlippedCardNodeIsPreservedOnNextFlip();
 testOwnerClassesAndMoveHintsRender();
 testFastMobileDoubleTapCanCapture();
 testCapturedCellCanBeMoveTarget();

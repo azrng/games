@@ -96,60 +96,82 @@
 
     // Render board
     function renderBoard() {
-        boardEl.innerHTML = '';
+        ensureBoardCells();
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
-                const card = board[r][c];
-                const cardEl = document.createElement('div');
-                cardEl.className = 'card';
-                cardEl.dataset.row = r;
-                cardEl.dataset.col = c;
-
-                if (card.flipped || card.captured) cardEl.classList.add('flipped');
-                if (card.captured) cardEl.classList.add('captured');
-                if ((card.flipped || card.captured) && !animatingFlipIds.has(card.id)) {
-                    cardEl.classList.add('no-flip-animation');
-                }
-                if (card.flipped || card.captured) {
-                    if (card.owner === 'a') cardEl.classList.add('player-a');
-                    if (card.owner === 'b') cardEl.classList.add('player-b');
-                }
-                if (phase === 'play' && currentPlayer === 'a' && !aiThinking && !card.captured) {
-                    if (!card.flipped || (card.flipped && card.owner === 'a')) {
-                        cardEl.classList.add('actionable');
-                    }
-                }
-                if (selectedCard && selectedCard.row === r && selectedCard.col === c) {
-                    cardEl.classList.add('selected');
-                }
-
-                // Check if this is a valid move target
-                if (selectedCard) {
-                    if (isValidMoveTarget(r, c)) {
-                        cardEl.classList.add('valid-move');
-                    }
-                }
-
-                const animal = ANIMALS[card.animal];
-                const ownerLabel = card.flipped && card.owner === 'a' ? '你' :
-                    card.flipped && card.owner === 'b' ? '电脑' : '';
-                cardEl.innerHTML = `
-                    <div class="card-inner">
-                        <div class="card-face card-back"></div>
-                        <div class="card-face card-front">
-                            ${ownerLabel ? `<span class="owner-badge">${ownerLabel}</span>` : ''}
-                            ${card.captured ? '<span class="empty-label">空</span>' : `<span class="animal-icon">${animal.icon}</span><span class="animal-name">${animal.name}</span>`}
-                        </div>
-                    </div>
-                `;
-
-                // Touch event handling
-                addTouchEventListeners(cardEl, r, c);
-                boardEl.appendChild(cardEl);
+                updateCardElement(getCardElement(r, c), r, c);
             }
         }
         syncShownFlippedCards();
         animatingFlipIds = new Set();
+    }
+
+    function ensureBoardCells() {
+        if (boardEl.children.length === TOTAL_CARDS) return;
+
+        boardEl.innerHTML = '';
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const cardEl = document.createElement('div');
+                cardEl.dataset.row = r;
+                cardEl.dataset.col = c;
+                addTouchEventListeners(cardEl, r, c);
+                boardEl.appendChild(cardEl);
+            }
+        }
+    }
+
+    function getCardElement(row, col) {
+        return boardEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    function updateCardElement(cardEl, row, col) {
+        const card = board[row][col];
+        const classes = ['card'];
+
+        if (card.flipped || card.captured) classes.push('flipped');
+        if (card.captured) classes.push('captured');
+        if ((card.flipped || card.captured) && !animatingFlipIds.has(card.id)) {
+            classes.push('no-flip-animation');
+        }
+        if (card.flipped || card.captured) {
+            if (card.owner === 'a') classes.push('player-a');
+            if (card.owner === 'b') classes.push('player-b');
+        }
+        if (phase === 'play' && currentPlayer === 'a' && !aiThinking && !card.captured) {
+            if (!card.flipped || (card.flipped && card.owner === 'a')) {
+                classes.push('actionable');
+            }
+        }
+        if (selectedCard && selectedCard.row === row && selectedCard.col === col) {
+            classes.push('selected');
+        }
+        if (selectedCard && isValidMoveTarget(row, col)) {
+            classes.push('valid-move');
+        }
+
+        cardEl.className = classes.join(' ');
+
+        const animal = ANIMALS[card.animal];
+        const ownerLabel = card.flipped && card.owner === 'a' ? '你' :
+            card.flipped && card.owner === 'b' ? '电脑' : '';
+        const content = card.captured
+            ? '<span class="empty-label">空</span>'
+            : `<span class="animal-icon">${animal.icon}</span><span class="animal-name">${animal.name}</span>`;
+        const nextMarkup = `
+                    <div class="card-inner">
+                        <div class="card-face card-back"></div>
+                        <div class="card-face card-front">
+                            ${ownerLabel ? `<span class="owner-badge">${ownerLabel}</span>` : ''}
+                            ${content}
+                        </div>
+                    </div>
+                `;
+
+        if (cardEl.dataset.renderKey !== `${card.id}:${card.flipped}:${card.captured}:${card.owner}`) {
+            cardEl.innerHTML = nextMarkup;
+            cardEl.dataset.renderKey = `${card.id}:${card.flipped}:${card.captured}:${card.owner}`;
+        }
     }
 
     function markCardForFlipAnimation(card) {
