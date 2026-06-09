@@ -716,7 +716,7 @@
         resultDesc.textContent = reason;
         resultA.textContent = countPieces('a');
         resultB.textContent = countPieces('b');
-        resultModal.hidden = false;
+        if (resultModal) resultModal.hidden = false;
     }
 
     // Undo last move
@@ -801,7 +801,7 @@
 
     restartBtn.addEventListener('click', initGame);
     playAgainBtn.addEventListener('click', () => {
-        resultModal.hidden = true;
+        if (resultModal) resultModal.hidden = true;
         initGame();
     });
 
