@@ -249,13 +249,16 @@ function testFilesAndStylesExist() {
     const script = read('script.js');
 
     assert(html.includes('viewport-fit=cover'), 'mobile page should use viewport-fit=cover');
+    assert(html.includes('name="description"'), 'page should include a meta description');
     assert(!html.includes('id="rps-modal"'), 'page should not render RPS modal');
     assert(css.includes('owner-badge'), 'cards should display visible owner badges');
     assert(css.includes('valid-move'), 'selected pieces should reveal valid move targets');
     assert(css.includes('card.valid-move.captured'), 'captured empty cells should be rendered as valid walk targets');
+    assert(!css.includes('.card:active .card-inner'), 'touch pressing feedback should not duplicate :active transforms');
     assert(!html.includes('id="hint-btn"'), 'page should not render hint button');
     assert(!html.includes('id="undo-btn"'), 'page should not render undo button');
     assert(!script.includes('moveHistory'), 'script should not keep undo history');
+    assert(script.includes('++emptyIdCounter'), 'empty cell ids should use a stable counter');
     assert(script.includes('AnimalFlipChess'), 'script should expose test API');
 }
 
@@ -451,6 +454,29 @@ function testFastMobileDoubleTapCanCapture() {
     assert.strictEqual(state.currentPlayer, 'b', 'turn should switch after successful move');
 }
 
+function testDesktopClickCanCapture() {
+    const { api, elements } = runScriptWithContext();
+    setBattleBoard(api);
+
+    cell(elements, 0, 0).dispatch('click');
+    cell(elements, 0, 1).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.board[0][1].owner, 'a', 'desktop click should move into captured target');
+    assert.strictEqual(state.board[0][0].captured, true, 'desktop click move should leave an empty source cell');
+}
+
+function testEmptyCellIdsUseCounter() {
+    const { api, elements } = runScriptWithContext();
+    setBattleBoard(api);
+
+    cell(elements, 0, 0).dispatch('click');
+    cell(elements, 0, 1).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.board[0][0].id, 'empty-0-0-1', 'empty cell id should use a stable counter');
+}
+
 function testCapturedCellCanBeMoveTarget() {
     const { api, elements } = runScriptWithContext();
     setBattleBoard(api);
@@ -583,6 +609,8 @@ testOnlyNewlyFlippedCardAnimates();
 testOldFlippedCardNodeIsPreservedOnNextFlip();
 testOwnerClassesAndMoveHintsRender();
 testFastMobileDoubleTapCanCapture();
+testDesktopClickCanCapture();
+testEmptyCellIdsUseCounter();
 testCapturedCellCanBeMoveTarget();
 testFlipDoesNotEmptyAdjacentUnflippedCard();
 testFlipDoesNotAutoCaptureAdjacentEnemy();

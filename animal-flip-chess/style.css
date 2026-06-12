@@ -332,15 +332,6 @@ body {
     outline-offset: 3px;
 }
 
-/* Touch feedback */
-.card:active .card-inner {
-    transform: scale(0.95);
-}
-
-.card.flipped:active .card-inner {
-    transform: rotateY(180deg) scale(0.95);
-}
-
 .card.pressing .card-inner {
     transform: scale(0.92);
     transition: transform 0.1s ease-out;

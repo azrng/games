@@ -34,6 +34,8 @@
     let shownFlippedIds = new Set();
     let animatingFlipIds = new Set();
     let flipStabilizeTimers = new Map();
+    let emptyIdCounter = 0;
+    let hintMessageTimer = null;
 
     // DOM elements
     const boardEl = document.getElementById('board');
@@ -60,6 +62,8 @@
         shownFlippedIds = new Set();
         animatingFlipIds = new Set();
         clearFlipStabilizeTimers();
+        emptyIdCounter = 0;
+        clearHintMessage();
         aiTurnToken++;
 
         // Create one full animal set for each side.
@@ -432,16 +436,30 @@
     function showHintMessage(msg) {
         const hintEl = document.querySelector('.hint-text');
         if (hintEl) {
-            const originalText = hintEl.textContent;
+            if (hintMessageTimer) {
+                clearTimeout(hintMessageTimer);
+            }
             hintEl.dataset.locked = 'true';
             hintEl.textContent = msg;
             hintEl.style.color = 'var(--player-a)';
-            setTimeout(() => {
-                hintEl.textContent = originalText;
+            hintMessageTimer = setTimeout(() => {
                 hintEl.style.color = '';
                 hintEl.dataset.locked = 'false';
+                hintMessageTimer = null;
                 updateHintText();
             }, 1500);
+        }
+    }
+
+    function clearHintMessage() {
+        if (hintMessageTimer) {
+            clearTimeout(hintMessageTimer);
+            hintMessageTimer = null;
+        }
+        const hintEl = document.querySelector('.hint-text');
+        if (hintEl) {
+            hintEl.dataset.locked = 'false';
+            hintEl.style.color = '';
         }
     }
 
@@ -497,7 +515,7 @@
 
         // Move source to target position
         board[toRow][toCol] = { ...source };
-        board[fromRow][fromCol] = { id: `empty-${fromRow}-${fromCol}-${Date.now()}`, animal: source.animal, owner: null, flipped: true, captured: true };
+        board[fromRow][fromCol] = { id: `empty-${fromRow}-${fromCol}-${++emptyIdCounter}`, animal: source.animal, owner: null, flipped: true, captured: true };
 
         selectedCard = null;
 
@@ -542,7 +560,7 @@
 
         // Decide whether to flip or move
         const hasUnflipped = hasUnflippedCards();
-        const hasMovable = hasMovablePieces('b');
+        const hasMovable = hasValidMoves('b', { includeFlips: false });
 
         if (hasUnflipped && (!hasMovable || Math.random() < 0.5)) {
             // Flip a card
@@ -562,30 +580,6 @@
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
                 if (!board[r][c].flipped && !board[r][c].captured) return true;
-            }
-        }
-        return false;
-    }
-
-    // Check if player has movable pieces
-    function hasMovablePieces(player) {
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                const card = board[r][c];
-                if (card.owner !== player || card.captured || !card.flipped) continue;
-
-                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-                for (const [dr, dc] of directions) {
-                    const nr = r + dr;
-                    const nc = c + dc;
-                    if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
-
-                    const target = board[nr][nc];
-                    if (target.captured) return true;
-                    if (!target.flipped) continue;
-                    if (target.owner === player) continue;
-                    if (canBattle(card.animal, target.animal)) return true;
-                }
             }
         }
         return false;
@@ -635,9 +629,9 @@
         scheduleFlipStabilize(card.id, chosen.row, chosen.col);
         updateUI();
 
+        aiThinking = false;
         if (checkWinCondition()) return;
 
-        aiThinking = false;
         openingTurn = false;
         switchPlayer();
     }
@@ -719,11 +713,15 @@
     }
 
     // Check if player has valid moves
-    function hasValidMoves(player) {
+    function hasValidMoves(player, options = {}) {
+        const includeFlips = options.includeFlips !== false;
+
         // Check for unflipped cards (can flip)
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                if (!board[r][c].flipped && !board[r][c].captured) return true;
+        if (includeFlips) {
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (!board[r][c].flipped && !board[r][c].captured) return true;
+                }
             }
         }
 
@@ -806,6 +804,8 @@
             }
             animatingFlipIds = new Set(nextState.animatingFlipIds || []);
             clearFlipStabilizeTimers();
+            emptyIdCounter = 0;
+            clearHintMessage();
             renderBoard();
             updateUI();
         }
