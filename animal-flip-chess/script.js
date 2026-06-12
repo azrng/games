@@ -495,6 +495,8 @@
         const a = ANIMALS[attacker];
         const d = ANIMALS[defender];
 
+        if (attacker === defender) return false;
+
         // Rat beats elephant
         if (attacker === 'rat' && defender === 'elephant') return true;
         // Elephant can't beat rat

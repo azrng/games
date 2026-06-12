@@ -298,6 +298,15 @@ function testInitialDeckHasOneAnimalPerOwner() {
     }
 }
 
+function testSameAnimalCannotBattle() {
+    const { api } = runScriptWithContext();
+
+    assert.strictEqual(api.canBattle('elephant', 'elephant'), false,
+        'same animal should not be able to capture each other');
+    assert.strictEqual(api.canBattle('rat', 'rat'), false,
+        'same rat pieces should not be able to capture each other');
+}
+
 function testFlipKeepsPresetOwnerAndShowsTurnPrompt() {
     const { api, elements } = runScriptWithContext();
     api.setStateForTest({
@@ -341,6 +350,52 @@ function testFlipKeepsPresetOwnerAndShowsTurnPrompt() {
     assert.strictEqual(state.board[0][0].owner, 'b', 'flipping should reveal preset owner, not current player');
     assert.strictEqual(elements.get('turn-text').textContent, '电脑思考中');
     assert.strictEqual(elements.get('hint-text').textContent, '电脑回合：正在思考下一步。');
+}
+
+function testSameAnimalMoveIsInvalid() {
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: true, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false },
+                { animal: 'rat', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false },
+                { animal: 'cat', owner: null, flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    cell(elements, 0, 0).dispatch('click');
+
+    assert(!cell(elements, 0, 1).classList.contains('valid-move'),
+        'same animal enemy should not be marked as a valid capture target');
+
+    cell(elements, 0, 1).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.board[0][0].owner, 'a', 'attacker should stay in place after invalid same-animal move');
+    assert.strictEqual(state.board[0][1].owner, 'b', 'same animal defender should not be captured');
+    assert.strictEqual(state.currentPlayer, 'a', 'turn should not switch after invalid same-animal move');
 }
 
 function testOnlyNewlyFlippedCardAnimates() {
@@ -681,7 +736,9 @@ function testFlipDoesNotAutoCaptureAdjacentEnemy() {
 testFilesAndStylesExist();
 testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
+testSameAnimalCannotBattle();
 testFlipKeepsPresetOwnerAndShowsTurnPrompt();
+testSameAnimalMoveIsInvalid();
 testOnlyNewlyFlippedCardAnimates();
 testFlipAnimationIsOptInOnly();
 testMovingPieceDoesNotReplayFlippedCardAnimations();
