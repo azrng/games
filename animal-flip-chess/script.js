@@ -20,6 +20,7 @@
     const TAP_THRESHOLD = 10;
     const DEBOUNCE_DELAY = 180;
     const AI_DELAY = 1300;
+    const FLIP_ANIMATION_MS = 620;
 
     let board = [];
     let currentPlayer = 'a'; // 'a' (human) or 'b' (AI)
@@ -32,6 +33,7 @@
     let openingTurn = false;
     let shownFlippedIds = new Set();
     let animatingFlipIds = new Set();
+    let flipStabilizeTimers = new Map();
 
     // DOM elements
     const boardEl = document.getElementById('board');
@@ -57,6 +59,7 @@
         openingTurn = true;
         shownFlippedIds = new Set();
         animatingFlipIds = new Set();
+        clearFlipStabilizeTimers();
         aiTurnToken++;
 
         // Create one full animal set for each side.
@@ -118,6 +121,10 @@
 
     function getCardElement(row, col) {
         return boardEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    function refreshCard(row, col) {
+        updateCardElement(getCardElement(row, col), row, col);
     }
 
     function updateCardElement(cardEl, row, col) {
@@ -183,6 +190,30 @@
     function markCardForFlipAnimation(card) {
         if (!card || shownFlippedIds.has(card.id)) return;
         animatingFlipIds.add(card.id);
+    }
+
+    function scheduleFlipStabilize(cardId, row, col) {
+        if (flipStabilizeTimers.has(cardId)) {
+            clearTimeout(flipStabilizeTimers.get(cardId));
+        }
+
+        const timer = setTimeout(() => {
+            flipStabilizeTimers.delete(cardId);
+            animatingFlipIds.delete(cardId);
+            const card = board[row]?.[col];
+            if (card && card.id === cardId) {
+                refreshCard(row, col);
+            }
+        }, FLIP_ANIMATION_MS);
+
+        flipStabilizeTimers.set(cardId, timer);
+    }
+
+    function clearFlipStabilizeTimers() {
+        for (const timer of flipStabilizeTimers.values()) {
+            clearTimeout(timer);
+        }
+        flipStabilizeTimers = new Map();
     }
 
     function syncShownFlippedCards() {
@@ -345,6 +376,7 @@
 
         selectedCard = null;
         renderBoard();
+        scheduleFlipStabilize(card.id, row, col);
         updateUI();
 
         // Check win condition
@@ -600,6 +632,7 @@
         markCardForFlipAnimation(card);
         card.flipped = true;
         renderBoard();
+        scheduleFlipStabilize(card.id, chosen.row, chosen.col);
         updateUI();
 
         if (checkWinCondition()) return;
@@ -772,6 +805,7 @@
                 }
             }
             animatingFlipIds = new Set(nextState.animatingFlipIds || []);
+            clearFlipStabilizeTimers();
             renderBoard();
             updateUI();
         }

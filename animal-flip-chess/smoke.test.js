@@ -171,16 +171,31 @@ function runScriptWithContext() {
         JSON,
         Date: date,
         setTimeout(fn, delay = 0) {
-            timers.push({ fn, delay });
-            return timers.length;
+            const timer = { fn, delay, cleared: false };
+            timers.push(timer);
+            return timer;
         },
-        clearTimeout() {}
+        clearTimeout(timer) {
+            if (timer) timer.cleared = true;
+        }
     };
     context.window.window = context.window;
     context.window.document = document;
 
     vm.runInNewContext(read('script.js'), context);
-    return { api: context.window.AnimalFlipChess, elements, date };
+    return {
+        api: context.window.AnimalFlipChess,
+        elements,
+        date,
+        runTimersThrough(maxDelay) {
+            for (const timer of timers) {
+                if (!timer.cleared && timer.delay <= maxDelay) {
+                    timer.cleared = true;
+                    timer.fn();
+                }
+            }
+        }
+    };
 }
 
 function tap(cardEl, date, advanceMs = 80) {
@@ -326,7 +341,7 @@ function testFlipKeepsPresetOwnerAndShowsTurnPrompt() {
 }
 
 function testOnlyNewlyFlippedCardAnimates() {
-    const { api, elements } = runScriptWithContext();
+    const { api, elements, runTimersThrough } = runScriptWithContext();
     api.setStateForTest({
         currentPlayer: 'a',
         phase: 'play',
@@ -359,11 +374,12 @@ function testOnlyNewlyFlippedCardAnimates() {
     });
 
     cell(elements, 0, 1).dispatch('click');
+    runTimersThrough(620);
 
     assert(cell(elements, 0, 0).classList.contains('no-flip-animation'),
         'previously flipped card should not replay flip animation');
-    assert(!cell(elements, 0, 1).classList.contains('no-flip-animation'),
-        'newly flipped card should keep flip animation');
+    assert(cell(elements, 0, 1).classList.contains('no-flip-animation'),
+        'newly flipped card should become stable after its flip animation finishes');
 }
 
 function testOldFlippedCardNodeIsPreservedOnNextFlip() {
