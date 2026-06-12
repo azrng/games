@@ -385,6 +385,75 @@ function testOnlyNewlyFlippedCardAnimates() {
         'newly flipped card should become stable after its flip animation finishes');
 }
 
+function testFlipAnimationIsOptInOnly() {
+    const css = read('style.css');
+    assert(css.includes('.card.flip-animating .card-inner'),
+        'flip transition should be opt-in for the card that was just flipped');
+    assert(!/^\.card-inner\s*\{[^}]*transition:\s*transform\s+0\.6s/ms.test(css),
+        'stable board renders should not give every card a flip transition');
+
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        animatingFlipIds: ['b-cat'],
+        board: [
+            [
+                { id: 'a-elephant', animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { id: 'b-cat', animal: 'cat', owner: 'b', flipped: true, captured: false },
+                { id: 'a-dog', animal: 'dog', owner: 'a', flipped: true, captured: false },
+                { id: 'b-wolf', animal: 'wolf', owner: 'b', flipped: true, captured: false }
+            ],
+            [
+                { id: 'a-rat', animal: 'rat', owner: 'a', flipped: true, captured: false },
+                { id: 'b-lion', animal: 'lion', owner: 'b', flipped: true, captured: false },
+                { id: 'a-tiger', animal: 'tiger', owner: 'a', flipped: true, captured: false },
+                { id: 'b-leopard', animal: 'leopard', owner: 'b', flipped: true, captured: false }
+            ],
+            [
+                { id: 'a-cat', animal: 'cat', owner: 'a', flipped: true, captured: false },
+                { id: 'b-dog', animal: 'dog', owner: 'b', flipped: true, captured: false },
+                { id: 'a-wolf', animal: 'wolf', owner: 'a', flipped: true, captured: false },
+                { id: 'b-rat', animal: 'rat', owner: 'b', flipped: true, captured: false }
+            ],
+            [
+                { id: 'a-lion', animal: 'lion', owner: 'a', flipped: true, captured: false },
+                { id: 'b-tiger', animal: 'tiger', owner: 'b', flipped: true, captured: false },
+                { id: 'a-leopard', animal: 'leopard', owner: 'a', flipped: true, captured: false },
+                { id: 'b-elephant', animal: 'elephant', owner: 'b', flipped: true, captured: false }
+            ]
+        ]
+    });
+
+    assert(!cell(elements, 0, 0).classList.contains('flip-animating'),
+        'stable flipped cards should not receive the flip animation class');
+    assert(cell(elements, 0, 1).classList.contains('flip-animating'),
+        'only the card being flipped should receive the flip animation class');
+    assert(!cell(elements, 0, 2).classList.contains('flip-animating'),
+        'other stable flipped cards should remain visually stable');
+}
+
+function testMovingPieceDoesNotReplayFlippedCardAnimations() {
+    const { api, elements } = runScriptWithContext();
+    setBattleBoard(api);
+
+    cell(elements, 0, 0).dispatch('click');
+    cell(elements, 0, 1).dispatch('click');
+
+    for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+            const state = api.getStateForTest();
+            const card = state.board[r][c];
+            if (card.flipped || card.captured) {
+                assert(!cell(elements, r, c).classList.contains('flip-animating'),
+                    `cell ${r},${c} should not replay flip animation after a move`);
+                assert(cell(elements, r, c).classList.contains('no-flip-animation'),
+                    `cell ${r},${c} should stay visually stable after a move`);
+            }
+        }
+    }
+}
+
 function testOldFlippedCardNodeIsPreservedOnNextFlip() {
     const { api, elements } = runScriptWithContext();
     api.setStateForTest({
@@ -606,6 +675,8 @@ testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
 testFlipKeepsPresetOwnerAndShowsTurnPrompt();
 testOnlyNewlyFlippedCardAnimates();
+testFlipAnimationIsOptInOnly();
+testMovingPieceDoesNotReplayFlippedCardAnimations();
 testOldFlippedCardNodeIsPreservedOnNextFlip();
 testOwnerClassesAndMoveHintsRender();
 testFastMobileDoubleTapCanCapture();

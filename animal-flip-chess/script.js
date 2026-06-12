@@ -137,6 +137,7 @@
 
         if (card.flipped || card.captured) classes.push('flipped');
         if (card.captured) classes.push('captured');
+        if (animatingFlipIds.has(card.id)) classes.push('flip-animating');
         if ((card.flipped || card.captured) && !animatingFlipIds.has(card.id)) {
             classes.push('no-flip-animation');
         }

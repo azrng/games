@@ -170,12 +170,11 @@ body {
     position: relative;
     width: 100%;
     height: 100%;
-    transition: transform 0.6s ease-in-out;
     transform-style: preserve-3d;
 }
 
-.card.no-flip-animation .card-inner {
-    transition: none;
+.card.flip-animating .card-inner {
+    transition: transform 0.6s ease-in-out;
 }
 
 .card.flipped .card-inner {
