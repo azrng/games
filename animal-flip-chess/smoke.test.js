@@ -389,6 +389,14 @@ function testFlipAnimationIsOptInOnly() {
     const css = read('style.css');
     assert(css.includes('.card.flip-animating .card-inner'),
         'flip transition should be opt-in for the card that was just flipped');
+    assert(css.includes('.card.flipped:not(.flip-animating) .card-back'),
+        'stable flipped cards should hide the back face instead of relying on 3D rotation');
+    assert(css.includes('.card.flipped:not(.flip-animating) .card-front'),
+        'stable flipped cards should render the front face directly');
+    assert(css.includes('.card.flip-animating.selected .card-front'),
+        'only animating selected cards should keep the rotated front transform');
+    assert(!/\.card\.captured\s+\.card-inner\s*\{[^}]*rotateY\(180deg\)/s.test(css),
+        'captured stable cells should not rely on rotated inner rendering');
     assert(!/^\.card-inner\s*\{[^}]*transition:\s*transform\s+0\.6s/ms.test(css),
         'stable board renders should not give every card a flip transition');
 
