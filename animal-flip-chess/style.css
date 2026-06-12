@@ -8,10 +8,12 @@
     --accent: #e67e22;
     --accent-light: #f39c12;
     --player-a: #e74c3c;
-    --player-a-soft: #fdecea;
+    --player-a-soft: #fce4e4;
+    --player-a-tint: #fff5f5;
     --player-a-strong: #b53a2f;
     --player-b: #3498db;
-    --player-b-soft: #eaf4fd;
+    --player-b-soft: #dceafc;
+    --player-b-tint: #f0f7ff;
     --player-b-strong: #1f6fa8;
     --border: #ddd;
     --shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -316,7 +318,7 @@ body {
 }
 
 .card.player-a .card-front {
-    background: linear-gradient(145deg, #fff 0%, var(--player-a-soft) 100%);
+    background: linear-gradient(145deg, var(--player-a-tint) 0%, var(--player-a-soft) 100%);
     border-color: var(--player-a);
 }
 
@@ -325,7 +327,7 @@ body {
 }
 
 .card.player-b .card-front {
-    background: linear-gradient(145deg, #fff 0%, var(--player-b-soft) 100%);
+    background: linear-gradient(145deg, var(--player-b-tint) 0%, var(--player-b-soft) 100%);
     border-color: var(--player-b);
 }
 
