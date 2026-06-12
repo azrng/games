@@ -30,6 +30,7 @@
     let lastTap = { time: 0, row: null, col: null };
     let touchStartPos = null; // For distinguishing tap vs swipe
     let aiThinking = false;  // Is AI currently thinking
+    let aiTurnToken = 0;     // Incremented each game; stale AI callbacks are discarded
     let openingTurn = false;
     let shownFlippedIds = new Set();
     let animatingFlipIds = new Set();
@@ -62,6 +63,7 @@
         openingTurn = true;
         shownFlippedIds = new Set();
         animatingFlipIds = new Set();
+        aiTurnToken++;
 
         // Create one full animal set for each side.
         let cards = [];
@@ -88,9 +90,7 @@
         updateUI();
 
         if (currentPlayer === 'b') {
-            aiThinking = true;
-            updateUI();
-            setTimeout(() => aiTurn(), AI_DELAY);
+            scheduleAITurn();
         }
     }
 
@@ -497,6 +497,17 @@
         switchPlayer();
     }
 
+    // Schedule AI turn with turn-token guard
+    function scheduleAITurn() {
+        aiThinking = true;
+        updateUI();
+        const token = aiTurnToken;
+        setTimeout(() => {
+            if (aiTurnToken !== token) return;
+            aiTurn();
+        }, AI_DELAY);
+    }
+
     // Switch player
     function switchPlayer() {
         currentPlayer = currentPlayer === 'a' ? 'b' : 'a';
@@ -505,9 +516,7 @@
 
         // If it's AI's turn, let AI play
         if (currentPlayer === 'b' && phase === 'play') {
-            aiThinking = true;
-            updateUI();
-            setTimeout(() => aiTurn(), AI_DELAY);
+            scheduleAITurn();
         }
     }
 
@@ -662,7 +671,7 @@
         executeMove(chosen.fromRow, chosen.fromCol, chosen.toRow, chosen.toCol);
     }
 
-    // Check win condition
+    // Check win condition (called after an action, before switching player)
     function checkWinCondition() {
         // If there are still unflipped cards, don't end the game based on piece count
         const hasUnflipped = hasUnflippedCards();
@@ -682,10 +691,11 @@
             }
         }
 
-        // Check if current player has any valid moves
-        if (!hasValidMoves(currentPlayer)) {
-            const winner = currentPlayer === 'a' ? 'b' : 'a';
-            const loserName = currentPlayer === 'a' ? '你' : '电脑';
+        // Check if the NEXT player has any valid moves
+        const nextPlayer = currentPlayer === 'a' ? 'b' : 'a';
+        if (!hasValidMoves(nextPlayer)) {
+            const winner = currentPlayer;
+            const loserName = nextPlayer === 'a' ? '你' : '电脑';
             endGame(winner, `${loserName}无可用操作`);
             return true;
         }
@@ -776,7 +786,16 @@
 
         phase = 'play';
         selectedCard = null;
+        aiThinking = false;
         renderBoard();
+
+        // If undo restores to AI's turn, re-schedule AI
+        if (currentPlayer === 'b' && phase === 'play') {
+            updateUI();
+            scheduleAITurn();
+            return;
+        }
+
         updateUI();
     }
 
