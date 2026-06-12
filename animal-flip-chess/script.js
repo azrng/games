@@ -500,7 +500,7 @@
         const a = ANIMALS[attacker];
         const d = ANIMALS[defender];
 
-        if (attacker === defender) return false;
+        if (attacker === defender) return true;
 
         // Rat beats elephant
         if (attacker === 'rat' && defender === 'elephant') return true;
@@ -515,6 +515,29 @@
         const source = board[fromRow][fromCol];
         const target = board[toRow][toCol];
         const isCapture = target.owner && target.owner !== currentPlayer && target.flipped;
+        const isCancelOut = isCapture && source.animal === target.animal;
+
+        const actorName = getPlayerName(currentPlayer);
+        const opponentName = getPlayerName(target.owner);
+        const sourceName = ANIMALS[source.animal].name;
+
+        if (isCancelOut) {
+            board[fromRow][fromCol] = createEmptyCell(fromRow, fromCol, source.animal);
+            board[toRow][toCol] = createEmptyCell(toRow, toCol, target.animal);
+            selectedCard = null;
+
+            renderBoard();
+            updateUI();
+
+            // Check win condition
+            if (checkWinCondition()) return;
+
+            showActionTip(`${actorName}和${opponentName}的${sourceName}抵消了`);
+
+            openingTurn = false;
+            switchPlayer();
+            return;
+        }
 
         // If target is enemy, capture it
         if (isCapture) {
@@ -522,15 +545,13 @@
             target.owner = null;
         }
 
-        const actorName = getPlayerName(currentPlayer);
-        const sourceName = ANIMALS[source.animal].name;
         const actionTip = isCapture
             ? `${actorName}用${sourceName}吃子`
             : `${actorName}移动${sourceName}`;
 
         // Move source to target position
         board[toRow][toCol] = { ...source };
-        board[fromRow][fromCol] = { id: `empty-${fromRow}-${fromCol}-${++emptyIdCounter}`, animal: source.animal, owner: null, flipped: true, captured: true };
+        board[fromRow][fromCol] = createEmptyCell(fromRow, fromCol, source.animal);
 
         selectedCard = null;
 
@@ -544,6 +565,10 @@
 
         openingTurn = false;
         switchPlayer();
+    }
+
+    function createEmptyCell(row, col, animal) {
+        return { id: `empty-${row}-${col}-${++emptyIdCounter}`, animal, owner: null, flipped: true, captured: true };
     }
 
     // Schedule AI turn with turn-token guard

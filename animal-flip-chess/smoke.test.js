@@ -300,13 +300,13 @@ function testInitialDeckHasOneAnimalPerOwner() {
     }
 }
 
-function testSameAnimalCannotBattle() {
+function testSameAnimalCanCancelOut() {
     const { api } = runScriptWithContext();
 
-    assert.strictEqual(api.canBattle('elephant', 'elephant'), false,
-        'same animal should not be able to capture each other');
-    assert.strictEqual(api.canBattle('rat', 'rat'), false,
-        'same rat pieces should not be able to capture each other');
+    assert.strictEqual(api.canBattle('elephant', 'elephant'), true,
+        'same animal should be a valid cancel-out target');
+    assert.strictEqual(api.canBattle('rat', 'rat'), true,
+        'same rat pieces should be able to cancel each other out');
 }
 
 function testFlipKeepsPresetOwnerAndShowsTurnPrompt() {
@@ -396,7 +396,7 @@ function testActionTipShowsAfterPlayerMove() {
         'header tip should become visible after a successful player action');
 }
 
-function testSameAnimalMoveIsInvalid() {
+function testSameAnimalMoveCancelsBothPieces() {
     const { api, elements } = runScriptWithContext();
     api.setStateForTest({
         currentPlayer: 'a',
@@ -431,15 +431,19 @@ function testSameAnimalMoveIsInvalid() {
 
     cell(elements, 0, 0).dispatch('click');
 
-    assert(!cell(elements, 0, 1).classList.contains('valid-move'),
-        'same animal enemy should not be marked as a valid capture target');
+    assert(cell(elements, 0, 1).classList.contains('valid-move'),
+        'same animal enemy should be marked as a valid cancel-out target');
 
     cell(elements, 0, 1).dispatch('click');
 
     const state = api.getStateForTest();
-    assert.strictEqual(state.board[0][0].owner, 'a', 'attacker should stay in place after invalid same-animal move');
-    assert.strictEqual(state.board[0][1].owner, 'b', 'same animal defender should not be captured');
-    assert.strictEqual(state.currentPlayer, 'a', 'turn should not switch after invalid same-animal move');
+    assert.strictEqual(state.board[0][0].owner, null, 'attacker cell should become empty after same-animal cancel-out');
+    assert.strictEqual(state.board[0][0].captured, true, 'attacker should disappear after same-animal cancel-out');
+    assert.strictEqual(state.board[0][1].owner, null, 'defender cell should become empty after same-animal cancel-out');
+    assert.strictEqual(state.board[0][1].captured, true, 'defender should disappear after same-animal cancel-out');
+    assert.strictEqual(state.currentPlayer, 'b', 'turn should switch after same-animal cancel-out');
+    assert.strictEqual(elements.get('header-tip').textContent, '你和电脑的象抵消了',
+        'same-animal cancel-out should show a header tip');
 }
 
 function testOnlyNewlyFlippedCardAnimates() {
@@ -780,10 +784,10 @@ function testFlipDoesNotAutoCaptureAdjacentEnemy() {
 testFilesAndStylesExist();
 testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
-testSameAnimalCannotBattle();
+testSameAnimalCanCancelOut();
 testFlipKeepsPresetOwnerAndShowsTurnPrompt();
 testActionTipShowsAfterPlayerMove();
-testSameAnimalMoveIsInvalid();
+testSameAnimalMoveCancelsBothPieces();
 testOnlyNewlyFlippedCardAnimates();
 testFlipAnimationIsOptInOnly();
 testMovingPieceDoesNotReplayFlippedCardAnimations();
