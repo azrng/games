@@ -66,9 +66,18 @@ function runScriptWithContext() {
             children: [],
             listeners: {},
             classList: null,
+            tagName: id.split('-')[0].toUpperCase(),
+            attributes: {},
+            type: '',
             addEventListener(type, handler) {
                 if (!this.listeners[type]) this.listeners[type] = [];
                 this.listeners[type].push(handler);
+            },
+            setAttribute(name, value) {
+                this.attributes[name] = String(value);
+            },
+            getAttribute(name) {
+                return this.attributes[name] || null;
             },
             dispatch(type, event = {}) {
                 const payload = {
@@ -121,8 +130,7 @@ function runScriptWithContext() {
     [
         'board', 'turn-text', 'player-a-info', 'player-b-info',
         'player-a-count', 'player-b-count', 'result-modal', 'result-title', 'result-desc', 'result-a',
-        'result-b', 'restart-btn', 'play-again-btn', 'hint-btn',
-        'undo-btn'
+        'result-b', 'restart-btn', 'play-again-btn'
     ].forEach(createElement);
 
     const hintText = createElement('hint-text');
@@ -131,7 +139,9 @@ function runScriptWithContext() {
 
     const document = {
         createElement(tag) {
-            return createElement(`${tag}-${elements.size}`);
+            const element = createElement(`${tag}-${elements.size}`);
+            element.tagName = tag.toUpperCase();
+            return element;
         },
         getElementById(id) {
             return elements.get(id) || null;
@@ -228,7 +238,20 @@ function testFilesAndStylesExist() {
     assert(css.includes('owner-badge'), 'cards should display visible owner badges');
     assert(css.includes('valid-move'), 'selected pieces should reveal valid move targets');
     assert(css.includes('card.valid-move.captured'), 'captured empty cells should be rendered as valid walk targets');
+    assert(!html.includes('id="hint-btn"'), 'page should not render hint button');
+    assert(!html.includes('id="undo-btn"'), 'page should not render undo button');
+    assert(!script.includes('moveHistory'), 'script should not keep undo history');
     assert(script.includes('AnimalFlipChess'), 'script should expose test API');
+}
+
+function testBoardCellsAreAccessibleButtons() {
+    const { elements } = runScriptWithContext();
+    const firstCell = cell(elements, 0, 0);
+
+    assert.strictEqual(firstCell.tagName, 'BUTTON', 'board cells should be keyboard-focusable buttons');
+    assert.strictEqual(firstCell.type, 'button', 'board cell buttons should not submit forms');
+    assert(firstCell.getAttribute('aria-label').includes('1行1列'), 'board cells should expose position labels');
+    assert(firstCell.getAttribute('aria-label').includes('未翻开的牌'), 'hidden cards should not expose animal identity');
 }
 
 function testInitialDeckHasOneAnimalPerOwner() {
@@ -537,6 +560,7 @@ function testFlipDoesNotAutoCaptureAdjacentEnemy() {
 }
 
 testFilesAndStylesExist();
+testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
 testFlipKeepsPresetOwnerAndShowsTurnPrompt();
 testOnlyNewlyFlippedCardAnimates();

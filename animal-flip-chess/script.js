@@ -25,8 +25,6 @@
     let currentPlayer = 'a'; // 'a' (human) or 'b' (AI)
     let phase = 'play';      // 'play', 'end'
     let selectedCard = null; // currently selected card for moving
-    let moveHistory = [];    // for undo
-    let playerPieces = { a: 0, b: 0 };
     let lastTap = { time: 0, row: null, col: null };
     let touchStartPos = null; // For distinguishing tap vs swipe
     let aiThinking = false;  // Is AI currently thinking
@@ -49,8 +47,6 @@
     const resultB = document.getElementById('result-b');
     const restartBtn = document.getElementById('restart-btn');
     const playAgainBtn = document.getElementById('play-again-btn');
-    const hintBtn = document.getElementById('hint-btn');
-    const undoBtn = document.getElementById('undo-btn');
 
     // Initialize game
     function initGame() {
@@ -58,8 +54,6 @@
         currentPlayer = Math.random() < 0.5 ? 'a' : 'b';
         phase = 'play';
         selectedCard = null;
-        moveHistory = [];
-        playerPieces = { a: 0, b: 0 };
         openingTurn = true;
         shownFlippedIds = new Set();
         animatingFlipIds = new Set();
@@ -112,7 +106,8 @@
         boardEl.innerHTML = '';
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
-                const cardEl = document.createElement('div');
+                const cardEl = document.createElement('button');
+                cardEl.type = 'button';
                 cardEl.dataset.row = r;
                 cardEl.dataset.col = c;
                 addTouchEventListeners(cardEl, r, c);
@@ -151,6 +146,8 @@
         }
 
         cardEl.className = classes.join(' ');
+        cardEl.disabled = phase === 'end' || currentPlayer === 'b' || aiThinking;
+        cardEl.setAttribute('aria-label', getCardAriaLabel(card, row, col));
 
         const animal = ANIMALS[card.animal];
         const ownerLabel = card.flipped && card.owner === 'a' ? '你' :
@@ -172,6 +169,15 @@
             cardEl.innerHTML = nextMarkup;
             cardEl.dataset.renderKey = `${card.id}:${card.flipped}:${card.captured}:${card.owner}`;
         }
+    }
+
+    function getCardAriaLabel(card, row, col) {
+        const position = `${row + 1}行${col + 1}列`;
+        if (card.captured) return `${position}，空格`;
+        if (!card.flipped) return `${position}，未翻开的牌`;
+
+        const ownerLabel = card.owner === 'a' ? '你的' : '电脑的';
+        return `${position}，${ownerLabel}${ANIMALS[card.animal].name}`;
     }
 
     function markCardForFlipAnimation(card) {
@@ -276,7 +282,6 @@
 
         updateHintText();
 
-        undoBtn.disabled = moveHistory.length === 0 || currentPlayer === 'b';
     }
 
     function updateHintText() {
@@ -335,16 +340,6 @@
         if (card.flipped) return;
 
         markCardForFlipAnimation(card);
-
-        // Save state for undo
-        moveHistory.push({
-            type: 'flip',
-            row, col,
-            cardId: card.id,
-            prevOwner: card.owner,
-            prevFlipped: card.flipped,
-            prevPlayer: currentPlayer
-        });
 
         card.flipped = true;
 
@@ -461,19 +456,6 @@
     function executeMove(fromRow, fromCol, toRow, toCol) {
         const source = board[fromRow][fromCol];
         const target = board[toRow][toCol];
-
-        // Save state for undo
-        moveHistory.push({
-            type: 'move',
-            fromRow, fromCol, toRow, toCol,
-            sourceOwner: source.owner,
-            targetOwner: target.owner,
-            targetFlipped: target.flipped,
-            targetCaptured: target.captured,
-            targetAnimal: target.animal,
-            targetId: target.id,
-            prevPlayer: currentPlayer
-        });
 
         // If target is enemy, capture it
         if (target.owner && target.owner !== currentPlayer && target.flipped) {
@@ -593,7 +575,7 @@
                         if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
                         const neighbor = board[nr][nc];
                         if (neighbor.owner === 'a' && neighbor.flipped) {
-                            score += ANIMALS[board[r][c].animal].rank; // Higher rank = better
+                            score += 1;
                         }
                     }
                     candidates.push({ row: r, col: c, score });
@@ -751,103 +733,11 @@
         if (resultModal) resultModal.hidden = false;
     }
 
-    // Undo last move
-    function undoMove() {
-        if (moveHistory.length === 0) return;
-
-        const action = moveHistory.pop();
-
-        if (action.type === 'flip') {
-            const card = board[action.row][action.col];
-            card.flipped = action.prevFlipped;
-            card.owner = action.prevOwner;
-            card.captured = false;
-            shownFlippedIds.delete(action.cardId);
-            currentPlayer = action.prevPlayer;
-        } else if (action.type === 'move') {
-            // Restore source
-            board[action.fromRow][action.fromCol] = {
-                animal: board[action.toRow][action.toCol].animal,
-                id: board[action.toRow][action.toCol].id,
-                owner: action.sourceOwner,
-                flipped: true,
-                captured: false
-            };
-            // Restore target
-            board[action.toRow][action.toCol] = {
-                animal: action.targetAnimal,
-                id: action.targetId,
-                owner: action.targetOwner,
-                flipped: action.targetFlipped,
-                captured: action.targetCaptured
-            };
-            currentPlayer = action.prevPlayer;
-        }
-
-        phase = 'play';
-        selectedCard = null;
-        aiThinking = false;
-        renderBoard();
-
-        // If undo restores to AI's turn, re-schedule AI
-        if (currentPlayer === 'b' && phase === 'play') {
-            updateUI();
-            scheduleAITurn();
-            return;
-        }
-
-        updateUI();
-    }
-
-    // Hint: highlight a valid action
-    function showHint() {
-        if (phase !== 'play') return;
-
-        // First try to find a good flip target
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                if (!board[r][c].flipped && !board[r][c].captured) {
-                    const cardEl = boardEl.querySelector(`[data-row="${r}"][data-col="${c}"]`);
-                    if (cardEl) {
-                        cardEl.style.boxShadow = '0 0 0 3px var(--accent-light)';
-                        setTimeout(() => { cardEl.style.boxShadow = ''; }, 1500);
-                    }
-                    return;
-                }
-            }
-        }
-
-        // If no cards to flip, find a valid move
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                const card = board[r][c];
-                if (card.owner !== currentPlayer || card.captured || !card.flipped) continue;
-
-                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-                for (const [dr, dc] of directions) {
-                    const nr = r + dr;
-                    const nc = c + dc;
-                    if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
-
-                    const target = board[nr][nc];
-                    if (target.captured || (target.flipped && target.owner !== currentPlayer && canBattle(card.animal, target.animal))) {
-                        selectedCard = { row: r, col: c };
-                        renderBoard();
-                        return;
-                    }
-                }
-            }
-        }
-    }
-
     restartBtn.addEventListener('click', initGame);
     playAgainBtn.addEventListener('click', () => {
         if (resultModal) resultModal.hidden = true;
         initGame();
     });
-
-    undoBtn.addEventListener('click', undoMove);
-    hintBtn.addEventListener('click', showHint);
 
     // Start game
     initGame();
@@ -882,7 +772,6 @@
                 }
             }
             animatingFlipIds = new Set(nextState.animatingFlipIds || []);
-            moveHistory = [];
             renderBoard();
             updateUI();
         }

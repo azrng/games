@@ -160,6 +160,10 @@ body {
     cursor: pointer;
     border-radius: var(--radius);
     touch-action: manipulation;
+    border: none;
+    padding: 0;
+    background: transparent;
+    font: inherit;
 }
 
 .card-inner {
@@ -319,6 +323,15 @@ body {
     filter: saturate(1.05);
 }
 
+.card:disabled {
+    cursor: default;
+}
+
+.card:focus-visible {
+    outline: 3px solid var(--accent-light);
+    outline-offset: 3px;
+}
+
 /* Touch feedback */
 .card:active .card-inner {
     transform: scale(0.95);
@@ -335,34 +348,6 @@ body {
 
 .card.flipped.pressing .card-inner {
     transform: rotateY(180deg) scale(0.92);
-}
-
-/* Action Bar */
-.action-bar {
-    display: flex;
-    gap: 12px;
-}
-
-.action-btn {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    background: var(--card-bg);
-    border-radius: var(--radius);
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: var(--shadow);
-    transition: all 0.15s;
-}
-
-.action-btn:active:not(:disabled) {
-    transform: scale(0.96);
-}
-
-.action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 
 .hint-text {
@@ -485,8 +470,8 @@ body {
         width: 50%;
     }
 
-    .action-bar {
+    .hint-text {
         width: 50%;
-        flex-direction: column;
+        align-self: center;
     }
 }
