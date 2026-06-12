@@ -36,6 +36,7 @@
     let flipStabilizeTimers = new Map();
     let emptyIdCounter = 0;
     let hintMessageTimer = null;
+    let headerTipTimer = null;
 
     // DOM elements
     const boardEl = document.getElementById('board');
@@ -44,6 +45,7 @@
     const playerBInfo = document.getElementById('player-b-info');
     const playerACount = document.getElementById('player-a-count');
     const playerBCount = document.getElementById('player-b-count');
+    const headerTip = document.getElementById('header-tip');
     const resultModal = document.getElementById('result-modal');
     const resultTitle = document.getElementById('result-title');
     const resultDesc = document.getElementById('result-desc');
@@ -64,6 +66,7 @@
         clearFlipStabilizeTimers();
         emptyIdCounter = 0;
         clearHintMessage();
+        clearHeaderTip();
         aiTurnToken++;
 
         // Create one full animal set for each side.
@@ -387,6 +390,8 @@
         // Check win condition
         if (checkWinCondition()) return;
 
+        showActionTip(`${getPlayerName(currentPlayer)}翻开了${ANIMALS[card.animal].name}`);
+
         // Switch player
         openingTurn = false;
         switchPlayer();
@@ -509,12 +514,19 @@
     function executeMove(fromRow, fromCol, toRow, toCol) {
         const source = board[fromRow][fromCol];
         const target = board[toRow][toCol];
+        const isCapture = target.owner && target.owner !== currentPlayer && target.flipped;
 
         // If target is enemy, capture it
-        if (target.owner && target.owner !== currentPlayer && target.flipped) {
+        if (isCapture) {
             target.captured = true;
             target.owner = null;
         }
+
+        const actorName = getPlayerName(currentPlayer);
+        const sourceName = ANIMALS[source.animal].name;
+        const actionTip = isCapture
+            ? `${actorName}用${sourceName}吃子`
+            : `${actorName}移动${sourceName}`;
 
         // Move source to target position
         board[toRow][toCol] = { ...source };
@@ -527,6 +539,8 @@
 
         // Check win condition
         if (checkWinCondition()) return;
+
+        showActionTip(actionTip);
 
         openingTurn = false;
         switchPlayer();
@@ -634,6 +648,8 @@
 
         aiThinking = false;
         if (checkWinCondition()) return;
+
+        showActionTip(`电脑翻开了${ANIMALS[card.animal].name}`);
 
         openingTurn = false;
         switchPlayer();
@@ -757,6 +773,7 @@
     function endGame(winner, reason) {
         phase = 'end';
         aiThinking = false;
+        clearHeaderTip();
         updateUI();
 
         const winnerName = winner === 'a' ? '你' : '电脑';
@@ -765,6 +782,42 @@
         resultA.textContent = countPieces('a');
         resultB.textContent = countPieces('b');
         if (resultModal) resultModal.hidden = false;
+    }
+
+    function getPlayerName(player) {
+        return player === 'a' ? '你' : '电脑';
+    }
+
+    function showActionTip(message) {
+        if (!headerTip) return;
+
+        if (headerTipTimer) {
+            clearTimeout(headerTipTimer);
+        }
+
+        headerTip.textContent = message;
+        headerTip.hidden = false;
+        headerTip.classList.remove('show');
+        void headerTip.offsetWidth;
+        headerTip.classList.add('show');
+
+        headerTipTimer = setTimeout(() => {
+            headerTip.classList.remove('show');
+            headerTip.hidden = true;
+            headerTipTimer = null;
+        }, 1250);
+    }
+
+    function clearHeaderTip() {
+        if (headerTipTimer) {
+            clearTimeout(headerTipTimer);
+            headerTipTimer = null;
+        }
+        if (headerTip) {
+            headerTip.classList.remove('show');
+            headerTip.hidden = true;
+            headerTip.textContent = '';
+        }
     }
 
     restartBtn.addEventListener('click', initGame);

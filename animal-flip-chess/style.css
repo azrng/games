@@ -49,6 +49,7 @@ body {
 
 /* Header */
 .game-header {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -81,6 +82,54 @@ body {
 
 .restart-btn:active {
     transform: scale(0.92);
+}
+
+.header-tip {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    z-index: 10;
+    max-width: min(260px, calc(100vw - 96px));
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: var(--text);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(44,44,44,0.18);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+    transform: translate(-50%, -6px);
+    opacity: 0;
+}
+
+.header-tip.show {
+    animation: headerTipPop 1.25s ease both;
+}
+
+@keyframes headerTipPop {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -6px) scale(0.96);
+    }
+    15%, 78% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -4px) scale(0.98);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .header-tip.show {
+        animation-duration: 1ms;
+    }
 }
 
 /* Player Info */

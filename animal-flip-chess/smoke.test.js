@@ -129,7 +129,7 @@ function runScriptWithContext() {
 
     [
         'board', 'turn-text', 'player-a-info', 'player-b-info',
-        'player-a-count', 'player-b-count', 'result-modal', 'result-title', 'result-desc', 'result-a',
+        'player-a-count', 'player-b-count', 'header-tip', 'result-modal', 'result-title', 'result-desc', 'result-a',
         'result-b', 'restart-btn', 'play-again-btn'
     ].forEach(createElement);
 
@@ -252,6 +252,8 @@ function testFilesAndStylesExist() {
     assert(html.includes('name="description"'), 'page should include a meta description');
     assert(!html.includes('id="rps-modal"'), 'page should not render RPS modal');
     assert(css.includes('owner-badge'), 'cards should display visible owner badges');
+    assert(html.includes('id="header-tip"'), 'page should include a header action tip');
+    assert(css.includes('.header-tip.show'), 'header action tip should have a visible state');
     assert(css.includes('valid-move'), 'selected pieces should reveal valid move targets');
     assert(css.includes('card.valid-move.captured'), 'captured empty cells should be rendered as valid walk targets');
     assert(!css.includes('.card:active .card-inner'), 'touch pressing feedback should not duplicate :active transforms');
@@ -350,6 +352,48 @@ function testFlipKeepsPresetOwnerAndShowsTurnPrompt() {
     assert.strictEqual(state.board[0][0].owner, 'b', 'flipping should reveal preset owner, not current player');
     assert.strictEqual(elements.get('turn-text').textContent, '电脑思考中');
     assert.strictEqual(elements.get('hint-text').textContent, '电脑回合：正在思考下一步。');
+}
+
+function testActionTipShowsAfterPlayerMove() {
+    const { api, elements } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        openingTurn: true,
+        board: [
+            [
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false },
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: 'b', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'a', flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    cell(elements, 0, 0).dispatch('click');
+
+    assert.strictEqual(elements.get('header-tip').textContent, '你翻开了象',
+        'successful player action should show a header tip');
+    assert.strictEqual(elements.get('header-tip').hidden, false,
+        'header tip should become visible after a successful player action');
 }
 
 function testSameAnimalMoveIsInvalid() {
@@ -738,6 +782,7 @@ testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
 testSameAnimalCannotBattle();
 testFlipKeepsPresetOwnerAndShowsTurnPrompt();
+testActionTipShowsAfterPlayerMove();
 testSameAnimalMoveIsInvalid();
 testOnlyNewlyFlippedCardAnimates();
 testFlipAnimationIsOptInOnly();
