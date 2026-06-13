@@ -594,26 +594,50 @@
         }
     }
 
-    // AI turn logic
+    // AI turn logic — minimax with alpha-beta pruning
     function aiTurn() {
         if (phase !== 'play' || currentPlayer !== 'b') return;
         aiThinking = true;
         updateUI();
 
-        // Decide whether to flip or move
-        const hasUnflipped = hasUnflippedCards();
-        const hasMovable = hasValidMoves('b', { includeFlips: false });
+        const state = boardToState();
+        const actions = generateActions(state);
 
-        if (hasUnflipped && (!hasMovable || Math.random() < 0.5)) {
-            // Flip a card
-            aiFlipCard();
-        } else if (hasMovable) {
-            // Move a piece
-            aiMovePiece();
-        } else {
-            // No valid moves, skip
+        if (actions.length === 0) {
             aiThinking = false;
+            openingTurn = false;
             switchPlayer();
+            return;
+        }
+
+        let bestAction = actions[0];
+        let bestScore = -Infinity;
+        let alpha = -Infinity;
+
+        for (const action of orderActions(state, actions)) {
+            const score = minimax(applyAction(state, action), AI_DEPTH - 1, alpha, Infinity, false);
+            if (score > bestScore) {
+                bestScore = score;
+                bestAction = action;
+            }
+            alpha = Math.max(alpha, score);
+        }
+
+        aiThinking = false;
+
+        if (bestAction.type === 'flip') {
+            const card = board[bestAction.row][bestAction.col];
+            markCardForFlipAnimation(card);
+            card.flipped = true;
+            renderBoard();
+            scheduleFlipStabilize(card.id, bestAction.row, bestAction.col);
+            updateUI();
+            if (checkWinCondition()) return;
+            showActionTip(`电脑翻开了${ANIMALS[card.animal].name}`);
+            openingTurn = false;
+            switchPlayer();
+        } else {
+            executeMove(bestAction.fromRow, bestAction.fromCol, bestAction.toRow, bestAction.toCol);
         }
     }
 
@@ -627,101 +651,204 @@
         return false;
     }
 
-    // AI flip card logic
-    function aiFlipCard() {
-        // Find best card to flip (prioritize near player's pieces)
-        const candidates = [];
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                if (!board[r][c].flipped && !board[r][c].captured) {
-                    let score = 0;
-                    // Check if adjacent to player's pieces (higher priority)
-                    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-                    for (const [dr, dc] of directions) {
-                        const nr = r + dr;
-                        const nc = c + dc;
-                        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
-                        const neighbor = board[nr][nc];
-                        if (neighbor.owner === 'a' && neighbor.flipped) {
-                            score += 1;
-                        }
-                    }
-                    candidates.push({ row: r, col: c, score });
-                }
-            }
-        }
+    // === Minimax AI with Alpha-Beta Pruning ===
 
-        if (candidates.length === 0) {
-            aiThinking = false;
-            switchPlayer();
-            return;
-        }
+    const AI_DEPTH = 4;
+    const DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
 
-        // Sort by score (descending) and pick best with some randomness
-        candidates.sort((a, b) => b.score - a.score);
-        const topScore = candidates[0].score;
-        const topCandidates = candidates.filter(c => c.score === topScore);
-        const chosen = topCandidates[Math.floor(Math.random() * topCandidates.length)];
-
-        // Execute flip
-        const card = board[chosen.row][chosen.col];
-        markCardForFlipAnimation(card);
-        card.flipped = true;
-        renderBoard();
-        scheduleFlipStabilize(card.id, chosen.row, chosen.col);
-        updateUI();
-
-        aiThinking = false;
-        if (checkWinCondition()) return;
-
-        showActionTip(`电脑翻开了${ANIMALS[card.animal].name}`);
-
-        openingTurn = false;
-        switchPlayer();
+    function cloneState(state) {
+        return {
+            board: state.board.map(row => row.map(c => ({ animal: c.animal, owner: c.owner, flipped: c.flipped, captured: c.captured }))),
+            currentPlayer: state.currentPlayer
+        };
     }
 
-    // AI move piece logic
-    function aiMovePiece() {
-        const moves = [];
+    function boardToState() {
+        return {
+            board: board.map(row => row.map(card => ({
+                animal: card.animal, owner: card.owner, flipped: card.flipped, captured: card.captured
+            }))),
+            currentPlayer: currentPlayer
+        };
+    }
 
-        // Find all valid moves
+    function state_countPieces(state, player) {
+        let count = 0;
+        for (let r = 0; r < BOARD_SIZE; r++)
+            for (let c = 0; c < BOARD_SIZE; c++)
+                if (state.board[r][c].owner === player && !state.board[r][c].captured) count++;
+        return count;
+    }
+
+    function state_hasValidMoves(state, player) {
+        for (let r = 0; r < BOARD_SIZE; r++)
+            for (let c = 0; c < BOARD_SIZE; c++)
+                if (!state.board[r][c].flipped && !state.board[r][c].captured) return true;
         for (let r = 0; r < BOARD_SIZE; r++) {
             for (let c = 0; c < BOARD_SIZE; c++) {
-                const card = board[r][c];
-                if (card.owner !== 'b' || card.captured || !card.flipped) continue;
-
-                const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-                for (const [dr, dc] of directions) {
-                    const nr = r + dr;
-                    const nc = c + dc;
+                const cell = state.board[r][c];
+                if (cell.owner !== player || cell.captured || !cell.flipped) continue;
+                for (const [dr, dc] of DIRS) {
+                    const nr = r + dr, nc = c + dc;
                     if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                    const t = state.board[nr][nc];
+                    if (t.captured) return true;
+                    if (t.flipped && t.owner && t.owner !== player && canBattle(cell.animal, t.animal)) return true;
+                }
+            }
+        }
+        return false;
+    }
 
-                    const target = board[nr][nc];
-                    if (target.captured) {
-                        moves.push({ fromRow: r, fromCol: c, toRow: nr, toCol: nc, score: 0 });
-                    } else if (target.flipped && target.owner === 'a' && canBattle(card.animal, target.animal)) {
-                        // Can eat player's piece - higher priority
-                        moves.push({ fromRow: r, fromCol: c, toRow: nr, toCol: nc, score: ANIMALS[target.animal].rank });
+    function state_isTerminal(state) {
+        return state_countPieces(state, state.currentPlayer) === 0 || !state_hasValidMoves(state, state.currentPlayer);
+    }
+
+    function generateActions(state) {
+        const actions = [];
+        const player = state.currentPlayer;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const cell = state.board[r][c];
+                if (!cell.flipped && !cell.captured) {
+                    actions.push({ type: 'flip', row: r, col: c });
+                }
+                if (cell.owner === player && !cell.captured && cell.flipped) {
+                    for (const [dr, dc] of DIRS) {
+                        const nr = r + dr, nc = c + dc;
+                        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                        const t = state.board[nr][nc];
+                        if (t.captured || (t.flipped && t.owner && t.owner !== player && canBattle(cell.animal, t.animal))) {
+                            actions.push({ type: 'move', fromRow: r, fromCol: c, toRow: nr, toCol: nc });
+                        }
                     }
                 }
             }
         }
+        return actions;
+    }
 
-        if (moves.length === 0) {
-            aiThinking = false;
-            openingTurn = false;
-            switchPlayer();
-            return;
+    function applyAction(state, action) {
+        const ns = cloneState(state);
+        if (action.type === 'flip') {
+            ns.board[action.row][action.col].flipped = true;
+            ns.currentPlayer = state.currentPlayer === 'a' ? 'b' : 'a';
+            return ns;
+        }
+        const src = ns.board[action.fromRow][action.fromCol];
+        const tgt = ns.board[action.toRow][action.toCol];
+        const isCapture = tgt.owner && tgt.owner !== state.currentPlayer && tgt.flipped;
+        const isCancelOut = isCapture && src.animal === tgt.animal;
+        if (isCancelOut) {
+            ns.board[action.fromRow][action.fromCol] = { animal: src.animal, owner: null, flipped: true, captured: true };
+            ns.board[action.toRow][action.toCol] = { animal: tgt.animal, owner: null, flipped: true, captured: true };
+        } else {
+            ns.board[action.toRow][action.toCol] = { animal: src.animal, owner: src.owner, flipped: true, captured: false };
+            ns.board[action.fromRow][action.fromCol] = { animal: src.animal, owner: null, flipped: true, captured: true };
+        }
+        ns.currentPlayer = state.currentPlayer === 'a' ? 'b' : 'a';
+        return ns;
+    }
+
+    function orderActions(state, actions) {
+        return actions.sort((a, b) => {
+            const aCap = (a.type === 'move' && state.board[a.toRow][a.toCol].owner && state.board[a.toRow][a.toCol].owner !== state.currentPlayer) ? 1 : 0;
+            const bCap = (b.type === 'move' && state.board[b.toRow][b.toCol].owner && state.board[b.toRow][b.toCol].owner !== state.currentPlayer) ? 1 : 0;
+            return bCap - aCap;
+        });
+    }
+
+    function evaluate(state) {
+        let aiRank = 0, humanRank = 0, aiCount = 0, humanCount = 0;
+        const aiPieces = [], humanPieces = [];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const cell = state.board[r][c];
+                if (cell.captured || !cell.owner) continue;
+                const rank = ANIMALS[cell.animal].rank;
+                if (cell.owner === 'b') { aiRank += rank; aiCount++; aiPieces.push({ r, c, animal: cell.animal }); }
+                else { humanRank += rank; humanCount++; humanPieces.push({ r, c, animal: cell.animal }); }
+            }
         }
 
-        // Sort by score (descending) and pick best
-        moves.sort((a, b) => b.score - a.score);
-        const bestScore = moves[0].score;
-        const bestMoves = moves.filter(m => m.score === bestScore);
-        const chosen = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        let score = (aiRank - humanRank) * 10 + (aiCount - humanCount) * 50;
 
-        aiThinking = false;
-        executeMove(chosen.fromRow, chosen.fromCol, chosen.toRow, chosen.toCol);
+        // Mobility
+        let aiMob = 0, humanMob = 0;
+        for (const p of aiPieces) {
+            for (const [dr, dc] of DIRS) {
+                const nr = p.r + dr, nc = p.c + dc;
+                if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                const t = state.board[nr][nc];
+                if (t.captured) aiMob++;
+                else if (t.owner === 'a' && t.flipped && !t.captured && canBattle(p.animal, t.animal)) aiMob++;
+            }
+        }
+        for (const p of humanPieces) {
+            for (const [dr, dc] of DIRS) {
+                const nr = p.r + dr, nc = p.c + dc;
+                if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                const t = state.board[nr][nc];
+                if (t.captured) humanMob++;
+                else if (t.owner === 'b' && t.flipped && !t.captured && canBattle(p.animal, t.animal)) humanMob++;
+            }
+        }
+        score += (aiMob - humanMob) * 3;
+
+        // Danger
+        let aiDanger = 0, humanDanger = 0;
+        for (const p of aiPieces) {
+            for (const [dr, dc] of DIRS) {
+                const nr = p.r + dr, nc = p.c + dc;
+                if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                const n = state.board[nr][nc];
+                if (n.owner === 'a' && n.flipped && !n.captured && canBattle(n.animal, p.animal))
+                    aiDanger += ANIMALS[n.animal].rank;
+            }
+        }
+        for (const p of humanPieces) {
+            for (const [dr, dc] of DIRS) {
+                const nr = p.r + dr, nc = p.c + dc;
+                if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                const n = state.board[nr][nc];
+                if (n.owner === 'b' && n.flipped && !n.captured && canBattle(n.animal, p.animal))
+                    humanDanger += ANIMALS[n.animal].rank;
+            }
+        }
+        score += (humanDanger - aiDanger) * 8;
+
+        // Terminal
+        if (state_isTerminal(state)) {
+            score += state.currentPlayer === 'a' ? 10000 : -10000;
+        }
+
+        return score;
+    }
+
+    function minimax(state, depth, alpha, beta, maximizing) {
+        if (depth === 0 || state_isTerminal(state)) return evaluate(state);
+        const actions = orderActions(state, generateActions(state));
+        if (actions.length === 0) return evaluate(state);
+
+        if (maximizing) {
+            let maxEval = -Infinity;
+            for (const action of actions) {
+                const val = minimax(applyAction(state, action), depth - 1, alpha, beta, false);
+                maxEval = Math.max(maxEval, val);
+                alpha = Math.max(alpha, val);
+                if (beta <= alpha) break;
+            }
+            return maxEval;
+        } else {
+            let minEval = Infinity;
+            for (const action of actions) {
+                const val = minimax(applyAction(state, action), depth - 1, alpha, beta, true);
+                minEval = Math.min(minEval, val);
+                beta = Math.min(beta, val);
+                if (beta <= alpha) break;
+            }
+            return minEval;
+        }
     }
 
     // Check win condition (called after an action, before switching player)
