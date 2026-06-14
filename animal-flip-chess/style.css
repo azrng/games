@@ -335,10 +335,6 @@ body {
     background: var(--player-b-strong);
 }
 
-.card.captured {
-    opacity: 1;
-}
-
 .card.captured .card-front {
     background: repeating-linear-gradient(135deg, #f4f4f4 0, #f4f4f4 8px, #e8e8e8 8px, #e8e8e8 16px);
     border: 2px dashed var(--border);
@@ -347,16 +343,6 @@ body {
 
 .card.flip-animating.captured .card-inner {
     transform: rotateY(180deg);
-}
-
-.card.eaten {
-    animation: eatenAnim 0.4s ease-out forwards;
-}
-
-@keyframes eatenAnim {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(0.8); opacity: 0.3; }
 }
 
 .card.valid-move {
@@ -439,12 +425,6 @@ body {
 .modal-card h2 {
     font-size: 1.4rem;
     margin-bottom: 8px;
-}
-
-.modal-desc {
-    font-size: 0.9rem;
-    color: var(--text-light);
-    margin-bottom: 20px;
 }
 
 /* Result */

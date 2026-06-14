@@ -27,7 +27,6 @@
     let phase = 'play';      // 'play', 'end'
     let selectedCard = null; // currently selected card for moving
     let lastTap = { time: 0, row: null, col: null };
-    let touchStartPos = null; // For distinguishing tap vs swipe
     let aiThinking = false;  // Is AI currently thinking
     let aiTurnToken = 0;     // Incremented each game; stale AI callbacks are discarded
     let openingTurn = false;
@@ -237,14 +236,12 @@
 
     // Add touch event listeners with debounce and tap/swipe detection
     function addTouchEventListeners(element, row, col) {
-        let startX, startY;
+        let tapStart = null;
 
         element.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
-            startX = touch.clientX;
-            startY = touch.clientY;
-            touchStartPos = { x: startX, y: startY };
+            tapStart = { x: touch.clientX, y: touch.clientY };
 
             // Add press feedback
             element.classList.add('pressing');
@@ -252,9 +249,10 @@
 
         element.addEventListener('touchmove', (e) => {
             e.preventDefault();
+            if (!tapStart) return;
             const touch = e.touches[0];
-            const dx = Math.abs(touch.clientX - startX);
-            const dy = Math.abs(touch.clientY - startY);
+            const dx = Math.abs(touch.clientX - tapStart.x);
+            const dy = Math.abs(touch.clientY - tapStart.y);
 
             // If moved too far, it's a swipe not a tap
             if (dx > TAP_THRESHOLD || dy > TAP_THRESHOLD) {
@@ -266,11 +264,11 @@
             e.preventDefault();
             element.classList.remove('pressing');
 
-            if (!touchStartPos) return;
+            if (!tapStart) return;
 
             const touch = e.changedTouches[0];
-            const dx = Math.abs(touch.clientX - touchStartPos.x);
-            const dy = Math.abs(touch.clientY - touchStartPos.y);
+            const dx = Math.abs(touch.clientX - tapStart.x);
+            const dy = Math.abs(touch.clientY - tapStart.y);
 
             // Only count as tap if didn't move far
             if (dx <= TAP_THRESHOLD && dy <= TAP_THRESHOLD) {
@@ -284,7 +282,7 @@
                 }
             }
 
-            touchStartPos = null;
+            tapStart = null;
         }, { passive: false });
 
         // Also support mouse click for desktop
@@ -313,10 +311,8 @@
                     ? (openingTurn ? '你先手' : '你的回合')
                     : '电脑回合';
             }
-        } else if (phase === 'end') {
-            turnText.textContent = '游戏结束';
         } else {
-            turnText.textContent = '准备开始';
+            turnText.textContent = '游戏结束';
         }
 
         updateHintText();
@@ -447,7 +443,7 @@
             }
             hintEl.dataset.locked = 'true';
             hintEl.textContent = msg;
-            hintEl.style.color = 'var(--player-a)';
+            hintEl.style.color = 'var(--accent)';
             hintMessageTimer = setTimeout(() => {
                 hintEl.style.color = '';
                 hintEl.dataset.locked = 'false';
@@ -537,12 +533,6 @@
             openingTurn = false;
             switchPlayer();
             return;
-        }
-
-        // If target is enemy, capture it
-        if (isCapture) {
-            target.captured = true;
-            target.owner = null;
         }
 
         const actionTip = isCapture
@@ -766,8 +756,15 @@
                 const cell = state.board[r][c];
                 if (cell.captured || !cell.owner) continue;
                 const rank = ANIMALS[cell.animal].rank;
-                if (cell.owner === 'b') { aiRank += rank; aiCount++; aiPieces.push({ r, c, animal: cell.animal }); }
-                else { humanRank += rank; humanCount++; humanPieces.push({ r, c, animal: cell.animal }); }
+                if (cell.owner === 'b') {
+                    aiRank += rank;
+                    aiCount++;
+                    if (cell.flipped) aiPieces.push({ r, c, animal: cell.animal });
+                } else {
+                    humanRank += rank;
+                    humanCount++;
+                    if (cell.flipped) humanPieces.push({ r, c, animal: cell.animal });
+                }
             }
         }
 
@@ -934,6 +931,7 @@
         resultA.textContent = countPieces('a');
         resultB.textContent = countPieces('b');
         if (resultModal) resultModal.hidden = false;
+        if (playAgainBtn) playAgainBtn.focus();
     }
 
     function getPlayerName(player) {
