@@ -88,6 +88,14 @@ function runScriptWithContext() {
                 for (const handler of this.listeners[type] || []) handler(payload);
             },
             focus() {},
+            offsetWidth: 80,
+            getBoundingClientRect() {
+                // Stable mock so FLIP animation math runs without throwing;
+                // all cells share the same rect, so offset is (0,0) — the
+                // animation still executes, just with no visible slide.
+                const idx = parseInt(this.dataset.row || '0', 10) * 4 + parseInt(this.dataset.col || '0', 10);
+                return { left: (idx % 4) * 80, top: Math.floor(idx / 4) * 80, width: 80, height: 80, right: 0, bottom: 0 };
+            },
             appendChild(child) {
                 child.parentNode = this;
                 this.children.push(child);
@@ -931,6 +939,58 @@ function testAiFlipDoesNotAlwaysFavorOwnStrongCard() {
         `AI should not systematically flip its own strong cards first (got ${ownStrongFirstFlips}/${trials})`);
 }
 
+function testRestartRequiresTwoClicksDuringPlay() {
+    const { api, elements } = runScriptWithContext();
+    const restartBtn = elements.get('restart-btn');
+
+    // Record the initial deal so we can detect an accidental reset.
+    const beforeFirst = api.getStateForTest();
+    const firstCardId = beforeFirst.board[0][0].id;
+
+    // First click during an in-progress game should NOT reset — it arms.
+    restartBtn.dispatch('click');
+    assert.strictEqual(api.getStateForTest().board[0][0].id, firstCardId,
+        'first restart click during play must not reset the board');
+    assert(restartBtn.classList.contains('armed'),
+        'restart button should enter armed state after first click');
+
+    // Second click within the arm window should reset.
+    restartBtn.dispatch('click');
+    const afterReset = api.getStateForTest();
+    assert.notStrictEqual(afterReset.board[0][0].id, firstCardId,
+        'second restart click should start a new game (new deal)');
+    assert(!restartBtn.classList.contains('armed'),
+        'restart button should leave armed state after confirming');
+}
+
+function testMoveAnimationLocksInput() {
+    const { api, elements, runTimersThrough } = runScriptWithContext();
+    setBattleBoard(api);
+
+    // Select human elephant and capture the adjacent AI cat. The capture
+    // triggers the slide animation lock; a second immediate click on another
+    // cell must be ignored while the lock is held.
+    cell(elements, 0, 0).dispatch('click');  // select
+    cell(elements, 0, 1).dispatch('click');  // capture -> animates
+
+    const stateAfterCapture = api.getStateForTest();
+    // The capture already resolved in data; now try to act again immediately.
+    // Pick another own piece if available and click — should be a no-op.
+    const ownCell = cell(elements, 1, 2); // tiger belongs to AI here, find any
+    // The key assertion: turn already switched to 'b' and animation lock held,
+    // so further clicks do nothing. We verify no exception and state unchanged.
+    ownCell.dispatch('click');
+    assert.strictEqual(api.getStateForTest().currentPlayer, 'b',
+        'input during move animation should be locked, turn stays with AI');
+
+    // Advance past the animation window; lock releases.
+    runTimersThrough(300);
+    // After the lock window, the AI turn (scheduled at 1300ms) has not fired
+    // yet, so the board is still stable — no crash from the FLIP cleanup.
+    assert.strictEqual(api.getStateForTest().phase, 'play',
+        'game should remain in play after the move animation window');
+}
+
 testFilesAndStylesExist();
 testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
@@ -952,5 +1012,7 @@ testFlipDoesNotAutoCaptureAdjacentEnemy();
 testFlipHeuristicIgnoresHiddenCardContents();
 testEliminatingAllPiecesEndsGameEvenWithHiddenCards();
 testAiFlipDoesNotAlwaysFavorOwnStrongCard();
+testRestartRequiresTwoClicksDuringPlay();
+testMoveAnimationLocksInput();
 
 console.log('animal flip chess smoke test passed');

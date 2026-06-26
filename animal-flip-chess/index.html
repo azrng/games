@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="动物翻翻棋是一款适合移动端游玩的 4x4 动物棋翻牌对战小游戏。">
     <title>动物翻翻棋 - 游戏平台</title>
-    <link rel="stylesheet" href="style.css?v=20260612-5">
+    <link rel="stylesheet" href="style.css?v=20260627-1">
 </head>
 <body>
     <main class="game-shell" aria-label="动物翻翻棋">
@@ -25,6 +25,11 @@
             </article>
             <div class="turn-indicator" id="turn-indicator">
                 <span id="turn-text"></span>
+                <span class="thinking-dots" id="thinking-dots" aria-hidden="true">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </span>
             </div>
             <article class="player-card player-b" id="player-b-info">
                 <span class="player-label">电脑</span>
@@ -59,6 +64,6 @@
         </div>
     </section>
 
-    <script src="script.js?v=20260612-5"></script>
+    <script src="script.js?v=20260627-1"></script>
 </body>
 </html>

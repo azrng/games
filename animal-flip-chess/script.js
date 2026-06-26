@@ -21,6 +21,8 @@
     const DEBOUNCE_DELAY = 180;
     const AI_DELAY = 1300;
     const FLIP_ANIMATION_MS = 620;
+    const MOVE_ANIM_MS = 260;
+    const RESTART_ARM_MS = 2500;
 
     let board = [];
     let currentPlayer = 'a'; // 'a' (human) or 'b' (AI)
@@ -36,10 +38,15 @@
     let emptyIdCounter = 0;
     let hintMessageTimer = null;
     let headerTipTimer = null;
+    let restartArmed = false;   // two-click confirm for restart
+    let restartArmTimer = null;
+    let isAnimatingMove = false; // blocks input during move/capture animation
+    let moveAnimTimer = null;
 
     // DOM elements
     const boardEl = document.getElementById('board');
     const turnText = document.getElementById('turn-text');
+    const thinkingDots = document.getElementById('thinking-dots');
     const playerAInfo = document.getElementById('player-a-info');
     const playerBInfo = document.getElementById('player-b-info');
     const playerACount = document.getElementById('player-a-count');
@@ -66,6 +73,12 @@
         emptyIdCounter = 0;
         clearHintMessage();
         clearHeaderTip();
+        clearRestartArm();
+        isAnimatingMove = false;
+        if (moveAnimTimer) {
+            clearTimeout(moveAnimTimer);
+            moveAnimTimer = null;
+        }
         aiTurnToken++;
 
         // Create one full animal set for each side.
@@ -315,6 +328,10 @@
             turnText.textContent = '游戏结束';
         }
 
+        if (thinkingDots) {
+            thinkingDots.hidden = !(phase === 'play' && aiThinking);
+        }
+
         updateHintText();
 
     }
@@ -356,7 +373,7 @@
     // Card click handler
     function onCardClick(row, col) {
         if (phase === 'end') return;
-        if (currentPlayer === 'b' || aiThinking) return;
+        if (currentPlayer === 'b' || aiThinking || isAnimatingMove) return;
 
         const card = board[row][col];
 
@@ -507,6 +524,46 @@
         return a.rank >= d.rank;
     }
 
+    // FLIP-style slide animation: slides the piece occupying the target cell in
+    // from its previous (source) position, with a capture flash on takeovers.
+    // Must be called AFTER renderBoard() has placed the new state on the board.
+    function animateMoveSlide(fromRow, fromCol, toRow, toCol, isCapture) {
+        const targetEl = getCardElement(toRow, toCol);
+        if (!targetEl || typeof targetEl.getBoundingClientRect !== 'function') return;
+
+        const front = targetEl.querySelector('.card-front');
+        if (!front) return;
+
+        const fromEl = getCardElement(fromRow, fromCol);
+        // Compute pixel offset from source to target cell centers.
+        const tRect = targetEl.getBoundingClientRect();
+        const fRect = fromEl ? fromEl.getBoundingClientRect() : tRect;
+        const dx = (fRect.left + fRect.width / 2) - (tRect.left + tRect.width / 2);
+        const dy = (fRect.top + fRect.height / 2) - (tRect.top + tRect.height / 2);
+
+        // Start from the source position (inverted offset), then transition to 0.
+        front.style.transition = 'none';
+        front.style.transform = `translate(${dx}px, ${dy}px)`;
+        // Force reflow so the starting transform is committed before transitioning.
+        void targetEl.offsetWidth;
+        front.style.transition = '';
+        front.style.transform = '';
+        targetEl.classList.add('move-entering');
+        if (isCapture) targetEl.classList.add('capture-flash');
+    }
+
+    function clearMoveAnimation(fromRow, fromCol, toRow, toCol) {
+        const targetEl = getCardElement(toRow, toCol);
+        if (targetEl) {
+            targetEl.classList.remove('move-entering', 'capture-flash');
+            const front = targetEl.querySelector('.card-front');
+            if (front) {
+                front.style.transition = '';
+                front.style.transform = '';
+            }
+        }
+    }
+
     // Execute move
     function executeMove(fromRow, fromCol, toRow, toCol) {
         const source = board[fromRow][fromCol];
@@ -540,6 +597,9 @@
             ? `${actorName}用${sourceName}吃子`
             : `${actorName}移动${sourceName}`;
 
+        // Lock input during the slide animation.
+        isAnimatingMove = true;
+
         // Move source to target position
         board[toRow][toCol] = { ...source };
         board[fromRow][fromCol] = createEmptyCell(fromRow, fromCol, source.animal);
@@ -548,6 +608,16 @@
 
         renderBoard();
         updateUI();
+
+        // Apply slide-in animation on the newly occupied target cell.
+        animateMoveSlide(fromRow, fromCol, toRow, toCol, isCapture);
+
+        if (moveAnimTimer) clearTimeout(moveAnimTimer);
+        moveAnimTimer = setTimeout(() => {
+            isAnimatingMove = false;
+            clearMoveAnimation(fromRow, fromCol, toRow, toCol);
+            moveAnimTimer = null;
+        }, MOVE_ANIM_MS);
 
         // Check win condition
         if (checkWinCondition()) return;
@@ -1009,6 +1079,11 @@
     function endGame(winner, reason) {
         phase = 'end';
         aiThinking = false;
+        isAnimatingMove = false;
+        if (moveAnimTimer) {
+            clearTimeout(moveAnimTimer);
+            moveAnimTimer = null;
+        }
         clearHeaderTip();
         updateUI();
 
@@ -1057,7 +1132,40 @@
         }
     }
 
-    restartBtn.addEventListener('click', initGame);
+    // Two-click confirm for restart: first click arms the button, the second
+    // click within RESTART_ARM_MS actually restarts. Game-over bypasses the
+    // confirm (no in-progress game to lose).
+    function handleRestartClick() {
+        if (phase === 'end') {
+            initGame();
+            return;
+        }
+        if (restartArmed) {
+            clearRestartArm();
+            initGame();
+            return;
+        }
+        armRestart();
+    }
+
+    function armRestart() {
+        restartArmed = true;
+        if (restartBtn) restartBtn.classList.add('armed');
+        showHintMessage('再点一次↻以重新开始');
+        if (restartArmTimer) clearTimeout(restartArmTimer);
+        restartArmTimer = setTimeout(() => clearRestartArm(), RESTART_ARM_MS);
+    }
+
+    function clearRestartArm() {
+        restartArmed = false;
+        if (restartBtn) restartBtn.classList.remove('armed');
+        if (restartArmTimer) {
+            clearTimeout(restartArmTimer);
+            restartArmTimer = null;
+        }
+    }
+
+    restartBtn.addEventListener('click', handleRestartClick);
     playAgainBtn.addEventListener('click', () => {
         if (resultModal) resultModal.hidden = true;
         initGame();

@@ -86,6 +86,21 @@ body {
     transform: scale(0.92);
 }
 
+.restart-btn.armed {
+    background: var(--accent);
+    color: #fff;
+    animation: restartPulse 1s ease-in-out infinite;
+}
+
+@keyframes restartPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.45); }
+    50% { box-shadow: 0 0 0 6px rgba(230, 126, 34, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .restart-btn.armed { animation: none; }
+}
+
 .header-tip {
     position: absolute;
     left: 50%;
@@ -184,6 +199,40 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.thinking-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.thinking-dots[hidden] {
+    display: none;
+}
+
+.thinking-dots .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0.4;
+    animation: thinkingBounce 1s ease-in-out infinite;
+}
+
+.thinking-dots .dot:nth-child(2) { animation-delay: 0.15s; }
+.thinking-dots .dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes thinkingBounce {
+    0%, 80%, 100% { opacity: 0.4; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .thinking-dots .dot { animation: none; opacity: 0.7; }
 }
 
 /* Game Board */
@@ -343,6 +392,34 @@ body {
 
 .card.flip-animating.captured .card-inner {
     transform: rotateY(180deg);
+}
+
+/* Move/capture slide animation (FLIP). The starting translate is set inline
+   by JS; this transition animates it back to 0. */
+.card.move-entering .card-front {
+    transition: transform 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.card.capture-flash::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    border: 3px solid var(--player-a-strong);
+    box-shadow: 0 0 14px rgba(181, 58, 47, 0.5);
+    pointer-events: none;
+    z-index: 3;
+    animation: captureFlash 0.4s ease-out forwards;
+}
+
+@keyframes captureFlash {
+    0% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0; transform: scale(0.92); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card.move-entering .card-front { transition: none; }
+    .card.capture-flash::before { animation: none; opacity: 0; }
 }
 
 .card.valid-move {
