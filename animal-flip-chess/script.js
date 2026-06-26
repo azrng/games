@@ -150,6 +150,13 @@
         const card = board[row][col];
         const classes = ['card'];
 
+        // Preserve transient animation classes that are managed outside the
+        // render cycle (added by executeMove / flashCancelOut). Without this,
+        // a renderBoard() triggered by switchPlayer would wipe them mid-flight.
+        for (const cls of ['move-entering', 'capture-flash', 'cancel-out-flash']) {
+            if (cardEl.classList.contains(cls)) classes.push(cls);
+        }
+
         if (card.flipped || card.captured) classes.push('flipped');
         if (card.captured) classes.push('captured');
         if (animatingFlipIds.has(card.id)) classes.push('flip-animating');
@@ -693,6 +700,11 @@
     function switchPlayer() {
         currentPlayer = currentPlayer === 'a' ? 'b' : 'a';
         selectedCard = null;
+        // Re-render so card disabled/actionable states follow the new current
+        // player. Without this, cards stay disabled=true from the AI's turn
+        // (updateUI alone does not touch cardEl.disabled) and the human's
+        // clicks silently no-op.
+        renderBoard();
         updateUI();
 
         // If it's AI's turn, let AI play

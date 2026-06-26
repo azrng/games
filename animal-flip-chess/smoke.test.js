@@ -1076,6 +1076,63 @@ function testCancelOutFlashesBothCellsAndLocksInput() {
         'cancel-out flash should be cleared after the animation window');
 }
 
+function testCardsReEnabledAfterAiTurn() {
+    // Regression: after the AI finishes its turn and play returns to the human,
+    // every card must have disabled=false. Previously switchPlayer() only called
+    // updateUI() (which never touches cardEl.disabled), so cards stayed disabled
+    // from the AI's turn and the human's clicks silently no-op'd.
+    const { api, elements, runTimersThrough } = runScriptWithContext();
+    // Force AI to move first.
+    api.setStateForTest({
+        currentPlayer: 'b',
+        phase: 'play',
+        openingTurn: false,
+        board: [
+            [
+                { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { animal: 'cat', owner: 'b', flipped: true, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: true, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false },
+                { animal: 'rat', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: true, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false },
+                { animal: 'elephant', owner: null, flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    // Run the AI's scheduled turn.
+    runTimersThrough(1500);
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.currentPlayer, 'a',
+        'turn should return to the human after the AI acts');
+    assert.strictEqual(state.aiThinking, false,
+        'AI thinking flag should be cleared');
+
+    // Every actionable card must now be enabled for the human.
+    const aFaceDown = cell(elements, 0, 2); // still face-down, flippable by human
+    assert.strictEqual(aFaceDown.disabled, false,
+        'face-down card should be enabled (not disabled) on the human turn');
+    const aOwnPiece = cell(elements, 0, 0); // human elephant
+    assert.strictEqual(aOwnPiece.disabled, false,
+        'human piece should be enabled on the human turn');
+}
+
 testFilesAndStylesExist();
 testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
@@ -1101,5 +1158,6 @@ testRestartRequiresTwoClicksDuringPlay();
 testMoveAnimationLocksInput();
 testInvalidTargetKeepsSelection();
 testCancelOutFlashesBothCellsAndLocksInput();
+testCardsReEnabledAfterAiTurn();
 
 console.log('animal flip chess smoke test passed');
