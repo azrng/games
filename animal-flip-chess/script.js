@@ -404,9 +404,10 @@
 
         // If clicking own piece, select it
         if (card.owner === currentPlayer && card.flipped && !card.captured) {
+            const isSwitching = selectedCard && (selectedCard.row !== row || selectedCard.col !== col);
             selectedCard = { row, col };
             renderBoard();
-            showHintMessage('请选择相邻可吃的牌或空格');
+            showHintMessage(isSwitching ? '已切换选择，点相邻高亮格移动或吃子' : '请选择相邻可吃的牌或空格');
             return;
         }
 
@@ -584,7 +585,13 @@
         }
     }
 
-    // AI turn logic — minimax with alpha-beta pruning
+    // AI turn logic.
+    // Fairness rule: AI must NOT use the hidden contents of unflipped cards.
+    //   - Flipping is chosen by a heuristic that only looks at board geometry
+    //     and already-revealed pieces (never the animal/owner under the card).
+    //   - Moving uses minimax + alpha-beta, but the search state strips hidden
+    //     information, so unflipped cards are treated as unknown and never
+    //     "peeked" at during evaluation.
     function aiTurn() {
         if (phase !== 'play' || currentPlayer !== 'b') return;
         aiThinking = true;
@@ -595,40 +602,97 @@
 
         if (actions.length === 0) {
             aiThinking = false;
+            // AI has no legal action -> AI loses. checkWinCondition resolves it.
+            if (checkWinCondition()) return;
             openingTurn = false;
             switchPlayer();
             return;
         }
 
-        let bestAction = actions[0];
-        let bestScore = -Infinity;
-        let alpha = -Infinity;
+        const flipActions = actions.filter(a => a.type === 'flip');
+        const moveActions = actions.filter(a => a.type === 'move');
 
-        for (const action of orderActions(state, actions)) {
+        // Best move via minimax over revealed information only.
+        let bestMoveAction = null;
+        let bestMoveScore = -Infinity;
+        let alpha = -Infinity;
+        for (const action of orderActions(state, moveActions)) {
             const score = minimax(applyAction(state, action), AI_DEPTH - 1, alpha, Infinity, false);
-            if (score > bestScore) {
-                bestScore = score;
-                bestAction = action;
+            if (score > bestMoveScore) {
+                bestMoveScore = score;
+                bestMoveAction = action;
             }
             alpha = Math.max(alpha, score);
         }
 
+        // Best flip via content-blind heuristic.
+        let bestFlipAction = null;
+        let bestFlipScore = -Infinity;
+        for (const action of flipActions) {
+            const score = scoreFlipHeuristic(state, action.row, action.col);
+            if (score > bestFlipScore) {
+                bestFlipScore = score;
+                bestFlipAction = action;
+            }
+        }
+
         aiThinking = false;
 
-        if (bestAction.type === 'flip') {
-            const card = board[bestAction.row][bestAction.col];
+        // Prefer a move when it is clearly good; otherwise flip.
+        // When there are no hidden cards, flipping is impossible anyway.
+        const chooseMove = bestMoveAction && (bestMoveScore >= bestFlipScore || !bestFlipAction);
+
+        if (chooseMove) {
+            executeMove(bestMoveAction.fromRow, bestMoveAction.fromCol, bestMoveAction.toRow, bestMoveAction.toCol);
+        } else {
+            const card = board[bestFlipAction.row][bestFlipAction.col];
             markCardForFlipAnimation(card);
             card.flipped = true;
             renderBoard();
-            scheduleFlipStabilize(card.id, bestAction.row, bestAction.col);
+            scheduleFlipStabilize(card.id, bestFlipAction.row, bestFlipAction.col);
             updateUI();
             if (checkWinCondition()) return;
             showActionTip(`电脑翻开了${ANIMALS[card.animal].name}`);
             openingTurn = false;
             switchPlayer();
-        } else {
-            executeMove(bestAction.fromRow, bestAction.fromCol, bestAction.toRow, bestAction.toCol);
         }
+    }
+
+    // Content-blind heuristic for choosing which face-down card to flip.
+    // Does NOT read card.animal / card.owner of any unflipped card.
+    // Favors flipping: away from enemy threats, near board center, away from
+    // clusters of already-revealed enemy power (to avoid handing the opponent
+    // a capture target on their next turn).
+    function scoreFlipHeuristic(state, row, col) {
+        let score = 0;
+
+        // Center bias: center cells tend to connect more of the board.
+        const center = (BOARD_SIZE - 1) / 2;
+        const distFromCenter = Math.abs(row - center) + Math.abs(col - center);
+        score += (BOARD_SIZE - distFromCenter) * 2;
+
+        // Penalize flipping next to a revealed enemy that could capture a
+        // revealed friendly of unknown value: we can't know what we'll flip,
+        // so the safer choice is to avoid exposing a fresh piece adjacent to
+        // strong enemies.
+        let enemyPressure = 0;
+        for (const [dr, dc] of DIRS) {
+            const nr = row + dr;
+            const nc = col + dc;
+            if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+            const n = state.board[nr][nc];
+            if (n.flipped && !n.captured && n.owner === 'a') {
+                enemyPressure += ANIMALS[n.animal].rank;
+            }
+        }
+        score -= enemyPressure * 3;
+
+        // Deterministic positional tie-breaker so identical board geometries
+        // produce identical scores (keeps the heuristic content-blind and
+        // testable) while still differentiating cells that would otherwise tie.
+        score += (row * BOARD_SIZE + col) * 0.01;
+
+        return score;
     }
 
     // Check if there are unflipped cards
@@ -703,6 +767,31 @@
                 if (!cell.flipped && !cell.captured) {
                     actions.push({ type: 'flip', row: r, col: c });
                 }
+                if (cell.owner === player && !cell.captured && cell.flipped) {
+                    for (const [dr, dc] of DIRS) {
+                        const nr = r + dr, nc = c + dc;
+                        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) continue;
+                        const t = state.board[nr][nc];
+                        if (t.captured || (t.flipped && t.owner && t.owner !== player && canBattle(cell.animal, t.animal))) {
+                            actions.push({ type: 'move', fromRow: r, fromCol: c, toRow: nr, toCol: nc });
+                        }
+                    }
+                }
+            }
+        }
+        return actions;
+    }
+
+    // Move-only action generation for the minimax search.
+    // The search must never expand flip actions, because applying a flip would
+    // reveal hidden card contents and let the AI "peek". Flipping decisions
+    // are made content-blind in aiTurn via scoreFlipHeuristic instead.
+    function generateMoveActions(state) {
+        const actions = [];
+        const player = state.currentPlayer;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const cell = state.board[r][c];
                 if (cell.owner === player && !cell.captured && cell.flipped) {
                     for (const [dr, dc] of DIRS) {
                         const nr = r + dr, nc = c + dc;
@@ -824,7 +913,8 @@
 
     function minimax(state, depth, alpha, beta, maximizing) {
         if (depth === 0 || state_isTerminal(state)) return evaluate(state);
-        const actions = orderActions(state, generateActions(state));
+        // Search move actions only — never flips, to keep hidden info hidden.
+        const actions = orderActions(state, generateMoveActions(state));
         if (actions.length === 0) return evaluate(state);
 
         if (maximizing) {
@@ -850,22 +940,19 @@
 
     // Check win condition (called after an action, before switching player)
     function checkWinCondition() {
-        // If there are still unflipped cards, don't end the game based on piece count
-        const hasUnflipped = hasUnflippedCards();
+        // A side is eliminated the moment all of its pieces are captured/eaten,
+        // regardless of whether face-down cards remain. Each side owns exactly
+        // one of each animal, so a zero count means that side has nothing left.
+        const aCount = countPieces('a');
+        const bCount = countPieces('b');
 
-        if (!hasUnflipped) {
-            // All cards are flipped, check piece counts
-            const aCount = countPieces('a');
-            const bCount = countPieces('b');
-
-            if (aCount === 0) {
-                endGame('b', '你的棋子全部被吃掉');
-                return true;
-            }
-            if (bCount === 0) {
-                endGame('a', '电脑的棋子全部被吃掉');
-                return true;
-            }
+        if (aCount === 0) {
+            endGame('b', '你的棋子全部被吃掉');
+            return true;
+        }
+        if (bCount === 0) {
+            endGame('a', '电脑的棋子全部被吃掉');
+            return true;
         }
 
         // Check if the NEXT player has any valid moves
@@ -982,6 +1069,7 @@
     window.AnimalFlipChess = {
         ANIMALS,
         canBattle,
+        scoreFlipHeuristic,
         getStateForTest() {
             return {
                 board: board.map((row) => row.map((card) => ({ ...card }))),

@@ -87,6 +87,7 @@ function runScriptWithContext() {
                 };
                 for (const handler of this.listeners[type] || []) handler(payload);
             },
+            focus() {},
             appendChild(child) {
                 child.parentNode = this;
                 this.children.push(child);
@@ -224,7 +225,7 @@ function setBattleBoard(api) {
             [
                 { animal: 'rat', owner: null, flipped: false, captured: false },
                 { animal: 'lion', owner: null, flipped: false, captured: false },
-                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: true, captured: false },
                 { animal: 'leopard', owner: null, flipped: false, captured: false }
             ],
             [
@@ -421,8 +422,8 @@ function testSameAnimalMoveCancelsBothPieces() {
                 { animal: 'rat', owner: null, flipped: false, captured: false }
             ],
             [
-                { animal: 'lion', owner: null, flipped: false, captured: false },
-                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: 'a', flipped: true, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: true, captured: false },
                 { animal: 'leopard', owner: null, flipped: false, captured: false },
                 { animal: 'cat', owner: null, flipped: false, captured: false }
             ]
@@ -781,6 +782,155 @@ function testFlipDoesNotAutoCaptureAdjacentEnemy() {
     assert.strictEqual(state.board[0][1].captured, false, 'adjacent enemy should not be auto-captured by flip');
 }
 
+function testFlipHeuristicIgnoresHiddenCardContents() {
+    const { api } = runScriptWithContext();
+
+    // Two identical boards differing ONLY in the animal/owner hidden under
+    // the same face-down cell. A fair flip heuristic must score the flip
+    // identically, since neither side should know what is under the card.
+    const baseBoard = [
+        [
+            { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+            { animal: 'cat', owner: 'b', flipped: false, captured: false },
+            { animal: 'dog', owner: null, flipped: false, captured: false },
+            { animal: 'wolf', owner: null, flipped: false, captured: false }
+        ],
+        [
+            { animal: 'rat', owner: null, flipped: false, captured: false },
+            { animal: 'lion', owner: null, flipped: false, captured: false },
+            { animal: 'tiger', owner: null, flipped: false, captured: false },
+            { animal: 'leopard', owner: null, flipped: false, captured: false }
+        ],
+        [
+            { animal: 'cat', owner: null, flipped: false, captured: false },
+            { animal: 'dog', owner: null, flipped: false, captured: false },
+            { animal: 'wolf', owner: null, flipped: false, captured: false },
+            { animal: 'rat', owner: null, flipped: false, captured: false }
+        ],
+        [
+            { animal: 'lion', owner: null, flipped: false, captured: false },
+            { animal: 'tiger', owner: null, flipped: false, captured: false },
+            { animal: 'leopard', owner: null, flipped: false, captured: false },
+            { animal: 'elephant', owner: null, flipped: false, captured: false }
+        ]
+    ];
+
+    // Variant where the hidden cell (0,1) secretly favors the AI (AI's own elephant).
+    const aiFavorBoard = baseBoard.map(row => row.map(c => ({ ...c })));
+    aiFavorBoard[0][1] = { animal: 'elephant', owner: 'b', flipped: false, captured: false };
+
+    // Variant where the hidden cell (0,1) secretly favors the human (human's cat).
+    const humanFavorBoard = baseBoard.map(row => row.map(c => ({ ...c })));
+    humanFavorBoard[0][1] = { animal: 'cat', owner: 'a', flipped: false, captured: false };
+
+    api.setStateForTest({ currentPlayer: 'b', phase: 'play', board: aiFavorBoard });
+    const stateA = api.getStateForTest();
+    const scoreFavorAi = api.scoreFlipHeuristic(stateA, 0, 1);
+
+    api.setStateForTest({ currentPlayer: 'b', phase: 'play', board: humanFavorBoard });
+    const stateB = api.getStateForTest();
+    const scoreFavorHuman = api.scoreFlipHeuristic(stateB, 0, 1);
+
+    // The flip score must not depend on what is hidden under the card. A
+    // peeking heuristic would score the AI's own elephant far higher than the
+    // human's weak cat.
+    assert.strictEqual(
+        scoreFavorAi, scoreFavorHuman,
+        'flip heuristic must be content-blind: hidden card contents must not affect the score'
+    );
+}
+
+function testEliminatingAllPiecesEndsGameEvenWithHiddenCards() {
+    const { api, elements } = runScriptWithContext();
+    // Human has one revealed rat adjacent to the AI's last revealed elephant.
+    // The rest are face-down. When the human's rat eats the AI's elephant
+    // (rat beats elephant), the AI is eliminated and the game must end
+    // immediately, even though many face-down cards remain.
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'rat', owner: 'a', flipped: true, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: true, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false },
+                { animal: 'rat', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false },
+                { animal: 'elephant', owner: null, flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    // Select the human elephant, then capture the adjacent AI rat.
+    cell(elements, 0, 0).dispatch('click');
+    cell(elements, 0, 1).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.phase, 'end', 'game should end when a side loses its last piece');
+    assert.strictEqual(elements.get('result-title').textContent, '你获胜！',
+        'human should win after eliminating the AI');
+}
+
+function testAiFlipDoesNotAlwaysFavorOwnStrongCard() {
+    // Statistical fairness check: across many random fresh deals, the AI's
+    // first flip (when it moves first) must not systematically target its own
+    // strongest pieces. A peeking AI would almost always flip its elephant or
+    // lion first; a fair AI treats all face-down cells as unknown.
+    let ownStrongFirstFlips = 0;
+    const trials = 60;
+    for (let i = 0; i < trials; i++) {
+        const { api, elements, date, runTimersThrough } = runScriptWithContext();
+        const state = api.getStateForTest();
+        if (state.currentPlayer !== 'b') continue; // only inspect AI-first games
+
+        // Run the AI's scheduled turn (its first move of the game).
+        runTimersThrough(1500);
+        date.advance(2000);
+        runTimersThrough(620);
+
+        const after = api.getStateForTest();
+        // Find the cell the AI just flipped (the only newly-flipped card).
+        let flippedCell = null;
+        for (const row of after.board) {
+            for (const card of row) {
+                if (card.flipped && !card.captured) {
+                    // Newly flipped: not in the initial state (all hidden),
+                    // so it's the one the AI flipped.
+                    flippedCell = card;
+                }
+            }
+        }
+        if (!flippedCell) continue;
+        // Count cases where AI flipped its own elephant or lion on turn one.
+        if (flippedCell.owner === 'b' && (flippedCell.animal === 'elephant' || flippedCell.animal === 'lion')) {
+            ownStrongFirstFlips++;
+        }
+    }
+
+    // If the AI were peeking, this ratio would approach 100%. A fair AI that
+    // treats its 8 face-down pieces uniformly would flip its own elephant or
+    // lion first at most ~2/8 = 25% of the time, plus the human's pieces which
+    // never count here. Use a generous threshold well below a cheating baseline.
+    assert.ok(ownStrongFirstFlips < trials * 0.5,
+        `AI should not systematically flip its own strong cards first (got ${ownStrongFirstFlips}/${trials})`);
+}
+
 testFilesAndStylesExist();
 testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
@@ -799,5 +949,8 @@ testEmptyCellIdsUseCounter();
 testCapturedCellCanBeMoveTarget();
 testFlipDoesNotEmptyAdjacentUnflippedCard();
 testFlipDoesNotAutoCaptureAdjacentEnemy();
+testFlipHeuristicIgnoresHiddenCardContents();
+testEliminatingAllPiecesEndsGameEvenWithHiddenCards();
+testAiFlipDoesNotAlwaysFavorOwnStrongCard();
 
 console.log('animal flip chess smoke test passed');
