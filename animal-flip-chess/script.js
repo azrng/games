@@ -169,7 +169,13 @@
             classes.push('selected');
         }
         if (selectedCard && isValidMoveTarget(row, col)) {
-            classes.push('valid-move');
+            // Distinguish a same-rank enemy (mutual destruction) from a plain
+            // capture / walk target so the player sees the risk before moving.
+            if (isCancelOutTarget(row, col)) {
+                classes.push('valid-cancel');
+            } else {
+                classes.push('valid-move');
+            }
         }
 
         cardEl.className = classes.join(' ');
@@ -444,10 +450,12 @@
             if (isValidMoveTarget(row, col)) {
                 executeMove(selectedCard.row, selectedCard.col, row, col);
             } else {
-                // Deselect if clicking invalid target
-                selectedCard = null;
+                // Keep the selection on an invalid target — only an explicit
+                // re-tap of the selected piece or switching to another own piece
+                // should change the selection. Avoids losing the selection to a
+                // stray tap on a non-highlighted cell.
                 renderBoard();
-                showHintMessage('无法移动到该位置');
+                showHintMessage('无法移动到该位置，可点其他高亮格或再点当前棋子取消');
             }
         }
     }
@@ -509,6 +517,16 @@
         return canBattle(source.animal, target.animal);
     }
 
+    // Is the target a same-rank enemy? Moving there destroys both pieces.
+    function isCancelOutTarget(targetRow, targetCol) {
+        if (!selectedCard) return false;
+        const source = board[selectedCard.row][selectedCard.col];
+        const target = board[targetRow][targetCol];
+        return target.flipped && !target.captured
+            && target.owner && target.owner !== currentPlayer
+            && source.animal === target.animal;
+    }
+
     // Battle logic: can attacker beat defender?
     function canBattle(attacker, defender) {
         const a = ANIMALS[attacker];
@@ -564,6 +582,21 @@
         }
     }
 
+    // Flash both cells emptied by a mutual destruction.
+    function flashCancelOut(fromRow, fromCol, toRow, toCol) {
+        for (const [r, c] of [[fromRow, fromCol], [toRow, toCol]]) {
+            const el = getCardElement(r, c);
+            if (el) el.classList.add('cancel-out-flash');
+        }
+    }
+
+    function clearCancelOutFlash(fromRow, fromCol, toRow, toCol) {
+        for (const [r, c] of [[fromRow, fromCol], [toRow, toCol]]) {
+            const el = getCardElement(r, c);
+            if (el) el.classList.remove('cancel-out-flash');
+        }
+    }
+
     // Execute move
     function executeMove(fromRow, fromCol, toRow, toCol) {
         const source = board[fromRow][fromCol];
@@ -576,12 +609,25 @@
         const sourceName = ANIMALS[source.animal].name;
 
         if (isCancelOut) {
+            // Lock input during the mutual-destruction animation.
+            isAnimatingMove = true;
+
             board[fromRow][fromCol] = createEmptyCell(fromRow, fromCol, source.animal);
             board[toRow][toCol] = createEmptyCell(toRow, toCol, target.animal);
             selectedCard = null;
 
             renderBoard();
             updateUI();
+
+            // Flash both emptied cells to signal the mutual destruction.
+            flashCancelOut(fromRow, fromCol, toRow, toCol);
+
+            if (moveAnimTimer) clearTimeout(moveAnimTimer);
+            moveAnimTimer = setTimeout(() => {
+                isAnimatingMove = false;
+                clearCancelOutFlash(fromRow, fromCol, toRow, toCol);
+                moveAnimTimer = null;
+            }, MOVE_ANIM_MS);
 
             // Check win condition
             if (checkWinCondition()) return;

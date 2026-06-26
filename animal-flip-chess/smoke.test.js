@@ -440,8 +440,10 @@ function testSameAnimalMoveCancelsBothPieces() {
 
     cell(elements, 0, 0).dispatch('click');
 
-    assert(cell(elements, 0, 1).classList.contains('valid-move'),
-        'same animal enemy should be marked as a valid cancel-out target');
+    assert(cell(elements, 0, 1).classList.contains('valid-cancel'),
+        'same-rank enemy should be marked as a mutual-destruction target (valid-cancel)');
+    assert(!cell(elements, 0, 1).classList.contains('valid-move'),
+        'same-rank enemy should not carry the plain capture class');
 
     cell(elements, 0, 1).dispatch('click');
 
@@ -991,6 +993,89 @@ function testMoveAnimationLocksInput() {
         'game should remain in play after the move animation window');
 }
 
+function testInvalidTargetKeepsSelection() {
+    const { api, elements } = runScriptWithContext();
+    setBattleBoard(api);
+
+    // Select the human elephant at (0,0).
+    cell(elements, 0, 0).dispatch('click');
+    assert(cell(elements, 0, 0).classList.contains('selected'),
+        'own piece should be selected');
+
+    // Tap a revealed but non-adjacent enemy (1,2 is AI tiger, not adjacent to
+    // 0,0). It is an invalid move target, so the selection must be preserved.
+    cell(elements, 1, 2).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert(state.selectedCard, 'selection should survive a tap on an invalid target');
+    assert.strictEqual(state.selectedCard.row, 0, 'selected row should stay 0');
+    assert.strictEqual(state.selectedCard.col, 0, 'selected col should stay 0');
+    assert(cell(elements, 0, 0).classList.contains('selected'),
+        'originally selected piece should still show the selected state');
+
+    // Re-tapping the selected piece should still deselect (explicit cancel).
+    cell(elements, 0, 0).dispatch('click');
+    assert(!api.getStateForTest().selectedCard,
+        're-tapping the selected piece should cancel the selection');
+}
+
+function testCancelOutFlashesBothCellsAndLocksInput() {
+    const { api, elements, runTimersThrough } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: true, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: true, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false },
+                { animal: 'rat', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: true, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false },
+                { animal: 'cat', owner: null, flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    // Move A's elephant onto B's elephant -> mutual destruction.
+    cell(elements, 0, 0).dispatch('click');
+    cell(elements, 0, 1).dispatch('click');
+
+    const fromEl = cell(elements, 0, 0);
+    const toEl = cell(elements, 0, 1);
+    assert(fromEl.classList.contains('cancel-out-flash'),
+        'source cell should flash during mutual destruction');
+    assert(toEl.classList.contains('cancel-out-flash'),
+        'target cell should flash during mutual destruction');
+
+    // Input is locked while the flash plays.
+    cell(elements, 3, 0).dispatch('click');
+    assert.strictEqual(api.getStateForTest().currentPlayer, 'b',
+        'turn should have switched to AI after cancel-out');
+
+    // After the animation window the flash class is cleaned up.
+    runTimersThrough(300);
+    assert(!cell(elements, 0, 0).classList.contains('cancel-out-flash'),
+        'cancel-out flash should be cleared after the animation window');
+    assert(!cell(elements, 0, 1).classList.contains('cancel-out-flash'),
+        'cancel-out flash should be cleared after the animation window');
+}
+
 testFilesAndStylesExist();
 testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
@@ -1014,5 +1099,7 @@ testEliminatingAllPiecesEndsGameEvenWithHiddenCards();
 testAiFlipDoesNotAlwaysFavorOwnStrongCard();
 testRestartRequiresTwoClicksDuringPlay();
 testMoveAnimationLocksInput();
+testInvalidTargetKeepsSelection();
+testCancelOutFlashesBothCellsAndLocksInput();
 
 console.log('animal flip chess smoke test passed');

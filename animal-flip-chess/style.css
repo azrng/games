@@ -417,9 +417,31 @@ body {
     100% { opacity: 0; transform: scale(0.92); }
 }
 
+/* Mutual destruction: both cells flash and the emptied cells fade in. */
+.card.cancel-out-flash .card-front {
+    animation: cancelOutFlash 0.3s ease-out;
+}
+
+.card.cancel-out-flash .card-inner {
+    animation: cancelOutShake 0.3s ease-out;
+}
+
+@keyframes cancelOutFlash {
+    0% { box-shadow: 0 0 0 3px var(--player-a-strong), 0 0 18px rgba(181, 58, 47, 0.6); }
+    100% { box-shadow: none; }
+}
+
+@keyframes cancelOutShake {
+    0%, 100% { transform: none; }
+    25% { transform: scale(0.94) rotate(-2deg); }
+    75% { transform: scale(0.94) rotate(2deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .card.move-entering .card-front { transition: none; }
     .card.capture-flash::before { animation: none; opacity: 0; }
+    .card.cancel-out-flash .card-front,
+    .card.cancel-out-flash .card-inner { animation: none; }
 }
 
 .card.valid-move {
@@ -444,7 +466,26 @@ body {
     content: '可走';
 }
 
-.card.actionable:not(.selected):not(.valid-move) .card-inner {
+/* Same-rank enemy: mutual destruction. Red warns of the two-sided loss. */
+.card.valid-cancel {
+    box-shadow: 0 0 0 3px var(--player-a-strong), 0 8px 18px rgba(181, 58, 47, 0.3);
+}
+
+.card.valid-cancel::after {
+    content: '同归';
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    z-index: 2;
+    padding: 2px 5px;
+    border-radius: 999px;
+    background: var(--player-a-strong);
+    color: #fff;
+    font-size: 0.56rem;
+    font-weight: 800;
+}
+
+.card.actionable:not(.selected):not(.valid-move):not(.valid-cancel) .card-inner {
     filter: saturate(1.05);
 }
 
