@@ -114,8 +114,9 @@
     /* 从全亮状态反向按压 K 个互不重复的格子生成关卡，天然必有解 */
     function generateLevel(size, presses, random) {
         const total = size * size;
-        let attempt = 0;
-        while (true) {
+        let scrambleSet = [];
+        let board = [];
+        for (let attempt = 0; attempt < 9; attempt += 1) {
             const indices = [];
             for (let i = 0; i < total; i += 1) indices.push(i);
             for (let i = total - 1; i > 0; i -= 1) {
@@ -124,17 +125,23 @@
                 indices[i] = indices[j];
                 indices[j] = tmp;
             }
-            const scrambleSet = indices.slice(0, presses).sort((a, b) => a - b);
-            let board = new Array(total).fill(true);
+            scrambleSet = indices.slice(0, presses).sort((a, b) => a - b);
+            board = new Array(total).fill(true);
             for (const index of scrambleSet) {
                 board = toggleAt(board, size, index);
             }
             /* 5×5 灯板存在静默按压组合，极小概率打乱后仍为全亮，此时重新抽取 */
-            if (!isAllLit(board) || attempt >= 8) {
+            if (!isAllLit(board)) {
                 return { board, scrambleSet };
             }
-            attempt += 1;
         }
+        /* 兜底：连续抽中静默组合时追加一次未按过的按压，保证局面未解且解集合同步 */
+        let extra = 0;
+        const used = new Set(scrambleSet);
+        while (used.has(extra)) extra += 1;
+        board = toggleAt(board, size, extra);
+        scrambleSet = scrambleSet.concat(extra).sort((a, b) => a - b);
+        return { board, scrambleSet };
     }
 
     function starRating(steps, minSteps) {

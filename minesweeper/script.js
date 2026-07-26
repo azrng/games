@@ -6,6 +6,10 @@
     const BEST_KEY_PREFIX = 'minesweeper-best-';
     const WINS_KEY_PREFIX = 'minesweeper-wins-';
     const LONG_PRESS_MS = 350;
+    /* 单格触控目标下限：小屏上高列数棋盘改为横向滚动而不是无限压缩格子 */
+    const CELL_MIN_PX = 32;
+    const GRID_GAP_PX = 3;
+    const GRID_PADDING_PX = 8;
     const memoryFallback = {};
 
     /* 竖屏比例的三档难度：cols 为列数，rows 为行数 */
@@ -387,7 +391,9 @@
         const fragment = documentObject.createDocumentFragment();
         const buttons = [];
 
-        elements.grid.style.gridTemplateColumns = `repeat(${state.cols}, minmax(0, 1fr))`;
+        elements.grid.style.gridTemplateColumns = `repeat(${state.cols}, minmax(${CELL_MIN_PX}px, 1fr))`;
+        /* 保证每格不低于触控下限；容器放不下时由 board-section 横向滚动 */
+        elements.grid.style.minWidth = `${state.cols * CELL_MIN_PX + (state.cols - 1) * GRID_GAP_PX + GRID_PADDING_PX * 2}px`;
         elements.grid.setAttribute('aria-label', `${DIFFICULTIES[state.difficulty].label}雷区，${state.rows} 行 ${state.cols} 列`);
 
         for (let index = 0; index < total; index += 1) {

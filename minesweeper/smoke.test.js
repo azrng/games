@@ -125,6 +125,9 @@ function testFilesAndCatalogExist() {
     assert(html.includes('id="grid"'), 'page should render a mine grid host');
     assert(html.includes('id="mode-btn"'), 'page should include dig/flag mode switch');
     assert(css.includes('display: grid'), 'grid should use CSS Grid');
+    assert(css.includes('overflow-x: auto'), 'dense boards should scroll horizontally instead of shrinking cells');
+    assert(css.includes('position: sticky'), 'header should stay visible while the board scrolls');
+    assert(script.includes('CELL_MIN_PX'), 'cells should keep a minimum touch target size');
     assert(script.includes('placeMines'), 'mines should be placed after first tap');
     assert(script.includes('pointerdown'), 'long press flagging should use pointer events');
     assert(catalog.includes('slug: "minesweeper"'), 'catalog should register minesweeper');

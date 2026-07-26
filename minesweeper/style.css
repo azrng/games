@@ -66,6 +66,15 @@ button {
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
+    /* 高级难度棋盘超出一屏时，保持雷数与计时可见 */
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    margin: 0 -16px;
+    padding: max(10px, env(safe-area-inset-top)) 16px 10px;
+    background: rgba(245, 249, 245, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .eyebrow,
@@ -143,7 +152,9 @@ h2 {
     min-height: 0;
     display: flex;
     align-items: flex-start;
-    justify-content: center;
+    justify-content: safe center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .mine-grid {

@@ -154,8 +154,12 @@ function testGeneratedLevelsAreSolvable() {
         const generated = api.generateLevel(config.size, config.presses, random);
 
         assert(!api.isAllLit(generated.board), 'generated board should not start solved');
-        assert.strictEqual(generated.scrambleSet.length, config.presses, 'scramble set size should match config');
-        assert.strictEqual(new Set(generated.scrambleSet).size, config.presses, 'scramble cells should be distinct');
+        /* 兜底路径可能追加一次按压，因此允许等于或多一 */
+        assert(
+            generated.scrambleSet.length === config.presses || generated.scrambleSet.length === config.presses + 1,
+            'scramble set size should match config (or +1 via fallback)'
+        );
+        assert.strictEqual(new Set(generated.scrambleSet).size, generated.scrambleSet.length, 'scramble cells should be distinct');
 
         let board = generated.board;
         for (const index of generated.scrambleSet) {
