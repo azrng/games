@@ -106,6 +106,16 @@
             desc: "点一盏灯翻转十字相邻，把整块灯板全部点亮，关卡必有解。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "minesweeper",
+            title: "扫雷",
+            path: "minesweeper/index.html",
+            mobilePath: "minesweeper/index.html",
+            icon: "img/game.svg",
+            desc: "经典扫雷轻量版，首点必安全，长按插旗，三档难度记录用时。",
+            readme: null,
+            meta: null
         }
     ];
 

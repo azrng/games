@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>扫雷 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="扫雷">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Minesweeper</p>
+                <h1>扫雷</h1>
+            </div>
+            <div class="status-pills">
+                <div class="status-pill" aria-label="剩余雷数">
+                    <span aria-hidden="true">💣</span>
+                    <span id="mines-text">10</span>
+                </div>
+                <div class="status-pill" aria-label="用时">
+                    <span aria-hidden="true">⏱</span>
+                    <span id="timer-text">0:00</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="difficulty-bar" aria-label="难度选择">
+            <button id="diff-easy" class="diff-btn" type="button" data-diff="easy">初级</button>
+            <button id="diff-medium" class="diff-btn" type="button" data-diff="medium">中级</button>
+            <button id="diff-hard" class="diff-btn" type="button" data-diff="hard">高级</button>
+        </section>
+
+        <section class="board-section" aria-label="雷区">
+            <div id="grid" class="mine-grid" aria-live="polite"></div>
+        </section>
+
+        <p class="hint-text">点击翻开，长按插旗；点数字且旗数吻合可快捷翻开周围。</p>
+
+        <footer class="action-bar">
+            <button id="restart-btn" class="ghost-btn" type="button">重开一局</button>
+            <button id="mode-btn" class="ghost-btn" type="button" aria-pressed="false">模式：挖掘 ⛏️</button>
+        </footer>
+    </main>
+
+    <section id="result-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <p class="eyebrow" id="result-eyebrow">Cleared</p>
+            <h2 id="result-title">扫雷成功！</h2>
+            <div class="result-grid">
+                <div>
+                    <span class="label">用时</span>
+                    <strong id="result-time">0:00</strong>
+                </div>
+                <div>
+                    <span class="label">最短用时</span>
+                    <strong id="result-best">--</strong>
+                </div>
+                <div>
+                    <span class="label">胜局</span>
+                    <strong id="result-wins">0</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="again-btn" class="primary-btn" type="button">再来一局</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="desktop-notice" aria-label="移动端提示">
+        <div>
+            <p class="eyebrow">Mobile Only</p>
+            <h2>请在手机上体验</h2>
+            <p>扫雷按触控和竖屏节奏设计，移动端会获得完整体验。</p>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>
