@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="动物翻翻棋是一款适合移动端游玩的 4x4 动物棋翻牌对战小游戏。">
     <title>动物翻翻棋 - 游戏平台</title>
-    <link rel="stylesheet" href="style.css?v=20260726-2">
+    <link rel="stylesheet" href="style.css?v=20260726-3">
 </head>
 <body>
     <main class="game-shell" aria-label="动物翻翻棋">
@@ -46,7 +46,8 @@
 
     <!-- 游戏结果弹窗 -->
     <section id="result-modal" class="modal" hidden aria-label="游戏结果">
-        <div class="modal-card" role="dialog" aria-modal="true">
+        <div id="confetti" class="confetti" aria-hidden="true" hidden></div>
+        <div id="result-card" class="modal-card" role="dialog" aria-modal="true">
             <p class="eyebrow">Game Over</p>
             <h2 id="result-title">游戏结束</h2>
             <p id="result-desc" class="result-desc"></p>
@@ -64,6 +65,6 @@
         </div>
     </section>
 
-    <script src="script.js?v=20260726-2"></script>
+    <script src="script.js?v=20260726-3"></script>
 </body>
 </html>

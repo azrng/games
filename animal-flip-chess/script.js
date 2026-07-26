@@ -23,8 +23,11 @@
     // 覆盖翻转 keyframe(0.62s) 与其后的光圈/高光特效(至 ~0.84s)，
     // 提前移除 flip-animating 会把特效拦腰截断。
     const FLIP_ANIMATION_MS = 880;
-    const MOVE_ANIM_MS = 260;
+    // 覆盖滑入(0.26s)与其后的冲击缩放/粒子迸发(至约 0.45s)
+    const MOVE_ANIM_MS = 450;
     const RESTART_ARM_MS = 2500;
+    // 发牌动画：最后一格延迟 15*40ms + 动画 0.4s，留少量余量
+    const DEAL_TOTAL_MS = 1100;
 
     let board = [];
     let currentPlayer = 'a'; // 'a' (human) or 'b' (AI)
@@ -44,6 +47,8 @@
     let restartArmTimer = null;
     let isAnimatingMove = false; // blocks input during move/capture animation
     let moveAnimTimer = null;
+    let dealTimer = null;
+    let lastCounts = { a: null, b: null }; // 用于棋子数变化时的跳动提醒
 
     // DOM elements
     const boardEl = document.getElementById('board');
@@ -61,6 +66,9 @@
     const resultB = document.getElementById('result-b');
     const restartBtn = document.getElementById('restart-btn');
     const playAgainBtn = document.getElementById('play-again-btn');
+    const turnIndicator = document.getElementById('turn-indicator');
+    const confettiEl = document.getElementById('confetti');
+    const resultCard = document.getElementById('result-card');
 
     // Initialize game
     function initGame() {
@@ -82,6 +90,8 @@
             moveAnimTimer = null;
         }
         clearTransientAnimationClasses();
+        clearConfetti();
+        lastCounts = { a: null, b: null };
         aiTurnToken++;
 
         // Create one full animal set for each side.
@@ -107,10 +117,24 @@
 
         renderBoard();
         updateUI();
+        playDealAnimation();
 
         if (currentPlayer === 'b') {
             scheduleAITurn();
         }
+    }
+
+    // 开局发牌动画：重挂 dealing 类使逐格浮入动画重放，结束后移除，
+    // 避免后续 renderBoard 时残留动画选择器。
+    function playDealAnimation() {
+        if (dealTimer) clearTimeout(dealTimer);
+        boardEl.classList.remove('dealing');
+        void boardEl.offsetWidth;
+        boardEl.classList.add('dealing');
+        dealTimer = setTimeout(() => {
+            boardEl.classList.remove('dealing');
+            dealTimer = null;
+        }, DEAL_TOTAL_MS);
     }
 
     // Render board
@@ -138,6 +162,7 @@
                 cardEl.type = 'button';
                 cardEl.dataset.row = r;
                 cardEl.dataset.col = c;
+                cardEl.style.setProperty('--cell-index', r * BOARD_SIZE + c);
                 addTouchEventListeners(cardEl, r, c);
                 boardEl.appendChild(cardEl);
             }
@@ -327,13 +352,15 @@
 
     // Update UI state
     function updateUI() {
-        const aCount = countPieces('a');
-        const bCount = countPieces('b');
-        playerACount.textContent = aCount;
-        playerBCount.textContent = bCount;
+        updatePieceCount(playerACount, 'a', countPieces('a'));
+        updatePieceCount(playerBCount, 'b', countPieces('b'));
 
         playerAInfo.classList.toggle('active', currentPlayer === 'a' && phase === 'play');
         playerBInfo.classList.toggle('active', currentPlayer === 'b' && phase === 'play');
+
+        if (turnIndicator) {
+            turnIndicator.classList.toggle('turn-b', phase === 'play' && currentPlayer === 'b');
+        }
 
         if (phase === 'play') {
             if (aiThinking) {
@@ -374,6 +401,17 @@
         } else {
             hintEl.textContent = '轮到你：点背面牌翻开，或选择你的棋子移动吃子。';
         }
+    }
+
+    // 更新棋子数并在数值变化时重放跳动动画；新开局（lastCounts 为 null）不跳
+    function updatePieceCount(el, key, value) {
+        if (lastCounts[key] !== null && lastCounts[key] !== value) {
+            el.classList.remove('bump');
+            void el.offsetWidth;
+            el.classList.add('bump');
+        }
+        lastCounts[key] = value;
+        el.textContent = value;
     }
 
     // Count pieces for a player
@@ -1170,12 +1208,45 @@
         resultDesc.textContent = reason;
         resultA.textContent = countPieces('a');
         resultB.textContent = countPieces('b');
+        if (resultCard) {
+            resultCard.classList.remove('result-win', 'result-lose', 'result-draw');
+            resultCard.classList.add(winner === 'a' ? 'result-win' : winner === 'b' ? 'result-lose' : 'result-draw');
+        }
         if (resultModal) resultModal.hidden = false;
+        if (winner === 'a') launchConfetti();
         if (playAgainBtn) playAgainBtn.focus();
     }
 
     function getPlayerName(player) {
         return player === 'a' ? '你' : '电脑';
+    }
+
+    function prefersReducedMotion() {
+        return typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    // 胜利彩带：生成随机落点/延迟/时长/旋转的彩纸片，交给 CSS 动画飘落。
+    // 颜色取自 :root 调色板（accent/accent-light/player-a/player-b/card-back）。
+    function launchConfetti() {
+        if (!confettiEl || prefersReducedMotion()) return;
+        const colors = ['#e67e22', '#f39c12', '#e74c3c', '#3498db', '#4a6741'];
+        const pieces = [];
+        for (let i = 0; i < 32; i++) {
+            const x = (Math.random() * 100).toFixed(1);
+            const delay = (Math.random() * 0.6).toFixed(2);
+            const dur = (1.6 + Math.random() * 1.4).toFixed(2);
+            const rot = Math.round(360 + Math.random() * 540);
+            pieces.push(`<span style="--x:${x}%;--delay:${delay}s;--dur:${dur}s;--rot:${rot}deg;--clr:${colors[i % colors.length]}"></span>`);
+        }
+        confettiEl.innerHTML = pieces.join('');
+        confettiEl.hidden = false;
+    }
+
+    function clearConfetti() {
+        if (!confettiEl) return;
+        confettiEl.hidden = true;
+        confettiEl.innerHTML = '';
     }
 
     function showActionTip(message) {

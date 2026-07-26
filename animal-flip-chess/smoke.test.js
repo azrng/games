@@ -62,7 +62,11 @@ function runScriptWithContext() {
             hidden: false,
             disabled: false,
             dataset: {},
-            style: {},
+            style: {
+                setProperty(name, value) {
+                    this[name] = value;
+                }
+            },
             children: [],
             listeners: {},
             classList: null,
@@ -139,7 +143,7 @@ function runScriptWithContext() {
     [
         'board', 'turn-text', 'player-a-info', 'player-b-info',
         'player-a-count', 'player-b-count', 'header-tip', 'result-modal', 'result-title', 'result-desc', 'result-a',
-        'result-b', 'restart-btn', 'play-again-btn'
+        'result-b', 'restart-btn', 'play-again-btn', 'turn-indicator', 'confetti', 'result-card'
     ].forEach(createElement);
 
     const hintText = createElement('hint-text');
@@ -271,6 +275,11 @@ function testFilesAndStylesExist() {
     assert(!script.includes('moveHistory'), 'script should not keep undo history');
     assert(script.includes('++emptyIdCounter'), 'empty cell ids should use a stable counter');
     assert(script.includes('AnimalFlipChess'), 'script should expose test API');
+    assert(html.includes('id="confetti"'), 'page should include a confetti layer for the win celebration');
+    assert(css.includes('@keyframes dealIn'), 'board should have a staggered deal-in animation');
+    assert(css.includes('@keyframes particleBurst'), 'captures should emit a particle burst');
+    assert(css.includes('@keyframes confettiFall'), 'win celebration should have falling confetti');
+    assert(css.includes('prefers-reduced-motion'), 'all decorative motion must respect reduced-motion');
 }
 
 function testBoardCellsAreAccessibleButtons() {
@@ -901,6 +910,12 @@ function testEliminatingAllPiecesEndsGameEvenWithHiddenCards() {
     assert.strictEqual(state.phase, 'end', 'game should end when a side loses its last piece');
     assert.strictEqual(elements.get('result-title').textContent, '你获胜！',
         'human should win after eliminating the AI');
+    assert(elements.get('result-card').classList.contains('result-win'),
+        'result card should carry the win theme class');
+    assert.strictEqual(elements.get('confetti').hidden, false,
+        'confetti should launch when the human wins');
+    assert(elements.get('confetti').innerHTML.includes('<span'),
+        'confetti layer should contain generated pieces');
 }
 
 function testAiFlipDoesNotAlwaysFavorOwnStrongCard() {
@@ -992,7 +1007,7 @@ function testMoveAnimationLocksInput() {
         'input during move animation should be locked, turn stays with AI');
 
     // Advance past the animation window; lock releases.
-    runTimersThrough(300);
+    runTimersThrough(500);
     // After the lock window, the AI turn (scheduled at 1300ms) has not fired
     // yet, so the board is still stable — no crash from the FLIP cleanup.
     assert.strictEqual(api.getStateForTest().phase, 'play',
@@ -1075,7 +1090,7 @@ function testCancelOutFlashesBothCellsAndLocksInput() {
         'turn should have switched to AI after cancel-out');
 
     // After the animation window the flash class is cleaned up.
-    runTimersThrough(300);
+    runTimersThrough(500);
     assert(!cell(elements, 0, 0).classList.contains('cancel-out-flash'),
         'cancel-out flash should be cleared after the animation window');
     assert(!cell(elements, 0, 1).classList.contains('cancel-out-flash'),
@@ -1161,6 +1176,10 @@ function testMutualFinalCancelOutIsDraw() {
         'mutual final cancel-out should be a draw, not an AI win');
     assert.strictEqual(String(elements.get('result-a').textContent), '0', 'human count should be 0');
     assert.strictEqual(String(elements.get('result-b').textContent), '0', 'AI count should be 0');
+    assert(elements.get('result-card').classList.contains('result-draw'),
+        'result card should carry the draw theme class');
+    assert.strictEqual(elements.get('confetti').hidden, true,
+        'confetti must not launch on a draw');
 }
 
 function testTransientAnimationClassesClearedOnGameEnd() {

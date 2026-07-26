@@ -30,6 +30,12 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg);
+    /* 三团柔和的光晕（阵营红/蓝 + 丛林绿），给纯色底加一点氛围 */
+    background-image:
+        radial-gradient(circle at 15% 10%, rgba(231, 76, 60, 0.08), transparent 42%),
+        radial-gradient(circle at 88% 18%, rgba(52, 152, 219, 0.08), transparent 40%),
+        radial-gradient(circle at 50% 96%, rgba(74, 103, 65, 0.12), transparent 46%);
+    background-attachment: fixed;
     color: var(--text);
     min-height: 100vh;
     min-height: 100dvh;
@@ -60,6 +66,10 @@ body {
 .game-header h1 {
     font-size: 1.5rem;
     font-weight: 700;
+    background: linear-gradient(120deg, var(--card-back) 0%, var(--accent) 70%, var(--accent-light) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .eyebrow {
@@ -191,6 +201,18 @@ body {
     font-weight: 700;
 }
 
+/* 棋子数变化时跳动提醒 */
+.player-pieces.bump {
+    animation: countBump 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes countBump {
+    35% {
+        transform: scale(1.45);
+        color: var(--accent);
+    }
+}
+
 .turn-indicator {
     padding: 6px 14px;
     background: var(--accent);
@@ -202,6 +224,12 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    transition: background-color 0.3s ease;
+}
+
+/* 电脑回合时指示器切到蓝色阵营色，谁在行动一眼可见 */
+.turn-indicator.turn-b {
+    background: var(--player-b);
 }
 
 .thinking-dots {
@@ -250,6 +278,26 @@ body {
     width: 100%;
     max-width: 360px;
     aspect-ratio: 1;
+    padding: 10px;
+    border-radius: 18px;
+    background: linear-gradient(155deg, #efe5d3 0%, #e5d7bf 100%);
+    box-shadow:
+        inset 0 2px 6px rgba(0, 0, 0, 0.08),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.6),
+        0 12px 28px rgba(74, 103, 65, 0.14);
+}
+
+/* 开局发牌：整盘牌从下方逐张浮入，延迟由 --cell-index 逐格递增 */
+.game-board.dealing .card {
+    animation: dealIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+    animation-delay: calc(var(--cell-index, 0) * 40ms);
+}
+
+@keyframes dealIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.86);
+    }
 }
 
 /* Card */
@@ -371,6 +419,19 @@ body {
         repeating-linear-gradient(45deg, transparent, transparent 8px, var(--card-back-pattern) 8px, var(--card-back-pattern) 10px),
         repeating-linear-gradient(-45deg, transparent, transparent 8px, var(--card-back-pattern) 8px, var(--card-back-pattern) 10px);
     color: #fff;
+    /* 浮雕感：顶部亮边 + 底部暗边 */
+    box-shadow:
+        var(--shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.22);
+}
+
+/* 桌面端：可翻的背面牌悬停时轻轻抬起 */
+@media (hover: hover) and (pointer: fine) {
+    .card:not(:disabled):not(.flipped):not(.captured):hover .card-inner {
+        transform: translateY(-3px);
+        transition: transform 0.15s ease-out;
+    }
 }
 
 .card-back::after {
@@ -421,6 +482,13 @@ body {
 .card.selected .card-front {
     box-shadow: 0 0 0 4px var(--accent), 0 10px 20px rgba(230, 126, 34, 0.25);
     transform: translateY(-3px);
+    animation: selectedPulse 1.6s ease-in-out infinite;
+}
+
+/* 选中呼吸：只动 box-shadow，不覆盖 translateY */
+@keyframes selectedPulse {
+    0%, 100% { box-shadow: 0 0 0 4px var(--accent), 0 10px 20px rgba(230, 126, 34, 0.25); }
+    50% { box-shadow: 0 0 0 5px var(--accent), 0 12px 26px rgba(230, 126, 34, 0.5); }
 }
 
 .card.flip-animating.selected .card-front {
@@ -478,6 +546,47 @@ body {
     100% { opacity: 0; transform: scale(0.92); }
 }
 
+/* 吃子落定后的冲击缩放：前 55% 保持不动，等滑入(0.26s)结束再弹一下 */
+.card.capture-flash .card-inner {
+    animation: captureImpact 0.46s ease-out;
+}
+
+@keyframes captureImpact {
+    0%, 55% { transform: scale(1); }
+    72% { transform: scale(1.1); }
+    88% { transform: scale(0.97); }
+    100% { transform: scale(1); }
+}
+
+/* 吃子粒子迸发：八颗橙色碎粒从格子中心向外扩散 */
+.card.capture-flash::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    z-index: 4;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle, var(--accent-light) 0 3px, transparent 3.5px),
+        radial-gradient(circle, var(--accent) 0 2.5px, transparent 3px),
+        radial-gradient(circle, var(--accent-light) 0 2.5px, transparent 3px),
+        radial-gradient(circle, var(--accent) 0 3px, transparent 3.5px),
+        radial-gradient(circle, var(--accent-light) 0 2px, transparent 2.5px),
+        radial-gradient(circle, var(--accent) 0 2px, transparent 2.5px),
+        radial-gradient(circle, var(--accent-light) 0 3px, transparent 3.5px),
+        radial-gradient(circle, var(--accent) 0 2.5px, transparent 3px);
+    background-repeat: no-repeat;
+    background-size: 10px 10px;
+    background-position: 8% 12%, 50% 2%, 92% 14%, 96% 52%, 88% 90%, 50% 97%, 10% 88%, 3% 50%;
+    opacity: 0;
+    animation: particleBurst 0.42s ease-out 0.24s forwards;
+}
+
+@keyframes particleBurst {
+    0% { opacity: 1; transform: scale(0.25); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.4); }
+}
+
 /* Mutual destruction: both cells flash and the emptied cells fade in. */
 .card.cancel-out-flash .card-front {
     animation: cancelOutFlash 0.3s ease-out;
@@ -498,15 +607,57 @@ body {
     75% { transform: scale(0.94) rotate(2deg); }
 }
 
+/* 同归于尽：两格各自迸出红色碎粒，与吃子的橙色区分 */
+.card.cancel-out-flash::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    z-index: 4;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle, var(--player-a-strong) 0 3px, transparent 3.5px),
+        radial-gradient(circle, var(--player-a) 0 2.5px, transparent 3px),
+        radial-gradient(circle, var(--player-a-strong) 0 2.5px, transparent 3px),
+        radial-gradient(circle, var(--player-a) 0 3px, transparent 3.5px),
+        radial-gradient(circle, var(--player-a-strong) 0 2px, transparent 2.5px),
+        radial-gradient(circle, var(--player-a) 0 2px, transparent 2.5px);
+    background-repeat: no-repeat;
+    background-size: 10px 10px;
+    background-position: 10% 10%, 50% 2%, 90% 12%, 92% 88%, 50% 96%, 8% 90%;
+    opacity: 0;
+    animation: particleBurst 0.4s ease-out 0.05s forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .card.move-entering .card-front { transition: none; }
     .card.capture-flash::before { animation: none; opacity: 0; }
     .card.cancel-out-flash .card-front,
     .card.cancel-out-flash .card-inner { animation: none; }
+    .game-board.dealing .card,
+    .card.selected .card-front,
+    .card.valid-move,
+    .card.valid-cancel,
+    .card.valid-move::after,
+    .card.valid-cancel::after,
+    .card.capture-flash .card-inner,
+    .card.capture-flash::after,
+    .card.cancel-out-flash::after,
+    .modal:not([hidden]),
+    .modal:not([hidden]) .modal-card,
+    .player-pieces.bump { animation: none; }
+    .card.capture-flash::after,
+    .card.cancel-out-flash::after { content: none; }
+    .confetti { display: none; }
 }
 
 .card.valid-move {
     box-shadow: 0 0 0 3px var(--accent-light), 0 8px 18px rgba(243, 156, 18, 0.25);
+    animation: validPulse 1.3s ease-in-out infinite;
+}
+
+@keyframes validPulse {
+    0%, 100% { box-shadow: 0 0 0 3px var(--accent-light), 0 8px 18px rgba(243, 156, 18, 0.25); }
+    50% { box-shadow: 0 0 0 4px var(--accent-light), 0 8px 24px rgba(243, 156, 18, 0.55); }
 }
 
 .card.valid-move::after {
@@ -530,6 +681,28 @@ body {
 /* Same-rank enemy: mutual destruction. Red warns of the two-sided loss. */
 .card.valid-cancel {
     box-shadow: 0 0 0 3px var(--player-a-strong), 0 8px 18px rgba(181, 58, 47, 0.3);
+    animation: cancelPulse 1.3s ease-in-out infinite;
+}
+
+@keyframes cancelPulse {
+    0%, 100% { box-shadow: 0 0 0 3px var(--player-a-strong), 0 8px 18px rgba(181, 58, 47, 0.3); }
+    50% { box-shadow: 0 0 0 4px var(--player-a-strong), 0 8px 24px rgba(181, 58, 47, 0.6); }
+}
+
+/* 目标角标（可吃/可走/同归）弹入 */
+.card.valid-move::after,
+.card.valid-cancel::after {
+    animation-name: badgePop;
+    animation-duration: 0.25s;
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation-fill-mode: backwards;
+}
+
+@keyframes badgePop {
+    from {
+        transform: scale(0.4);
+        opacity: 0;
+    }
 }
 
 .card.valid-cancel::after {
@@ -591,6 +764,26 @@ body {
     display: none;
 }
 
+/* 弹窗入场：背景淡入 + 卡片带回弹上浮 */
+.modal:not([hidden]) {
+    animation: modalFade 0.25s ease-out;
+}
+
+.modal:not([hidden]) .modal-card {
+    animation: modalPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalFade {
+    from { opacity: 0; }
+}
+
+@keyframes modalPop {
+    from {
+        opacity: 0;
+        transform: translateY(26px) scale(0.9);
+    }
+}
+
 .modal-card {
     background: var(--card-bg);
     border-radius: 16px;
@@ -599,6 +792,41 @@ body {
     max-width: 340px;
     width: 100%;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+/* 结果主题色：胜=橙、负=蓝、平=灰 */
+.modal-card.result-win h2 { color: var(--accent); }
+.modal-card.result-lose h2 { color: var(--player-b-strong); }
+.modal-card.result-draw h2 { color: var(--text-light); }
+
+/* 胜利彩带：JS 生成彩纸片，从屏幕顶部飘落 */
+.confetti {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.confetti[hidden] {
+    display: none;
+}
+
+.confetti span {
+    position: absolute;
+    top: -16px;
+    left: var(--x, 50%);
+    width: 8px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--clr, var(--accent));
+    opacity: 0;
+    animation: confettiFall var(--dur, 2s) ease-in var(--delay, 0s) forwards;
+}
+
+@keyframes confettiFall {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(110vh) rotate(var(--rot, 540deg)); }
 }
 
 .modal-card h2 {
