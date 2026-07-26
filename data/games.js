@@ -96,6 +96,16 @@
             desc: "点击旋转管道，把水源接通到每个端点，生成树关卡必有解。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "lights-out",
+            title: "点灯",
+            path: "lights-out/index.html",
+            mobilePath: "lights-out/index.html",
+            icon: "img/game.svg",
+            desc: "点一盏灯翻转十字相邻，把整块灯板全部点亮，关卡必有解。",
+            readme: null,
+            meta: null
         }
     ];
 
