@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>数字华容道 - 游戏平台</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260726-1">
 </head>
 <body>
     <main class="game-shell" aria-label="数字华容道">
@@ -32,8 +32,8 @@
         </section>
 
         <section class="record-row" aria-label="历史最优">
-            <span>最少步数：<strong id="best-steps">--</strong></span>
-            <span>最短用时：<strong id="best-time">--</strong></span>
+            <span>🏆 最少步数：<strong id="best-steps">--</strong></span>
+            <span>⏱️ 最短用时：<strong id="best-time">--</strong></span>
         </section>
 
         <section class="board-section" aria-label="拼图棋盘">
@@ -67,6 +67,7 @@
     </section>
 
     <section id="result-modal" class="result-modal" hidden>
+        <div id="confetti" class="confetti" aria-hidden="true" hidden></div>
         <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
             <p class="eyebrow">Puzzle Solved</p>
             <h2 id="result-title">通关成功</h2>
@@ -107,6 +108,6 @@
         </div>
     </section>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=20260726-1"></script>
 </body>
 </html>

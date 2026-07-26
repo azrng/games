@@ -25,7 +25,11 @@ function loadApi() {
             hidden: false,
             disabled: false,
             dataset: {},
-            style: {},
+            style: {
+                setProperty(name, value) {
+                    this[name] = value;
+                }
+            },
             className: '',
             classList: {
                 add() {},
@@ -69,7 +73,8 @@ function loadApi() {
         'reset-btn',
         'size-btn',
         'play-again-btn',
-        'change-size-btn'
+        'change-size-btn',
+        'confetti'
     ].forEach(createElement);
 
     const document = {
@@ -142,6 +147,13 @@ function testFilesAndCatalogExist() {
     assert(html.includes('data-size="5"'), 'page should provide 5x5 option');
     assert(css.includes('display: grid'), 'board should use CSS Grid');
     assert(!script.includes('<canvas'), 'game should not depend on Canvas');
+    assert(css.includes('@keyframes tileSlide'), 'tile moves should slide instead of teleporting');
+    assert(css.includes('@keyframes solvedPulse'), 'solving should trigger a staggered tile wave');
+    assert(css.includes('@keyframes confettiFall'), 'solving should celebrate with confetti');
+    assert(css.includes('.tile.placed'), 'correctly placed tiles should get visual feedback');
+    assert(css.includes('prefers-reduced-motion'), 'decorative motion must respect reduced-motion');
+    assert(html.includes('id="confetti"'), 'page should include a confetti layer');
+    assert(script.includes('--slide-x'), 'script should pass slide direction to CSS');
     assert(catalog.includes('slug: "sliding-puzzle"'), 'catalog should register sliding puzzle');
     assert(catalog.includes('mobilePath: "sliding-puzzle/index.html"'), 'catalog should route mobile to sliding puzzle');
 }

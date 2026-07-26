@@ -17,7 +17,9 @@
         solved: false,
         history: [],
         timerId: 0,
-        touchStart: null
+        touchStart: null,
+        lastMove: null, // 最近一次移动的 {tile, dx, dy}，供滑动动画使用，渲染后清空
+        lastSteps: 0    // 用于步数变化时的跳动提醒
     };
 
     const elements = {
@@ -39,7 +41,8 @@
         resetBtn: documentObject.getElementById('reset-btn'),
         sizeBtn: documentObject.getElementById('size-btn'),
         playAgainBtn: documentObject.getElementById('play-again-btn'),
-        changeSizeBtn: documentObject.getElementById('change-size-btn')
+        changeSizeBtn: documentObject.getElementById('change-size-btn'),
+        confetti: documentObject.getElementById('confetti')
     };
 
     function createSolvedBoard(size) {
@@ -201,6 +204,13 @@
 
     function updateStats() {
         elements.sizeLabel.textContent = `${state.size}×${state.size}`;
+        if (state.lastSteps !== state.steps) {
+            // 重挂 bump 类让步数跳动动画重放
+            elements.stepsText.classList.remove('bump');
+            void elements.stepsText.offsetWidth;
+            elements.stepsText.classList.add('bump');
+            state.lastSteps = state.steps;
+        }
         elements.stepsText.textContent = String(state.steps);
         elements.timerText.textContent = formatTime(state.seconds);
         elements.undoBtn.disabled = state.history.length === 0 || state.solved;
@@ -212,7 +222,7 @@
         const children = [];
         elements.board.style.gridTemplateColumns = `repeat(${state.size}, minmax(0, 1fr))`;
 
-        state.board.forEach((tile) => {
+        state.board.forEach((tile, index) => {
             const cell = documentObject.createElement(tile === 0 ? 'div' : 'button');
             cell.className = tile === 0 ? 'empty-tile' : 'tile';
 
@@ -221,6 +231,19 @@
                 cell.textContent = String(tile);
                 cell.dataset.tile = String(tile);
                 cell.setAttribute('aria-label', `移动 ${tile}`);
+                // 通关波浪动画按格序错峰
+                cell.style.setProperty('--cell-index', String(index));
+                // 已归位的方块给绿色反馈
+                if (tile === index + 1) {
+                    cell.classList.add('placed');
+                }
+                // 每步全量重建 DOM，新节点没有过渡可言；用 keyframes 从
+                // 上一格的偏移滑入，方向由 moveByTile 记录的 lastMove 提供
+                if (state.lastMove && state.lastMove.tile === tile) {
+                    cell.classList.add('sliding');
+                    cell.style.setProperty('--slide-x', String(state.lastMove.dx));
+                    cell.style.setProperty('--slide-y', String(state.lastMove.dy));
+                }
                 cell.addEventListener('click', () => moveByTile(tile));
                 cell.addEventListener('touchstart', (event) => handleTouchStart(event, tile), { passive: true });
                 cell.addEventListener('touchend', (event) => handleTouchEnd(event, tile), { passive: false });
@@ -231,6 +254,7 @@
                 fragment.appendChild(cell);
             }
         });
+        state.lastMove = null;
 
         if (fragment) {
             elements.board.replaceChildren(fragment);
@@ -258,9 +282,43 @@
         }
     }
 
+    function prefersReducedMotion() {
+        return typeof windowObject.matchMedia === 'function'
+            && windowObject.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    // 通关彩带：颜色取自 :root 调色板（primary/warning/danger/绿）
+    function launchConfetti() {
+        if (!elements.confetti || prefersReducedMotion()) {
+            return;
+        }
+        const colors = ['#2957c8', '#f59e0b', '#dc3545', '#10b981', '#6b8ff0'];
+        const pieces = [];
+        for (let i = 0; i < 30; i += 1) {
+            const x = (Math.random() * 100).toFixed(1);
+            const delay = (Math.random() * 0.6).toFixed(2);
+            const duration = (1.6 + Math.random() * 1.4).toFixed(2);
+            const rotation = Math.round(360 + Math.random() * 540);
+            pieces.push(`<span style="--x:${x}%;--delay:${delay}s;--dur:${duration}s;--rot:${rotation}deg;--clr:${colors[i % colors.length]}"></span>`);
+        }
+        elements.confetti.innerHTML = pieces.join('');
+        elements.confetti.hidden = false;
+    }
+
+    function clearConfetti() {
+        if (!elements.confetti) {
+            return;
+        }
+        elements.confetti.hidden = true;
+        elements.confetti.innerHTML = '';
+    }
+
     function showResult() {
         state.solved = true;
         stopTimer();
+        // 通关波浪：全部方块按格序脉冲一遍
+        elements.board.classList.add('solved');
+        launchConfetti();
         const record = saveRecord(state.size, { steps: state.steps, seconds: state.seconds });
         elements.resultSize.textContent = `${state.size}×${state.size}`;
         elements.resultSteps.textContent = String(state.steps);
@@ -278,6 +336,15 @@
 
         const previousBoard = state.board.slice();
         state.board = moveTile(state.board, tile, state.size);
+
+        // 记录该方块从旧格到新格的方向（撤销时同样成立），供滑入动画使用
+        const fromIndex = previousBoard.indexOf(tile);
+        const toIndex = state.board.indexOf(tile);
+        state.lastMove = {
+            tile,
+            dx: getCol(fromIndex, state.size) - getCol(toIndex, state.size),
+            dy: getRow(fromIndex, state.size) - getRow(toIndex, state.size)
+        };
 
         if (!options.isUndo) {
             state.history.push(previousBoard);
@@ -316,7 +383,11 @@
         state.solved = false;
         state.history = [];
         state.touchStart = null;
+        state.lastMove = null;
+        state.lastSteps = 0;
         stopTimer();
+        elements.board.classList.remove('solved');
+        clearConfetti();
         elements.resultModal.hidden = true;
         elements.sizePanel.hidden = true;
         renderBoard();
