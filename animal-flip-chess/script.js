@@ -79,6 +79,7 @@
             clearTimeout(moveAnimTimer);
             moveAnimTimer = null;
         }
+        clearTransientAnimationClasses();
         aiTurnToken++;
 
         // Create one full animal set for each side.
@@ -589,6 +590,21 @@
         }
     }
 
+    // 清理所有格子上的瞬态动画类与内联位移。endGame 会取消 moveAnimTimer，
+    // 使 clearMoveAnimation / clearCancelOutFlash 不再执行；若不在此兜底，
+    // 残留类会被 updateCardElement 的保留逻辑带进下一局，重开时 DOM 重建
+    // 还会让 cancel-out-flash 的抖动动画重放一次。
+    function clearTransientAnimationClasses() {
+        for (const el of boardEl.children) {
+            el.classList.remove('move-entering', 'capture-flash', 'cancel-out-flash');
+            const front = el.querySelector('.card-front');
+            if (front) {
+                front.style.transition = '';
+                front.style.transform = '';
+            }
+        }
+    }
+
     // Flash both cells emptied by a mutual destruction.
     function flashCancelOut(fromRow, fromCol, toRow, toCol) {
         for (const [r, c] of [[fromRow, fromCol], [toRow, toCol]]) {
@@ -730,10 +746,11 @@
 
         if (actions.length === 0) {
             aiThinking = false;
-            // AI has no legal action -> AI loses. checkWinCondition resolves it.
-            if (checkWinCondition()) return;
-            openingTurn = false;
-            switchPlayer();
+            // 规则：轮到一方无任何可用操作即判负。正常流程里上一手的
+            // checkWinCondition 已经拦截过（它检查的是下一位玩家），这里
+            // 是防御分支；不能再调 checkWinCondition——它查的是人类的
+            // 行动力，会让 AI 白白跳过回合而不是判负。
+            endGame('a', '电脑无可用操作');
             return;
         }
 
@@ -821,16 +838,6 @@
         score += (row * BOARD_SIZE + col) * 0.01;
 
         return score;
-    }
-
-    // Check if there are unflipped cards
-    function hasUnflippedCards() {
-        for (let r = 0; r < BOARD_SIZE; r++) {
-            for (let c = 0; c < BOARD_SIZE; c++) {
-                if (!board[r][c].flipped && !board[r][c].captured) return true;
-            }
-        }
-        return false;
     }
 
     // === Minimax AI with Alpha-Beta Pruning ===
@@ -1033,6 +1040,8 @@
 
         // Terminal
         if (state_isTerminal(state)) {
+            // 双方同时归零是平局，不能按“轮到谁谁输”计成必胜/必败
+            if (aiCount === 0 && humanCount === 0) return 0;
             score += state.currentPlayer === 'a' ? 10000 : -10000;
         }
 
@@ -1074,6 +1083,12 @@
         const aCount = countPieces('a');
         const bCount = countPieces('b');
 
+        // 双方最后的棋子同归于尽时两边同时归零，必须先于单方归零判平局，
+        // 否则会走进 aCount === 0 分支被误判成电脑获胜。
+        if (aCount === 0 && bCount === 0) {
+            endGame(null, '双方最后的棋子同归于尽');
+            return true;
+        }
         if (aCount === 0) {
             endGame('b', '你的棋子全部被吃掉');
             return true;
@@ -1142,11 +1157,11 @@
             clearTimeout(moveAnimTimer);
             moveAnimTimer = null;
         }
+        clearTransientAnimationClasses();
         clearHeaderTip();
         updateUI();
 
-        const winnerName = winner === 'a' ? '你' : '电脑';
-        resultTitle.textContent = `${winnerName}获胜！`;
+        resultTitle.textContent = winner ? `${getPlayerName(winner)}获胜！` : '平局';
         resultDesc.textContent = reason;
         resultA.textContent = countPieces('a');
         resultB.textContent = countPieces('b');

@@ -1076,6 +1076,79 @@ function testCancelOutFlashesBothCellsAndLocksInput() {
         'cancel-out flash should be cleared after the animation window');
 }
 
+function testMutualFinalCancelOutIsDraw() {
+    // 双方仅剩最后一子且同兽互撞：两边同时归零，必须判平局，
+    // 不能走进“你的棋子全部被吃掉”的电脑获胜分支。
+    const { api, elements } = runScriptWithContext();
+    const empty = (animal) => ({ animal, owner: null, flipped: true, captured: true });
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: true, captured: false },
+                empty('dog'), empty('wolf')
+            ],
+            [empty('rat'), empty('lion'), empty('tiger'), empty('leopard')],
+            [empty('cat'), empty('dog'), empty('wolf'), empty('rat')],
+            [empty('lion'), empty('tiger'), empty('leopard'), empty('cat')]
+        ]
+    });
+
+    cell(elements, 0, 0).dispatch('click');
+    cell(elements, 0, 1).dispatch('click');
+
+    const state = api.getStateForTest();
+    assert.strictEqual(state.phase, 'end', 'mutual final cancel-out should end the game');
+    assert.strictEqual(elements.get('result-title').textContent, '平局',
+        'mutual final cancel-out should be a draw, not an AI win');
+    assert.strictEqual(String(elements.get('result-a').textContent), '0', 'human count should be 0');
+    assert.strictEqual(String(elements.get('result-b').textContent), '0', 'AI count should be 0');
+}
+
+function testTransientAnimationClassesClearedOnGameEnd() {
+    // endGame 会取消 moveAnimTimer，原有的动画清理回调不再执行；
+    // 必须由 endGame/initGame 兜底移除瞬态动画类，避免带进下一局重放。
+    const { api, elements } = runScriptWithContext();
+    const empty = (animal) => ({ animal, owner: null, flipped: true, captured: true });
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: 'a', flipped: true, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: true, captured: false },
+                empty('dog'), empty('wolf')
+            ],
+            [empty('rat'), empty('lion'), empty('tiger'), empty('leopard')],
+            [empty('cat'), empty('dog'), empty('wolf'), empty('rat')],
+            [empty('lion'), empty('tiger'), empty('leopard'), empty('cat')]
+        ]
+    });
+
+    // 同兽互撞直接终局（此时 flash 类刚被打上、清理定时器已被取消）。
+    cell(elements, 0, 0).dispatch('click');
+    cell(elements, 0, 1).dispatch('click');
+    assert.strictEqual(api.getStateForTest().phase, 'end', 'game should have ended');
+
+    for (const [r, c] of [[0, 0], [0, 1]]) {
+        for (const cls of ['cancel-out-flash', 'move-entering', 'capture-flash']) {
+            assert(!cell(elements, r, c).classList.contains(cls),
+                `cell ${r},${c} should not keep transient class ${cls} after game end`);
+        }
+    }
+
+    // 重开一局后同样不应有残留。
+    elements.get('play-again-btn').dispatch('click');
+    for (const [r, c] of [[0, 0], [0, 1]]) {
+        for (const cls of ['cancel-out-flash', 'move-entering', 'capture-flash']) {
+            assert(!cell(elements, r, c).classList.contains(cls),
+                `cell ${r},${c} should not carry transient class ${cls} into a new game`);
+        }
+    }
+}
+
 function testCardsReEnabledAfterAiTurn() {
     // Regression: after the AI finishes its turn and play returns to the human,
     // every card must have disabled=false. Previously switchPlayer() only called
@@ -1158,6 +1231,8 @@ testRestartRequiresTwoClicksDuringPlay();
 testMoveAnimationLocksInput();
 testInvalidTargetKeepsSelection();
 testCancelOutFlashesBothCellsAndLocksInput();
+testMutualFinalCancelOutIsDraw();
+testTransientAnimationClassesClearedOnGameEnd();
 testCardsReEnabledAfterAiTurn();
 
 console.log('animal flip chess smoke test passed');
