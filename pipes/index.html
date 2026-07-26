@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>转管道 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="转管道">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Pipes</p>
+                <h1>转管道</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">步数</span>
+                <strong id="steps-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">最少步</span>
+                <strong id="min-steps-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">本关最佳</span>
+                <strong id="best-text">--</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="管道棋盘">
+            <div id="grid" class="pipe-grid" aria-live="polite"></div>
+        </section>
+
+        <p class="hint-text">点击格子旋转管道，把水从水源接通到每一个端点。</p>
+
+        <footer class="action-bar">
+            <button id="restart-btn" class="ghost-btn" type="button">重开本关</button>
+            <button id="levels-btn" class="ghost-btn" type="button">关卡选择</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">管道接通！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
+            <div class="result-grid">
+                <div>
+                    <span class="label">本关步数</span>
+                    <strong id="result-steps">0</strong>
+                </div>
+                <div>
+                    <span class="label">最少步</span>
+                    <strong id="result-min">0</strong>
+                </div>
+                <div>
+                    <span class="label">历史最佳</span>
+                    <strong id="result-best">--</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="desktop-notice" aria-label="移动端提示">
+        <div>
+            <p class="eyebrow">Mobile Only</p>
+            <h2>请在手机上体验</h2>
+            <p>转管道按触控和竖屏节奏设计，移动端会获得完整体验。</p>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

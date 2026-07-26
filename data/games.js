@@ -86,6 +86,16 @@
             desc: "双人对战翻翻棋，翻牌收集动物棋子，大吃小，鼠吃象。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "pipes",
+            title: "转管道",
+            path: "pipes/index.html",
+            mobilePath: "pipes/index.html",
+            icon: "img/game.svg",
+            desc: "点击旋转管道，把水源接通到每个端点，生成树关卡必有解。",
+            readme: null,
+            meta: null
         }
     ];
 
