@@ -13,6 +13,11 @@
         "color-challenge": { icon: "🎨", tag: "休闲" },
         "sliding-puzzle":  { icon: "🯰", tag: "益智" },
         "hidden-cats":     { icon: "🐱", tag: "休闲" },
+        "yibihua":         { icon: "✏️", tag: "益智" },
+        "animal-flip-chess": { icon: "🐘", tag: "策略" },
+        "pipes":           { icon: "🚰", tag: "益智" },
+        "lights-out":      { icon: "💡", tag: "益智" },
+        "minesweeper":     { icon: "💣", tag: "经典" },
     };
 
     function getGamePath(game) {
