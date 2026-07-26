@@ -30,8 +30,19 @@ function testCatalogAndReadmeMatchDesktopOnlyMode() {
     assert(!readme.includes('移动端提供虚拟方向键和缩放按钮'), 'readme should not document removed mobile controls');
 }
 
+function testGameplayUpgrades() {
+    assert(html.includes('id="restart-btn"'), 'sidebar should provide an in-game restart entry');
+    assert(html.includes("const RECORDS_KEY = 'app_maze_records'"), 'records should persist under an app_ prefixed key');
+    assert(html.includes('function computeOptimalSteps'), 'maze should compute BFS optimal steps for route rating');
+    assert(html.includes('function formatDuration'), 'elapsed time should use readable minute formatting');
+    assert(html.includes('id="result-rating"'), 'victory card should show a route rating');
+    assert(html.includes('class="confetti"'), 'victory card should include the confetti layer');
+    assert(html.includes('function stepHeldMovement'), 'held keys should drive continuous movement');
+}
+
 testThemeUsesLightGameHubPalette();
 testDesktopLayoutUsesSidebarAndStage();
 testCatalogAndReadmeMatchDesktopOnlyMode();
+testGameplayUpgrades();
 
 console.log('maze smoke test passed');
