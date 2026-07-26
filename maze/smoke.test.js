@@ -40,9 +40,19 @@ function testGameplayUpgrades() {
     assert(html.includes('function stepHeldMovement'), 'held keys should drive continuous movement');
 }
 
+function testDesktopOnlyCodeHealth() {
+    assert(!html.includes('carvePassages'), 'maze generation should use the iterative carver, not recursion');
+    assert(html.includes('stack.pop()'), 'maze generation should backtrack via an explicit stack');
+    assert(!html.includes('mobile-controls'), 'dead mobile control markup/refs should be removed');
+    assert(!html.includes('zoomLevel'), 'dead zoom state should be removed');
+    assert(!html.includes('bindMobileButton'), 'unused mobile button binder should be removed');
+    assert(!html.includes('isMobileViewportMode'), 'dead mobile viewport branch should be removed');
+}
+
 testThemeUsesLightGameHubPalette();
 testDesktopLayoutUsesSidebarAndStage();
 testCatalogAndReadmeMatchDesktopOnlyMode();
 testGameplayUpgrades();
+testDesktopOnlyCodeHealth();
 
 console.log('maze smoke test passed');

@@ -765,83 +765,6 @@
             transform: translateY(0) scale(0.98);
         }
 
-        #mobile-controls {
-            position: fixed;
-            left: 50%;
-            bottom: 22px;
-            transform: translateX(-50%);
-            display: none;
-            z-index: 120;
-            touch-action: none;
-        }
-
-        .pad-shell,
-        .zoom-stack {
-            padding: 10px 12px;
-            border-radius: 22px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(215, 222, 234, 0.9);
-            backdrop-filter: blur(14px);
-            box-shadow: var(--shadow);
-        }
-
-        .control-row {
-            display: flex;
-            justify-content: center;
-            margin: 4px 0;
-        }
-
-        .control-row.horizontal { gap: 54px; }
-
-        .control-btn,
-        .zoom-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            transition: transform 0.2s ease, background-color 0.2s ease;
-        }
-
-        .control-btn {
-            width: 62px;
-            height: 62px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--maze-primary-bright), var(--maze-primary));
-            color: #ffffff;
-            font-size: 26px;
-            box-shadow: 0 12px 24px rgba(41, 87, 200, 0.24);
-        }
-
-        .zoom-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: var(--maze-primary-soft);
-            color: var(--maze-primary);
-            font-size: 22px;
-            font-weight: 700;
-        }
-
-        .control-btn:active,
-        .zoom-btn:active { transform: scale(0.96); }
-
-        #zoom-controls {
-            position: fixed;
-            right: 20px;
-            bottom: 32px;
-            display: none;
-            z-index: 120;
-        }
-
-        .zoom-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
         @keyframes beacon {
             0%,
             100% {
@@ -1078,25 +1001,6 @@
         </div>
     </section>
 
-    <section id="mobile-controls">
-        <div class="pad-shell">
-            <div class="control-row"><button type="button" class="control-btn" id="up">↑</button></div>
-            <div class="control-row horizontal">
-                <button type="button" class="control-btn" id="left">←</button>
-                <button type="button" class="control-btn" id="right">→</button>
-            </div>
-            <div class="control-row"><button type="button" class="control-btn" id="down">↓</button></div>
-        </div>
-    </section>
-
-    <section id="zoom-controls">
-        <div class="zoom-stack">
-            <button type="button" class="zoom-btn" id="zoom-in">+</button>
-            <button type="button" class="zoom-btn" id="zoom-out">−</button>
-        </div>
-    </section>
-
-
     <script>
         const config = {
             easy: { label: '简单', baseSize: 13, sizeStep: 2, baseCellSize: 40, cellShrinkEvery: 3, cellShrinkStep: 1, minCellSize: 28 },
@@ -1116,16 +1020,13 @@
             partnerPosition: { x: 0, y: 0 },
             partnerFound: false,
             optimalSteps: 0,
-            zoomLevel: 1,
-            isMobile: false,
             translateX: 0,
             translateY: 0,
             visitedCells: new Set(),
             playerElement: null,
             partnerElement: null,
             safeArea: { top: 18, right: 18, bottom: 18, left: 18 },
-            focusFrame: 0,
-            mobileViewportRadius: 4
+            focusFrame: 0
         };
 
         const gameContainer = document.getElementById('game-container');
@@ -1140,8 +1041,6 @@
         const mazeSizeDisplay = document.getElementById('maze-size');
         const difficultyDisplay = document.getElementById('difficulty-name');
         const goalText = document.getElementById('goal-text');
-        const mobileControls = document.getElementById('mobile-controls');
-        const zoomControls = document.getElementById('zoom-controls');
         const messageOverlay = document.getElementById('message-overlay');
         const unsupportedOverlay = document.getElementById('unsupported-overlay');
         const messageTitle = document.getElementById('message-title');
@@ -1159,20 +1058,6 @@
             return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         }
 
-        function bindMobileButton(id, handler) {
-            const button = document.getElementById(id);
-            const pressEvent = window.PointerEvent ? 'pointerdown' : 'touchstart';
-
-            button.addEventListener(pressEvent, (event) => {
-                event.preventDefault();
-                handler();
-                button.blur();
-                window.scrollTo(0, 0);
-            }, { passive: false });
-
-            button.addEventListener('click', (event) => event.preventDefault());
-        }
-
         function showUnsupportedState() {
             gameContainer.style.display = 'none';
             gameSidebar.style.display = 'none';
@@ -1180,8 +1065,6 @@
             statsPanel.style.display = 'none';
             levelSelect.style.display = 'none';
             messageOverlay.classList.add('hidden');
-            mobileControls.style.display = 'none';
-            zoomControls.style.display = 'none';
             unsupportedOverlay.classList.remove('hidden');
         }
 
@@ -1290,36 +1173,9 @@
         }
 
         const mazeSupported = !isMobileDevice();
-        gameState.isMobile = false;
 
         if (!mazeSupported) {
             showUnsupportedState();
-        }
-
-        function zoomIn() {
-            if (!mazeSupported) {
-                return;
-            }
-
-            if (gameState.zoomLevel < 2) {
-                gameState.zoomLevel += 0.2;
-                applyZoom();
-            }
-        }
-
-        function zoomOut() {
-            if (!mazeSupported) {
-                return;
-            }
-
-            if (gameState.zoomLevel > 0.5) {
-                gameState.zoomLevel -= 0.2;
-                applyZoom();
-            }
-        }
-
-        function applyZoom() {
-            scheduleFocusOnPlayer();
         }
 
         function clamp(value, min, max) {
@@ -1331,12 +1187,8 @@
             return Math.round(value * ratio) / ratio;
         }
 
-        function isMobileViewportMode() {
-            return gameState.isMobile;
-        }
-
         function applyMazeTransform() {
-            mazeContainer.style.transform = `translate3d(${gameState.translateX}px, ${gameState.translateY}px, 0) scale(${gameState.zoomLevel})`;
+            mazeContainer.style.transform = `translate3d(${gameState.translateX}px, ${gameState.translateY}px, 0)`;
         }
 
         function setActorPosition(element, x, y, cellSize) {
@@ -1354,7 +1206,6 @@
             const narrowLayout = window.innerWidth <= 900;
             const gutter = narrowLayout ? 14 : 18;
             const sidebarRect = gameSidebar.getBoundingClientRect();
-            const controlsRect = mobileControls.getBoundingClientRect();
 
             let top = gutter;
             let right = gutter;
@@ -1372,10 +1223,6 @@
                 if (hudRect.height > 0) {
                     top = Math.max(top, hudRect.bottom + gutter);
                 }
-            }
-
-            if (gameState.isMobile && mobileControls.offsetParent !== null) {
-                bottom = Math.max(bottom, window.innerHeight - controlsRect.top + gutter);
             }
 
             return { top, right, bottom, left };
@@ -1452,7 +1299,6 @@
             gameState.level = 1;
             gameState.steps = 0;
             gameState.partnerFound = false;
-            gameState.zoomLevel = 1;
             gameState.translateX = 0;
             gameState.translateY = 0;
 
@@ -1484,26 +1330,31 @@
             const { width, height } = getCurrentConfig();
             const maze = Array(height).fill(null).map(() => Array(width).fill(1));
 
-            function carvePassages(x, y) {
-                const directions = [[0, -2], [2, 0], [0, 2], [-2, 0]];
-                directions.sort(() => Math.random() - 0.5);
-
-                for (const [dx, dy] of directions) {
-                    const nx = x + dx;
-                    const ny = y + dy;
-
-                    if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && maze[ny][nx] === 1) {
-                        maze[y + dy / 2][x + dx / 2] = 0;
-                        maze[ny][nx] = 0;
-                        carvePassages(nx, ny);
-                    }
-                }
-            }
-
+            // 显式栈的迭代版递归回溯挖洞，避免高关卡大迷宫时递归深度爆栈
             const startX = 1;
             const startY = 1;
             maze[startY][startX] = 0;
-            carvePassages(startX, startY);
+
+            const stack = [[startX, startY]];
+
+            while (stack.length > 0) {
+                const [x, y] = stack[stack.length - 1];
+                const candidates = [[0, -2], [2, 0], [0, 2], [-2, 0]].filter(([dx, dy]) => {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    return nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && maze[ny][nx] === 1;
+                });
+
+                if (candidates.length === 0) {
+                    stack.pop();
+                    continue;
+                }
+
+                const [dx, dy] = candidates[Math.floor(Math.random() * candidates.length)];
+                maze[y + dy / 2][x + dx / 2] = 0;
+                maze[y + dy][x + dx] = 0;
+                stack.push([x + dx, y + dy]);
+            }
 
             gameState.playerPosition = { x: startX, y: startY };
             gameState.visitedCells = new Set([keyOf(startX, startY)]);
@@ -1616,59 +1467,6 @@
             cellsContainer.style.height = '100%';
             mazeContainer.appendChild(cellsContainer);
 
-            if (isMobileViewportMode()) {
-                const radius = gameState.mobileViewportRadius;
-                const windowSize = radius * 2 + 1;
-                const startX = gameState.playerPosition.x - radius;
-                const startY = gameState.playerPosition.y - radius;
-
-                mazeContainer.style.width = `${windowSize * cellSize}px`;
-                mazeContainer.style.height = `${windowSize * cellSize}px`;
-
-                for (let renderY = 0; renderY < windowSize; renderY++) {
-                    for (let renderX = 0; renderX < windowSize; renderX++) {
-                        const mazeX = startX + renderX;
-                        const mazeY = startY + renderY;
-                        cellsContainer.appendChild(buildCell(cellSize, renderX, renderY, mazeX, mazeY));
-                    }
-                }
-
-                const player = document.createElement('div');
-                player.id = 'player';
-                player.style.width = `${cellSize * 0.9}px`;
-                player.style.height = `${cellSize * 0.9}px`;
-                setActorPosition(player, radius, radius, cellSize);
-                cellsContainer.appendChild(player);
-                gameState.playerElement = player;
-
-                const partner = document.createElement('div');
-                partner.id = 'partner';
-                partner.style.width = `${cellSize * 0.9}px`;
-                partner.style.height = `${cellSize * 0.9}px`;
-
-                const partnerRenderX = gameState.partnerPosition.x - startX;
-                const partnerRenderY = gameState.partnerPosition.y - startY;
-                const partnerVisible = (
-                    partnerRenderX >= 0 &&
-                    partnerRenderX < windowSize &&
-                    partnerRenderY >= 0 &&
-                    partnerRenderY < windowSize
-                );
-
-                if (partnerVisible) {
-                    setActorPosition(partner, partnerRenderX, partnerRenderY, cellSize);
-                    partner.style.display = gameState.partnerFound ? 'block' : 'none';
-                    cellsContainer.appendChild(partner);
-                    gameState.partnerElement = partner;
-                } else {
-                    gameState.partnerElement = null;
-                }
-
-                refreshViewportMetrics();
-                scheduleFocusOnPlayer();
-                return;
-            }
-
             mazeContainer.style.width = `${width * cellSize}px`;
             mazeContainer.style.height = `${height * cellSize}px`;
 
@@ -1704,27 +1502,12 @@
             const containerHeight = gameContainer.offsetHeight;
             const safeArea = gameState.safeArea;
 
-            if (isMobileViewportMode()) {
-                const viewportCells = gameState.mobileViewportRadius * 2 + 1;
-                const viewportWidth = viewportCells * cellSize * gameState.zoomLevel;
-                const viewportHeight = viewportCells * cellSize * gameState.zoomLevel;
-                const availableWidth = Math.max(120, containerWidth - safeArea.left - safeArea.right);
-                const availableHeight = Math.max(120, containerHeight - safeArea.top - safeArea.bottom);
-
-                gameState.translateX = roundToDevicePixel(safeArea.left + (availableWidth - viewportWidth) / 2);
-                gameState.translateY = roundToDevicePixel(safeArea.top + (availableHeight - viewportHeight) / 2);
-                applyMazeTransform();
-                return;
-            }
-
             const availableWidth = Math.max(120, containerWidth - safeArea.left - safeArea.right);
             const availableHeight = Math.max(120, containerHeight - safeArea.top - safeArea.bottom);
-            const scale = gameState.isMobile ? gameState.zoomLevel : 1;
-            const scaledCellSize = cellSize * scale;
-            const mazeWidth = width * scaledCellSize;
-            const mazeHeight = height * scaledCellSize;
-            const playerCenterX = gameState.playerPosition.x * scaledCellSize + scaledCellSize / 2;
-            const playerCenterY = gameState.playerPosition.y * scaledCellSize + scaledCellSize / 2;
+            const mazeWidth = width * cellSize;
+            const mazeHeight = height * cellSize;
+            const playerCenterX = gameState.playerPosition.x * cellSize + cellSize / 2;
+            const playerCenterY = gameState.playerPosition.y * cellSize + cellSize / 2;
             const viewportCenterX = safeArea.left + availableWidth / 2;
             const viewportCenterY = safeArea.top + availableHeight / 2;
             const targetX = viewportCenterX - playerCenterX;
@@ -1781,17 +1564,13 @@
                     gameState.partnerFound = true;
                 }
 
-                if (isMobileViewportMode()) {
-                    renderMaze();
-                } else {
-                    const previousCell = document.querySelector(`.cell[data-x="${previousX}"][data-y="${previousY}"]`);
-                    if (previousCell && !previousCell.classList.contains('end')) {
-                        previousCell.classList.add('visited');
-                    }
-
-                    setActorPosition(gameState.playerElement, newX, newY, current.cellSize);
-                    scheduleFocusOnPlayer();
+                const previousCell = document.querySelector(`.cell[data-x="${previousX}"][data-y="${previousY}"]`);
+                if (previousCell && !previousCell.classList.contains('end')) {
+                    previousCell.classList.add('visited');
                 }
+
+                setActorPosition(gameState.playerElement, newX, newY, current.cellSize);
+                scheduleFocusOnPlayer();
 
                 if (foundPartnerNow) {
                     if (gameState.partnerElement) {
@@ -1836,7 +1615,6 @@
             gameState.level++;
             gameState.steps = 0;
             gameState.partnerFound = false;
-            gameState.zoomLevel = 1;
             gameState.translateX = 0;
             gameState.translateY = 0;
             updateHud();
@@ -1975,41 +1753,6 @@
             disarmRestartButton();
             returnToLevelSelect();
         });
-
-        let initialDistance = 0;
-
-        gameContainer.addEventListener('touchstart', (event) => {
-            if (event.touches.length === 2) {
-                initialDistance = Math.hypot(
-                    event.touches[0].clientX - event.touches[1].clientX,
-                    event.touches[0].clientY - event.touches[1].clientY
-                );
-            }
-        }, { passive: true });
-
-        gameContainer.addEventListener('touchmove', (event) => {
-            if (event.touches.length === 2) {
-                const currentDistance = Math.hypot(
-                    event.touches[0].clientX - event.touches[1].clientX,
-                    event.touches[0].clientY - event.touches[1].clientY
-                );
-
-                if (initialDistance > 0) {
-                    const delta = currentDistance - initialDistance;
-
-                    if (Math.abs(delta) > 10) {
-                        if (delta > 0) {
-                            zoomIn();
-                        } else {
-                            zoomOut();
-                        }
-                        initialDistance = currentDistance;
-                    }
-                }
-
-                event.preventDefault();
-            }
-        }, { passive: false });
 
         window.addEventListener('resize', () => {
             if (levelSelect.style.display === 'none') {
