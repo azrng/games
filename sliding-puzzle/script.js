@@ -292,7 +292,7 @@
         if (!elements.confetti || prefersReducedMotion()) {
             return;
         }
-        const colors = ['#2957c8', '#f59e0b', '#dc3545', '#10b981', '#6b8ff0'];
+        const colors = ['#2957c8', '#f59e0b', '#dc3545', '#148f80', '#6b8ff0'];
         const pieces = [];
         for (let i = 0; i < 30; i += 1) {
             const x = (Math.random() * 100).toFixed(1);
