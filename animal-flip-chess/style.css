@@ -273,12 +273,73 @@ body {
     transform-style: preserve-3d;
 }
 
+/* 翻牌动效：必须用 keyframes 而非 transition——翻开时 renderKey 变化会
+   重建 .card-inner 节点，新节点的初始样式不会触发 transition（旧写法
+   实际从未播放，牌是直接闪现的）；animation 在选择器首次命中时必然播放。
+   效果：抬起放大 → 翻转 → 落回。 */
 .card.flip-animating .card-inner {
-    transition: transform 0.6s ease-in-out;
+    animation: flipReveal 0.62s cubic-bezier(0.32, 0.72, 0.24, 1) both;
 }
 
+/* 终态兜底：reduced-motion 关闭动画后也要停在正面 */
 .card.flip-animating.flipped .card-inner {
     transform: rotateY(180deg);
+}
+
+@keyframes flipReveal {
+    0%   { transform: rotateY(0deg) scale(1); }
+    45%  { transform: rotateY(96deg) scale(1.14); }
+    100% { transform: rotateY(180deg) scale(1); }
+}
+
+/* 翻开后的高光从左向右扫过新亮出的正面 */
+.card.flip-animating .card-front::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.65) 50%, transparent 70%);
+    transform: translateX(-130%);
+    animation: revealShine 0.5s ease-out 0.34s forwards;
+    pointer-events: none;
+}
+
+@keyframes revealShine {
+    to { transform: translateX(130%); }
+}
+
+/* 按归属阵营扩散一圈光环，让“翻到谁的牌”一眼可辨。
+   用 ::before 避免与 .valid-move/.valid-cancel 的 ::after 角标冲突；
+   capture-flash 的 ::before 不会与 flip-animating 同帧出现（被吃的格子
+   renderKey 变化后 flip-animating 即被移除）。 */
+.card.flip-animating::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: var(--radius);
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    animation: revealRing 0.5s ease-out 0.32s;
+}
+
+.card.flip-animating.player-a::before {
+    box-shadow: 0 0 0 3px var(--player-a), 0 0 22px rgba(231, 76, 60, 0.5);
+}
+
+.card.flip-animating.player-b::before {
+    box-shadow: 0 0 0 3px var(--player-b), 0 0 22px rgba(52, 152, 219, 0.5);
+}
+
+@keyframes revealRing {
+    0% { opacity: 0; transform: scale(0.92); }
+    35% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card.flip-animating .card-inner { animation: none; }
+    .card.flip-animating .card-front::after,
+    .card.flip-animating::before { animation: none; content: none; }
 }
 
 .card.flipped:not(.flip-animating) .card-back {

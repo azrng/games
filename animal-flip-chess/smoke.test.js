@@ -491,7 +491,7 @@ function testOnlyNewlyFlippedCardAnimates() {
     });
 
     cell(elements, 0, 1).dispatch('click');
-    runTimersThrough(620);
+    runTimersThrough(880);
 
     assert(cell(elements, 0, 0).classList.contains('no-flip-animation'),
         'previously flipped card should not replay flip animation');
@@ -503,6 +503,12 @@ function testFlipAnimationIsOptInOnly() {
     const css = read('style.css');
     assert(css.includes('.card.flip-animating .card-inner'),
         'flip transition should be opt-in for the card that was just flipped');
+    assert(css.includes('@keyframes flipReveal'),
+        'flip must use keyframes: renderKey change rebuilds .card-inner, so a transition never plays');
+    assert(css.includes('@keyframes revealShine'),
+        'newly revealed card face should have a shine sweep effect');
+    assert(css.includes('@keyframes revealRing'),
+        'newly revealed card should show an owner-colored ring burst');
     assert(css.includes('.card.flipped:not(.flip-animating) .card-back'),
         'stable flipped cards should hide the back face instead of relying on 3D rotation');
     assert(css.includes('.card.flipped:not(.flip-animating) .card-front'),
@@ -912,7 +918,7 @@ function testAiFlipDoesNotAlwaysFavorOwnStrongCard() {
         // Run the AI's scheduled turn (its first move of the game).
         runTimersThrough(1500);
         date.advance(2000);
-        runTimersThrough(620);
+        runTimersThrough(880);
 
         const after = api.getStateForTest();
         // Find the cell the AI just flipped (the only newly-flipped card).
@@ -1076,6 +1082,56 @@ function testCancelOutFlashesBothCellsAndLocksInput() {
         'cancel-out flash should be cleared after the animation window');
 }
 
+function testFlipAnimationSurvivesTurnSwitchRender() {
+    // 回归：handleFlip 后 switchPlayer 会同步再次 renderBoard。此前
+    // renderBoard 末尾清空 animatingFlipIds，导致 flip-animating 在同一
+    // 同步任务里就被剥掉，翻牌动画从未真正播放过。
+    const { api, elements, runTimersThrough } = runScriptWithContext();
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false },
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: 'b', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'a', flipped: false, captured: false }
+            ]
+        ]
+    });
+
+    cell(elements, 0, 0).dispatch('click');
+
+    assert(cell(elements, 0, 0).classList.contains('flip-animating'),
+        'just-flipped card must keep flip-animating after the turn-switch render');
+    assert(!cell(elements, 0, 0).classList.contains('no-flip-animation'),
+        'just-flipped card must not be marked stable while its flip animation plays');
+
+    runTimersThrough(880);
+    assert(!cell(elements, 0, 0).classList.contains('flip-animating'),
+        'flip-animating should be removed once the stabilize timer fires');
+    assert(cell(elements, 0, 0).classList.contains('no-flip-animation'),
+        'card should become stable after the flip animation window');
+}
+
 function testMutualFinalCancelOutIsDraw() {
     // 双方仅剩最后一子且同兽互撞：两边同时归零，必须判平局，
     // 不能走进“你的棋子全部被吃掉”的电脑获胜分支。
@@ -1231,6 +1287,7 @@ testRestartRequiresTwoClicksDuringPlay();
 testMoveAnimationLocksInput();
 testInvalidTargetKeepsSelection();
 testCancelOutFlashesBothCellsAndLocksInput();
+testFlipAnimationSurvivesTurnSwitchRender();
 testMutualFinalCancelOutIsDraw();
 testTransientAnimationClassesClearedOnGameEnd();
 testCardsReEnabledAfterAiTurn();

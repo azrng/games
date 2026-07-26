@@ -20,7 +20,9 @@
     const TAP_THRESHOLD = 10;
     const DEBOUNCE_DELAY = 180;
     const AI_DELAY = 1300;
-    const FLIP_ANIMATION_MS = 620;
+    // 覆盖翻转 keyframe(0.62s) 与其后的光圈/高光特效(至 ~0.84s)，
+    // 提前移除 flip-animating 会把特效拦腰截断。
+    const FLIP_ANIMATION_MS = 880;
     const MOVE_ANIM_MS = 260;
     const RESTART_ARM_MS = 2500;
 
@@ -120,7 +122,10 @@
             }
         }
         syncShownFlippedCards();
-        animatingFlipIds = new Set();
+        // 注意：这里不能清空 animatingFlipIds。翻牌后 switchPlayer 会立刻
+        // 再次 renderBoard，若在此清空，flip-animating 类在同一同步任务里
+        // 就被剥掉，浏览器永远画不出翻牌动画。标记的移除由
+        // scheduleFlipStabilize 的定时器负责。
     }
 
     function ensureBoardCells() {
@@ -1281,8 +1286,15 @@
             clearFlipStabilizeTimers();
             emptyIdCounter = 0;
             clearHintMessage();
+            // 废弃注入前排程的 AI 回合，避免旧定时器作用在新局面上；
+            // 再按真实流程补排：轮到 AI 时必然存在已排程的回合，测试不再
+            // 依赖 initGame 随机掷出“电脑先手”时碰巧遗留的定时器。
+            aiTurnToken++;
             renderBoard();
             updateUI();
+            if (phase === 'play' && currentPlayer === 'b') {
+                scheduleAITurn();
+            }
         }
     };
 })();
