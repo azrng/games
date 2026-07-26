@@ -913,148 +913,208 @@
             return dpr;
         }
 
-        /* 绘制隐藏在线稿中的小猫轮廓 */
+        /*
+         * 绘制隐藏在线稿中的小猫轮廓。
+         * 每个姿势的剪影是一条连续贝塞尔闭合路径（耳朵融进头部曲线），
+         * 避免旧版"椭圆+圆+三角"叠加时暴露的内部交线。
+         */
+        function traceCatOutline(pose, s) {
+            const M = (x, y) => ctx.moveTo(x * s, y * s);
+            const C = (x1, y1, x2, y2, x, y) => ctx.bezierCurveTo(x1 * s, y1 * s, x2 * s, y2 * s, x * s, y * s);
+            ctx.beginPath();
+            if (pose === 0) {
+                /* 正面坐姿 */
+                M(-0.36, 0.56);
+                C(-0.52, 0.36, -0.49, 0.04, -0.28, -0.10);
+                C(-0.34, -0.18, -0.36, -0.28, -0.34, -0.36);
+                C(-0.34, -0.44, -0.33, -0.52, -0.30, -0.62);
+                C(-0.22, -0.58, -0.15, -0.55, -0.08, -0.54);
+                C(-0.03, -0.545, 0.03, -0.545, 0.08, -0.54);
+                C(0.15, -0.55, 0.22, -0.58, 0.30, -0.62);
+                C(0.33, -0.52, 0.34, -0.44, 0.34, -0.36);
+                C(0.36, -0.28, 0.34, -0.18, 0.28, -0.10);
+                C(0.49, 0.04, 0.52, 0.36, 0.36, 0.56);
+                C(0.14, 0.60, -0.14, 0.60, -0.36, 0.56);
+            } else if (pose === 1) {
+                /* 面包蹲，头朝右 */
+                M(-0.52, 0.30);
+                C(-0.63, 0.14, -0.56, -0.12, -0.32, -0.20);
+                C(-0.16, -0.25, 0.0, -0.26, 0.10, -0.30);
+                C(0.11, -0.38, 0.12, -0.46, 0.15, -0.54);
+                C(0.21, -0.49, 0.26, -0.46, 0.31, -0.455);
+                C(0.35, -0.46, 0.40, -0.48, 0.46, -0.53);
+                C(0.48, -0.45, 0.49, -0.37, 0.48, -0.30);
+                C(0.53, -0.20, 0.54, -0.08, 0.52, 0.04);
+                C(0.52, 0.18, 0.44, 0.30, 0.24, 0.32);
+                C(0.0, 0.34, -0.30, 0.34, -0.52, 0.30);
+            } else if (pose === 2) {
+                /* 蜷成一团睡觉，头在右上 */
+                M(0.43, 0.08);
+                C(0.43, 0.30, 0.24, 0.44, -0.01, 0.44);
+                C(-0.26, 0.44, -0.44, 0.28, -0.44, 0.03);
+                C(-0.44, -0.22, -0.24, -0.40, 0.0, -0.40);
+                C(0.06, -0.40, 0.11, -0.40, 0.16, -0.42);
+                C(0.17, -0.46, 0.19, -0.50, 0.22, -0.54);
+                C(0.26, -0.49, 0.29, -0.46, 0.33, -0.45);
+                C(0.36, -0.46, 0.39, -0.49, 0.43, -0.52);
+                C(0.44, -0.44, 0.44, -0.36, 0.43, -0.30);
+                C(0.45, -0.18, 0.45, -0.04, 0.43, 0.08);
+            } else {
+                /* 伸展侧躺，头朝右 */
+                M(-0.56, 0.30);
+                C(-0.66, 0.14, -0.60, -0.06, -0.42, -0.12);
+                C(-0.22, -0.18, 0.02, -0.18, 0.18, -0.24);
+                C(0.19, -0.32, 0.21, -0.40, 0.24, -0.48);
+                C(0.29, -0.43, 0.33, -0.41, 0.37, -0.41);
+                C(0.40, -0.41, 0.44, -0.43, 0.49, -0.47);
+                C(0.51, -0.40, 0.52, -0.32, 0.51, -0.26);
+                C(0.56, -0.18, 0.58, -0.08, 0.56, 0.0);
+                C(0.60, 0.08, 0.62, 0.18, 0.58, 0.26);
+                C(0.30, 0.32, -0.28, 0.32, -0.56, 0.30);
+            }
+            ctx.closePath();
+        }
+
+        /* 闭眼弧（"∪"形安睡眼） */
+        function drawSleepyEye(x, y, s, r = 0.05) {
+            ctx.beginPath();
+            ctx.arc(x * s, y * s, r * s, Math.PI * 0.15, Math.PI * 0.85);
+            ctx.stroke();
+        }
+
         function drawCat(cx, cy, size, rotation, variant, found) {
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(rotation);
 
             const s = size;
+            const pose = variant % 4;
             const fillColor = found ? "rgba(16,185,129,0.16)" : "rgba(251,251,248,0.02)";
             const lineColor = found ? "rgba(16,185,129,0.95)" : CAT_LINE;
+            const M = (x, y) => ctx.moveTo(x * s, y * s);
+            const C = (x1, y1, x2, y2, x, y) => ctx.bezierCurveTo(x1 * s, y1 * s, x2 * s, y2 * s, x * s, y * s);
+            const Q = (x1, y1, x, y) => ctx.quadraticCurveTo(x1 * s, y1 * s, x * s, y * s);
+
             ctx.fillStyle = fillColor;
             ctx.strokeStyle = lineColor;
             ctx.lineWidth = Math.max(1.1, s * 0.038);
             ctx.lineJoin = "round";
             ctx.lineCap = "round";
 
-            const compact = variant % 4;
-            const headY = compact === 1 ? -s * 0.02 : -s * 0.24;
-
-            ctx.beginPath();
-            if (compact === 0) {
-                ctx.ellipse(0, s * 0.15, s * 0.34, s * 0.45, -0.05, 0, Math.PI * 2);
-            } else if (compact === 1) {
-                ctx.ellipse(-s * 0.02, s * 0.18, s * 0.52, s * 0.24, 0.04, 0, Math.PI * 2);
-            } else if (compact === 2) {
-                ctx.arc(0, s * 0.16, s * 0.33, 0, Math.PI * 2);
-            } else {
-                ctx.ellipse(-s * 0.04, s * 0.12, s * 0.48, s * 0.26, -0.18, 0, Math.PI * 2);
-            }
+            traceCatOutline(pose, s);
             ctx.fill();
             ctx.stroke();
 
-            ctx.beginPath();
-            ctx.arc(0, headY, s * 0.28, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
+            /* 细节（尾巴/前腿/脸）用更轻的笔触，保持剪影为主 */
+            const detailWidth = Math.max(0.9, s * 0.03);
+            const whiskerSpread = pose === 2 ? 0.2 : 0.12;
+            ctx.lineWidth = detailWidth;
 
-            ctx.beginPath();
-            ctx.moveTo(-s * 0.2, headY - s * 0.17);
-            if (compact === 1) {
-                ctx.quadraticCurveTo(-s * 0.36, headY - s * 0.34, -s * 0.28, headY - s * 0.48);
-                ctx.lineTo(-s * 0.03, headY - s * 0.25);
-            } else {
-                ctx.lineTo(-s * 0.33, headY - s * 0.46);
-                ctx.lineTo(-s * 0.03, headY - s * 0.25);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(s * 0.2, headY - s * 0.17);
-            if (compact === 1) {
-                ctx.quadraticCurveTo(s * 0.36, headY - s * 0.34, s * 0.28, headY - s * 0.48);
-                ctx.lineTo(s * 0.03, headY - s * 0.25);
-            } else {
-                ctx.lineTo(s * 0.33, headY - s * 0.46);
-                ctx.lineTo(s * 0.03, headY - s * 0.25);
-            }
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = found ? "rgba(16,185,129,0.95)" : "#5f6671";
-            ctx.beginPath();
-            ctx.arc(-s * 0.09, headY - s * 0.02, s * 0.022, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(s * 0.09, headY - s * 0.02, s * 0.022, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = lineColor;
-            ctx.beginPath();
-            const whiskerSpread = compact === 2 ? 0.2 : 0.12;
-            ctx.moveTo(-s * 0.05, headY + s * 0.08);
-            ctx.lineTo(-s * 0.27, headY + s * (0.02 - whiskerSpread * 0.12));
-            ctx.moveTo(-s * 0.04, headY + s * 0.13);
-            ctx.lineTo(-s * 0.28, headY + s * (0.14 + whiskerSpread * 0.12));
-            if (compact !== 3) {
-                ctx.moveTo(-s * 0.04, headY + s * 0.18);
-                ctx.lineTo(-s * 0.24, headY + s * 0.24);
-            }
-            ctx.moveTo(s * 0.05, headY + s * 0.08);
-            ctx.lineTo(s * 0.27, headY + s * (0.02 - whiskerSpread * 0.12));
-            ctx.moveTo(s * 0.04, headY + s * 0.13);
-            ctx.lineTo(s * 0.28, headY + s * (0.14 + whiskerSpread * 0.12));
-            if (compact !== 3) {
-                ctx.moveTo(s * 0.04, headY + s * 0.18);
-                ctx.lineTo(s * 0.24, headY + s * 0.24);
-            }
-            ctx.stroke();
-
-            ctx.beginPath();
-            const tailDir = compact % 2 === 0 ? 1 : -1;
-            if (compact === 2) {
-                ctx.arc(tailDir * s * 0.45, -s * 0.04, s * 0.17, Math.PI * 0.2, Math.PI * 1.6, compact === 1);
-            } else if (compact === 3) {
-                ctx.moveTo(tailDir * s * 0.32, s * 0.1);
-                ctx.quadraticCurveTo(tailDir * s * 0.58, s * 0.22, tailDir * s * 0.62, -s * 0.03);
-                ctx.quadraticCurveTo(tailDir * s * 0.62, -s * 0.24, tailDir * s * 0.42, -s * 0.24);
-            } else {
-                ctx.moveTo(tailDir * s * 0.32, s * 0.12);
-                ctx.quadraticCurveTo(
-                    tailDir * s * 0.7, -s * 0.08,
-                    tailDir * s * 0.46, -s * 0.38
-                );
-            }
-            ctx.stroke();
-
-            if (compact === 0 || compact === 3) {
+            if (pose === 0) {
+                /* 尾巴绕到身前 */
                 ctx.beginPath();
-                ctx.moveTo(-s * 0.18, s * 0.5);
-                ctx.lineTo(-s * 0.08, s * 0.32);
-                ctx.moveTo(s * 0.18, s * 0.5);
-                ctx.lineTo(s * 0.08, s * 0.32);
+                M(0.34, 0.44);
+                C(0.56, 0.52, 0.56, 0.66, 0.34, 0.66);
+                C(0.18, 0.66, 0.02, 0.63, -0.06, 0.58);
+                ctx.stroke();
+                /* 前腿 */
+                ctx.beginPath();
+                M(-0.11, 0.56); Q(-0.13, 0.42, -0.10, 0.28);
+                M(0.11, 0.56); Q(0.13, 0.42, 0.10, 0.28);
+                ctx.stroke();
+                /* 圆点眼 + 鼻尖 */
+                ctx.fillStyle = found ? "rgba(16,185,129,0.95)" : "#5f6671";
+                ctx.beginPath();
+                ctx.arc(-0.13 * s, -0.41 * s, 0.034 * s, 0, Math.PI * 2);
+                ctx.arc(0.13 * s, -0.41 * s, 0.034 * s, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(0, -0.32 * s, 0.022 * s, 0, Math.PI * 2);
+                ctx.fill();
+                /* 两侧胡须 */
+                ctx.beginPath();
+                M(-0.06, -0.33); Q(-0.17, -0.35, -0.27, -0.33 - whiskerSpread * 0.3);
+                M(-0.06, -0.28); Q(-0.17, -0.28, -0.27, -0.24 + whiskerSpread * 0.3);
+                M(0.06, -0.33); Q(0.17, -0.35, 0.27, -0.33 - whiskerSpread * 0.3);
+                M(0.06, -0.28); Q(0.17, -0.28, 0.27, -0.24 + whiskerSpread * 0.3);
+                ctx.stroke();
+            } else if (pose === 1) {
+                /* 尾巴沿身侧收拢 */
+                ctx.beginPath();
+                M(-0.50, 0.24);
+                C(-0.64, 0.32, -0.52, 0.42, -0.30, 0.40);
+                C(-0.18, 0.39, -0.08, 0.37, 0.0, 0.34);
+                ctx.stroke();
+                drawSleepyEye(0.25, -0.37, s);
+                drawSleepyEye(0.39, -0.37, s);
+                ctx.beginPath();
+                M(0.47, -0.28); Q(0.56, -0.31, 0.63, -0.31 - whiskerSpread * 0.3);
+                M(0.47, -0.23); Q(0.56, -0.22, 0.63, -0.19 + whiskerSpread * 0.3);
+                ctx.stroke();
+            } else if (pose === 2) {
+                /* 头与身体的分界弧 */
+                ctx.beginPath();
+                M(0.12, -0.40);
+                C(0.10, -0.24, 0.12, -0.10, 0.22, 0.0);
+                ctx.stroke();
+                /* 尾巴环抱在身前 */
+                ctx.beginPath();
+                M(-0.40, 0.16);
+                C(-0.28, 0.34, 0.0, 0.40, 0.22, 0.30);
+                C(0.30, 0.26, 0.34, 0.20, 0.35, 0.14);
+                ctx.stroke();
+                drawSleepyEye(0.31, -0.31, s);
+                ctx.beginPath();
+                M(0.40, -0.25); Q(0.48, -0.27, 0.55, -0.26 - whiskerSpread * 0.3);
+                M(0.40, -0.20); Q(0.48, -0.19, 0.55, -0.15 + whiskerSpread * 0.3);
+                ctx.stroke();
+            } else {
+                /* 尾巴在身后卷起 */
+                ctx.beginPath();
+                M(-0.54, 0.18);
+                C(-0.70, 0.20, -0.72, 0.02, -0.58, -0.04);
+                ctx.stroke();
+                /* 前腿分界线 */
+                ctx.beginPath();
+                M(0.30, 0.30); Q(0.32, 0.16, 0.28, 0.04);
+                ctx.stroke();
+                drawSleepyEye(0.42, -0.31, s);
+                ctx.beginPath();
+                M(0.53, -0.17); Q(0.61, -0.20, 0.68, -0.20 - whiskerSpread * 0.3);
+                M(0.53, -0.12); Q(0.61, -0.11, 0.68, -0.08 + whiskerSpread * 0.3);
                 ctx.stroke();
             }
 
             ctx.restore();
         }
 
+        /* 干扰物：残缺的猫形线条（有头有耳但没有完整身体），与真猫同一造型语言 */
         function drawCatDecoy(x, y, size, rotation = 0) {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
-            sketchStyle(Math.max(0.9, size * 0.035), SKETCH_LIGHT);
+            const s = size;
+            const M = (px, py) => ctx.moveTo(px * s, py * s);
+            const C = (x1, y1, x2, y2, px, py) => ctx.bezierCurveTo(x1 * s, y1 * s, x2 * s, y2 * s, px * s, py * s);
+            const Q = (x1, y1, px, py) => ctx.quadraticCurveTo(x1 * s, y1 * s, px * s, py * s);
+            sketchStyle(Math.max(0.9, s * 0.035), SKETCH_LIGHT);
+            /* 头部（含耳）开放轮廓 */
             ctx.beginPath();
-            ctx.arc(0, -size * 0.18, size * 0.22, 0, Math.PI * 2);
+            M(-0.30, -0.10);
+            C(-0.34, -0.22, -0.33, -0.34, -0.30, -0.46);
+            C(-0.22, -0.42, -0.14, -0.40, -0.06, -0.39);
+            C(0.02, -0.40, 0.10, -0.42, 0.20, -0.46);
+            C(0.23, -0.36, 0.24, -0.26, 0.22, -0.16);
             ctx.stroke();
+            /* 残缺的背部弧线 */
             ctx.beginPath();
-            ctx.moveTo(-size * 0.16, -size * 0.34);
-            ctx.lineTo(-size * 0.26, -size * 0.58);
-            ctx.lineTo(-size * 0.02, -size * 0.42);
-            ctx.moveTo(size * 0.16, -size * 0.34);
-            ctx.lineTo(size * 0.26, -size * 0.58);
-            ctx.lineTo(size * 0.02, -size * 0.42);
+            M(-0.32, 0.02);
+            C(-0.10, 0.12, 0.15, 0.12, 0.34, 0.04);
             ctx.stroke();
+            /* 尾巴样弧线 */
             ctx.beginPath();
-            ctx.ellipse(0, size * 0.14, size * 0.42, size * 0.24, 0.12, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(size * 0.34, size * 0.1);
-            ctx.quadraticCurveTo(size * 0.62, -size * 0.08, size * 0.42, -size * 0.28);
+            M(0.30, 0.08);
+            Q(0.52, 0.0, 0.42, -0.20);
             ctx.stroke();
             ctx.restore();
         }

@@ -200,7 +200,7 @@ function testPageBootsAndRegistersCatalog() {
     assert(html.includes("updateLevelScrollHint"), "level picker should update its scroll indicator");
     assert(html.includes("shareToast.textContent"), "share feedback should not reuse proximity feedback");
     assert(html.includes("whiskerSpread"), "cat variants should vary whiskers");
-    assert(html.includes("ctx.arc(tailDir * s * 0.45"), "cat variants should include curled tails");
+    assert(html.includes("traceCatOutline"), "cat poses should use continuous single-path silhouettes");
     assert(html.includes("addEventListener(\"wheel\""), "desktop mouse wheel zoom should be supported");
     assert(html.includes("resizeTimer"), "resize handling should be debounced");
     assert(!html.includes(".found-ring"), "unused found-ring CSS should be removed");
