@@ -18,6 +18,9 @@
         "pipes":           { icon: "🚰", tag: "益智" },
         "lights-out":      { icon: "💡", tag: "益智" },
         "minesweeper":     { icon: "💣", tag: "经典" },
+        "typing-cannon":   { icon: "🔤", tag: "学习" },
+        "math-hero":       { icon: "🛡️", tag: "学习" },
+        "zh-poem":         { icon: "📜", tag: "学习" },
     };
 
     function getGamePath(game) {

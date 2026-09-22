@@ -116,6 +116,36 @@
             desc: "经典扫雷轻量版，首点必安全，长按插旗，三档难度记录用时。",
             readme: null,
             meta: null
+        },
+        {
+            slug: "typing-cannon",
+            title: "单词大炮",
+            path: "typing-cannon/index.html",
+            mobilePath: "typing-cannon/index.html",
+            icon: "img/game.svg",
+            desc: "打字击碎掉落的单词，12 个主题关卡摘星，还有无尽模式与字母练习。",
+            readme: null,
+            meta: null
+        },
+        {
+            slug: "math-hero",
+            title: "数学小勇士",
+            path: "math-hero/index.html",
+            mobilePath: "math-hero/index.html",
+            icon: "img/game.svg",
+            desc: "心算答案炮轰怪兽守护城堡，12 关口算递进，支持读题与每日挑战。",
+            readme: null,
+            meta: null
+        },
+        {
+            slug: "zh-poem",
+            title: "点字成诗",
+            path: "zh-poem/index.html",
+            mobilePath: "zh-poem/index.html",
+            icon: "img/game.svg",
+            desc: "词语古诗缺一字，点中天上掉落的正确字牌，连击越高分越高。",
+            readme: null,
+            meta: null
         }
     ];
 

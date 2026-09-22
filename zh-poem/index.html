@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>点字成诗 - 游戏平台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📜</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ==================== 语文 · 点字成诗菜单 ==================== -->
+<canvas id="zhCanvas"></canvas>
+<button id="zhTopBtn" class="hidden">🏠 回菜单</button>
+<div id="zhMenu" class="overlay">
+  <div class="panel hub-panel">
+    <h1>王乐乐的<span style="color:#7c3aed">点字成诗</span> <span class="en">Zh Zi Bang Bang</span></h1>
+    <div class="sub">🎋 读一读下面的词语或诗句，天上掉下来的字里，点出正确的那个！</div>
+    <div class="stats">
+      <div class="s"><div class="v" id="zhBestScore">—</div><div class="k">最高得分</div></div>
+      <div class="s"><div class="v" id="zhBestGroups">—</div><div class="k">最多组数</div></div>
+      <div class="s"><div class="v" id="zhBestRounds">—</div><div class="k">最多轮数</div></div>
+    </div>
+    <div class="desc" style="margin-bottom:12px;padding:11px 14px">
+      ✏️ <b>玩法</b>：屏幕下方出现<b>一个词语</b>或<b>一句古诗</b>，里面缺了一个字。<br>
+      ☁️ 天上会掉下来几个<b>字牌</b>，其中只有<b>一个是对的</b>——<br>
+      💡 <b>点对的字</b>：它飞进诗句，开始下一组！　💔 <b>点到错的</b>：扣一颗心。<br>
+      🧧 每组 +20 分，连点对得分更高！每 5 组算一轮，比比谁认得更多字！
+      <span style="color:#94a3b8;font-size:12.5px"><br>玩法：看到题目先读一读，想好缺的字再点点看 · 掉下来的对字没接到也没关系，还会再掉</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="zhStart" style="background:linear-gradient(180deg,#a78bfa,#7c3aed);box-shadow:0 6px 0 #4c1d95">📜 开始点字 ▶</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn alt" id="zhToHub">🏠 主菜单</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 语文 · 结算 ==================== -->
+<div id="zhOver" class="overlay hidden">
+  <div class="panel">
+    <h1>游戏结束 <span class="en">Game Over</span></h1>
+    <div class="sub" id="zhGreet">王乐乐，再读一读，再来一次！</div>
+    <div class="newbest" id="zhNew" style="display:none">🎉 新纪录！</div>
+    <div class="stats">
+      <div class="s"><div class="v" id="zhScore">0</div><div class="k">得分</div></div>
+      <div class="s"><div class="v" id="zhGroups">0</div><div class="k">完成组数</div></div>
+      <div class="s"><div class="v" id="zhRounds">0</div><div class="k">完成轮数</div></div>
+      <div class="s"><div class="v" id="zhCombo">0</div><div class="k">最高连击</div></div>
+      <div class="s"><div class="v" id="zhAcc">0%</div><div class="k">准确率</div></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="zhRetry" style="background:linear-gradient(180deg,#a78bfa,#7c3aed);box-shadow:0 6px 0 #4c1d95">再来一局 ↻</button>
+      <button class="btn alt" id="zhToMenu">📜 开始页</button>
+      <button class="btn alt" id="zhOverHub">🏠 主菜单</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

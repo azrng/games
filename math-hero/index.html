@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>数学小勇士 - 游戏平台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ==================== 数学 · 小勇士 ==================== -->
+<div id="mathApp">
+
+  <!-- 首页 / 选关 -->
+  <section id="mHome" class="screen active">
+    <div class="m-inner">
+      <span class="m-deco m-sun">☀️</span>
+      <span class="m-deco m-cloud1">☁️</span>
+      <span class="m-deco m-cloud2">☁️</span>
+      <span class="m-deco m-deco2">🌈</span>
+      <div class="m-top">
+        <div class="m-pill" id="mTotal">⭐ 0/36</div>
+        <div class="m-topBtns">
+          <button class="m-icon-btn" id="mBtnSound" aria-label="音效开关">🔊</button>
+          <button class="m-icon-btn wide" id="mBtnSpeak" aria-label="读题开关">🗣️读题:关</button>
+          <button class="m-icon-btn" id="mBtnHub" aria-label="返回主菜单" title="返回主菜单">🏠</button>
+        </div>
+      </div>
+      <h1 class="m-title">🛡️ 数学小勇士</h1>
+      <p class="m-sub">心算答案，炮轰怪兽，守护城堡！</p>
+      <button class="m-btn m-daily" id="mBtnDaily">🎁 每日挑战 <span id="mDailyBest"></span></button>
+      <div id="mGrid"></div>
+      <button class="m-link" id="mBtnReset">🗑️ 重置进度</button>
+    </div>
+  </section>
+
+  <!-- 游戏 -->
+  <section id="mGame" class="screen">
+    <div id="mHud">
+      <span class="m-pill" id="mHearts">❤️❤️❤️</span>
+      <span class="m-pill" id="mProgress">🎯 0/8</span>
+      <div class="m-spacer"></div>
+      <span class="m-pill" id="mScore">0 分</span>
+      <button class="m-icon-btn" id="mBtnPause" aria-label="暂停">⏸️</button>
+    </div>
+    <div id="mArea">
+      <div id="mCombo"></div>
+      <div id="mWall"><span id="mHero">🦸</span></div>
+    </div>
+    <div id="mAnswerBar"><div id="mAnswer">？</div></div>
+    <div id="mKeypad"><div class="m-kpGrid" id="mKpGrid"></div></div>
+    <div id="mPause" class="m-overlay hidden">
+      <div class="m-card">
+        <h2>⏸️ 暂停中</h2>
+        <button class="m-btn green" id="mBtnResume">继续游戏</button>
+        <button class="m-btn blue" id="mBtnQuit">返回选关</button>
+        <button class="m-btn" id="mBtnQuitHub">🏠 返回主菜单</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 结算 -->
+  <section id="mResult" class="screen">
+    <div class="m-card">
+      <div class="m-rEmoji" id="mREmoji">🏆</div>
+      <h2 id="mRTitle">太棒了！</h2>
+      <div class="m-rStars" id="mRStars"></div>
+      <div class="m-rStats" id="mRStats"></div>
+      <div class="m-rBtns">
+        <button class="m-btn green hidden" id="mBtnNext">下一关 ▶</button>
+        <button class="m-btn" id="mBtnRetry">再玩一次</button>
+        <button class="m-btn blue" id="mBtnHome">返回选关</button>
+      </div>
+      <button class="m-link" id="mBtnResultHub">🏠 返回主菜单</button>
+    </div>
+  </section>
+
+  <!-- 通用弹窗 -->
+  <div id="mModal" class="m-overlay hidden">
+    <div class="m-card">
+      <div class="m-modal-text" id="mModalText"></div>
+      <div class="m-modal-btns">
+        <button class="m-btn blue sm" id="mModalCancel">取消</button>
+        <button class="m-btn sm" id="mModalOk">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
