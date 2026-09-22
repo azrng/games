@@ -1,0 +1,272 @@
+const fs = require("fs");
+const path = require("path");
+const vm = require("vm");
+
+const root = path.resolve(__dirname, "..");
+const htmlPath = path.join(root, "hidden-cats", "index.html");
+const catalogPath = path.join(root, "..", "data", "games.js");
+
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(message);
+    }
+}
+
+function extractInlineScript(html) {
+    const match = html.match(/<script>\s*([\s\S]*?)\s*<\/script>/);
+    assert(match, "hidden-cats page should contain an inline game script");
+    return match[1];
+}
+
+function createCanvasContext() {
+    const noop = () => {};
+    return {
+        save: noop,
+        restore: noop,
+        translate: noop,
+        rotate: noop,
+        scale: noop,
+        beginPath: noop,
+        closePath: noop,
+        moveTo: noop,
+        lineTo: noop,
+        quadraticCurveTo: noop,
+        bezierCurveTo: noop,
+        rect: noop,
+        arc: noop,
+        ellipse: noop,
+        fill: noop,
+        stroke: noop,
+        drawImage: noop,
+        fillRect: noop,
+        strokeRect: noop,
+        clearRect: noop,
+        setTransform: noop,
+        set fillStyle(value) { this._fillStyle = value; },
+        get fillStyle() { return this._fillStyle; },
+        set strokeStyle(value) { this._strokeStyle = value; },
+        get strokeStyle() { return this._strokeStyle; },
+        set lineWidth(value) { this._lineWidth = value; },
+        get lineWidth() { return this._lineWidth; },
+        set lineJoin(value) { this._lineJoin = value; },
+        get lineJoin() { return this._lineJoin; },
+        set lineCap(value) { this._lineCap = value; },
+        get lineCap() { return this._lineCap; },
+    };
+}
+
+function createElement(id) {
+    return {
+        id,
+        style: {},
+        textContent: "",
+        innerHTML: "",
+        disabled: false,
+        className: "",
+        classList: {
+            add() {},
+            remove() {},
+            contains() { return false; },
+        },
+        appendChild() {},
+        remove() {},
+        addEventListener() {},
+        setAttribute() {},
+        scrollTop: 0,
+        scrollHeight: 360,
+        clientHeight: 260,
+        getBoundingClientRect() {
+            return { left: 0, top: 0, width: 390, height: 620 };
+        },
+    };
+}
+
+function createSandbox() {
+    const elements = new Map();
+    const context = createCanvasContext();
+    const canvas = createElement("gameCanvas");
+    canvas.getContext = () => context;
+    canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 390, height: 390 });
+
+    const wrap = createElement("canvasWrap");
+    wrap.clientWidth = 390;
+    wrap.clientHeight = 620;
+
+    elements.set("#gameCanvas", canvas);
+    elements.set("#canvasWrap", wrap);
+
+    [
+        "levelLabel",
+        "stepCount",
+        "timerDisplay",
+        "progressCount",
+        "progressFill",
+        "hintBadge",
+        "btnHint",
+        "btnResetView",
+        "btnLevels",
+        "btnRestart",
+        "btnReplay",
+        "btnShare",
+        "btnNext",
+        "winOverlay",
+        "introOverlay",
+        "levelOverlay",
+        "levelPanel",
+        "levelGrid",
+        "levelScrollHint",
+        "btnIntroStart",
+        "btnCloseLevels",
+        "proximityToast",
+        "comboToast",
+        "shareToast",
+        "modalStars",
+        "modalRating",
+        "modalLevelBest",
+    ].forEach((id) => elements.set(`#${id}`, createElement(id)));
+
+    return {
+        console,
+        Math,
+        Date,
+        setTimeout(callback) {
+            callback();
+            return 1;
+        },
+        clearTimeout() {},
+        requestAnimationFrame(callback) {
+            callback(16);
+            return 1;
+        },
+        setInterval() {
+            return 1;
+        },
+        clearInterval() {},
+        performance: {
+            now() { return 0; },
+        },
+        localStorage: {
+            getItem() { return null; },
+            setItem() {},
+        },
+        navigator: {
+            clipboard: {
+                writeText() { return Promise.resolve(); },
+            },
+        },
+        document: {
+            querySelector(selector) {
+                const element = elements.get(selector);
+                assert(element, `missing mocked element ${selector}`);
+                return element;
+            },
+            createElement(tagName) {
+                const element = createElement(tagName);
+                if (tagName === "canvas") {
+                    element.getContext = () => createCanvasContext();
+                }
+                return element;
+            },
+        },
+        window: {
+            devicePixelRatio: 2,
+            addEventListener() {},
+        },
+    };
+}
+
+function testPageBootsAndRegistersCatalog() {
+    const html = fs.readFileSync(htmlPath, "utf8");
+    const catalog = fs.readFileSync(catalogPath, "utf8");
+
+    assert(html.includes("width=device-width"), "page should declare mobile viewport");
+    assert(html.includes("user-scalable=no"), "page should disable browser zoom for touch gestures");
+    assert(html.includes("id=\"gameCanvas\""), "page should include a canvas");
+    assert(html.includes("aria-label=\"找猫咪游戏画布"), "canvas should expose an accessible label");
+    assert(html.includes("id=\"btnHint\""), "page should include hint control");
+    assert(html.includes("id=\"introOverlay\""), "page should include first-run onboarding");
+    assert(html.includes("id=\"levelOverlay\""), "page should include level picker overlay");
+    assert(html.includes("id=\"btnShare\""), "win modal should include share control");
+    assert(html.includes("id=\"shareToast\""), "share feedback should use a dedicated toast");
+    assert(html.includes("id=\"comboToast\""), "quick finds should use a dedicated combo toast");
+    assert(html.includes("id=\"levelScrollHint\""), "level picker should show a scroll hint");
+    assert(html.includes("modalStars"), "win modal should show a star rating");
+    assert(html.includes("proximityToast"), "miss feedback should include proximity toast");
+    assert(html.includes("hintsForLevel"), "hint count should scale by level and cat count");
+    assert(html.includes("calculateStars"), "completion should calculate star ratings");
+    assert(html.includes("steps3: cats + Math.ceil(cats * 1.25) + 1"), "three-star click target should allow a few beginner mistakes");
+    assert(html.includes("level-records"), "page should persist per-level records");
+    assert(html.includes("openLevelPicker"), "page should support replaying unlocked levels");
+    assert(html.includes("updateLevelScrollHint"), "level picker should update its scroll indicator");
+    assert(html.includes("shareToast.textContent"), "share feedback should not reuse proximity feedback");
+    assert(html.includes("whiskerSpread"), "cat variants should vary whiskers");
+    assert(html.includes("traceCatOutline"), "cat poses should use continuous single-path silhouettes");
+    assert(html.includes("addEventListener(\"wheel\""), "desktop mouse wheel zoom should be supported");
+    assert(html.includes("resizeTimer"), "resize handling should be debounced");
+    assert(!html.includes(".found-ring"), "unused found-ring CSS should be removed");
+    assert(html.includes("sceneSeed"), "page should generate a randomized scene seed per level");
+    assert(html.includes("levelSeed"), "page should keep a stable level seed for reproducible restarts");
+    assert(html.includes("catSeed"), "page should derive a dedicated cat seed");
+    assert(html.includes("obstacleSeed"), "page should derive a dedicated obstacle seed");
+    assert(html.includes("hintSeed"), "page should derive a dedicated hint seed");
+    assert(html.includes("SCENE_TEMPLATES"), "page should define multiple scene templates");
+    assert(html.includes("\"travel\", \"harbor\", \"library\", \"garden\", \"kitchen\", \"museum\""), "scene templates should include six scene categories");
+    assert(html.includes("LEVEL_DIFFICULTY"), "level progression should use a difficulty configuration table");
+    assert(html.includes("sceneTemplateForLevel"), "levels should select scene templates through a stable helper");
+    assert(html.includes("shuffledSceneTemplatesForCycle"), "scene templates should be shuffled by seeded cycles");
+    assert(html.includes("rawShuffledSceneTemplatesForCycle"), "scene template shuffling should keep a raw seeded permutation helper");
+    assert(html.includes("if (shuffled[i] !== previous[i]) continue;"), "scene cycles should avoid repeating the same slot across cycles");
+    assert(html.includes("drawHarborScene"), "page should include a harbor sketch scene");
+    assert(html.includes("drawLibraryScene"), "page should include a library sketch scene");
+    assert(html.includes("drawGardenScene"), "page should include a garden sketch scene");
+    assert(html.includes("drawKitchenScene"), "page should include a kitchen sketch scene");
+    assert(html.includes("drawKitchenTileBand"), "kitchen tiles should be limited to visible bands");
+    assert(html.includes("drawMuseumScene"), "page should include a museum sketch scene");
+    assert(html.includes("SCENE_DRAWERS"), "scene drawing should use a dispatch lookup");
+    assert(html.includes("SCENE_OBSTACLES"), "obstacles should be filtered by scene theme");
+    assert(html.includes("SCENE_DECOY_REGIONS"), "decoy placement should be constrained by scene geometry");
+    assert(html.includes("SCENE_TEXTURES"), "scene-specific texture hooks should be available");
+    assert(html.includes("drawGardenTexture"), "garden should have dedicated texture marks");
+    assert(html.includes("drawKitchenTexture"), "kitchen should have dedicated texture marks");
+    assert(html.includes("drawMuseumTexture"), "museum should have dedicated texture marks");
+    assert(html.includes("try {") && html.includes("finally {"), "background cache should restore canvas context with try/finally");
+    assert(html.includes("sceneObstacles()"), "level generation should use themed obstacle lists");
+    assert(html.includes("const bhx = size * (0.72 + (random() - 0.5) * 0.04)"), "garden birdhouse should be jittered");
+    assert(html.includes("花园线稿"), "scene labels should include garden");
+    assert(html.includes("厨房线稿"), "scene labels should include kitchen");
+    assert(html.includes("博物馆线稿"), "scene labels should include museum");
+    assert(html.includes("regionsByScene"), "cat semantic regions should vary by scene template");
+    assert(html.includes("anchorSets"), "fixed cat anchors should vary by scene template");
+    assert(html.includes("textureBoost"), "difficulty config should control dense linework intensity");
+    assert(html.includes("minCatSpacing"), "difficulty config should control cat spacing");
+    assert(html.includes("semanticCatRegions"), "cat placement should include semantic scene regions beyond fixed anchors");
+    assert(html.includes("pickCatCandidates"), "cat placement should select from a larger seeded candidate pool");
+    assert(html.includes("generateLevel(state.level, state.levelSeed)"), "restart should replay the current level seed");
+    assert(html.includes("buildBackgroundCache"), "static sketch background should be cached before active rendering");
+    assert(html.includes("canvasDpr"), "canvas rendering should account for device pixel ratio");
+    assert(html.includes("configureCanvasForDpr"), "canvas backing store should be configured for high DPI");
+    assert(html.includes("targetCtx.setTransform(dpr, 0, 0, dpr, 0, 0)"), "high DPI canvas should use a scaled transform");
+    assert(html.includes("ctx.drawImage(state.backgroundCanvas, 0, 0, size, size)"), "cached background should draw back at logical canvas size");
+    assert(html.includes("registerCombo"), "quick consecutive hits should register combo state");
+    assert(html.includes("maxCombo"), "best combo should be tracked for scoring");
+    assert(html.includes("showComboToast"), "combo hits should show feedback");
+    assert(html.includes("comboBonus"), "combo should affect star calculation");
+    assert(html.includes("showHitParticles"), "hits should spawn lightweight particles");
+    assert(html.includes("showWinConfetti"), "win modal should show a lightweight celebration effect");
+    assert(html.includes("requestAnimationFrame"), "hint navigation should use frame-based animation");
+    assert(!html.includes("const j = randInt(0, i);"), "anchor shuffle should not use unseeded Math.random");
+    assert(!html.includes("const target = unfound[Math.floor(Math.random()"), "hint target should not use unseeded Math.random");
+    assert(!html.includes("CAT_ACCENT"), "hidden cats should not use a high-contrast accent color");
+    assert(!html.includes("#d94f7d"), "hidden cats should not use pink fill that makes targets obvious");
+    assert(html.includes("drawTravelSketchScene"), "page should render a generated sketch scene");
+    assert(html.includes("drawDenseLinework"), "page should add dense sketch details for higher difficulty");
+    assert(html.includes("drawCatDecoy"), "page should include cat-like decoys instead of relying on color");
+    assert(catalog.includes("slug: \"hidden-cats\""), "hidden-cats should be registered in catalog");
+    assert(catalog.includes("mobilePath: \"src/hidden-cats/index.html\""), "hidden-cats should have mobile path");
+
+    vm.runInNewContext(extractInlineScript(html), createSandbox(), { filename: "hidden-cats/index.html" });
+}
+
+testPageBootsAndRegistersCatalog();
+
+console.log("hidden cats smoke test passed");
