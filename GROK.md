@@ -1,5 +1,5 @@
 ---
-rule_id: claude-entry
+rule_id: grok-entry
 version: 1.3.1
 last_updated: 2026-05-19
 dependencies: [agents-root]

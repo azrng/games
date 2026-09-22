@@ -7,3 +7,18 @@
 .claude
 .codegraph
 .cursor
+# AI rule 本地产物、AI 工具目录与本地调试文件（use-ai-rule 生成，勿提交）
+.ai-rule-profile.json
+use-ai-rule*
+.ai-rule-feedback.md
+.zcode/
+.claude/
+.dotnet/
+.codex/
+.pi/
+.cursor/
+.codegraph/
+.learnings/
+.artifacts/
+artifacts/
+.env
