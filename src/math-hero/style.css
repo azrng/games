@@ -1,3 +1,5 @@
+/* 数学小勇士独立样式（自三合一体表拆分，仅保留本游戏用到的选择器） */
+
 /* ================= 基础 ================= */
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
@@ -5,94 +7,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
   -webkit-user-select:none; touch-action:manipulation; overscroll-behavior:none; }
 .hidden { display:none !important; }
 
-#enCanvas { position:fixed; inset:0; z-index:1; display:block; width:100%; height:100%; }
-#zhCanvas { position:fixed; inset:0; z-index:1; display:none; width:100%; height:100%; }
-#mobileInput { position:fixed; left:-9999px; top:0; opacity:0; }
-#enTopBtn, #zhTopBtn { position:fixed; right:14px; top:12px; z-index:30; border:none; cursor:pointer;
-  background:rgba(255,255,255,.88); color:#0f1e3c; font:bold 13px "Segoe UI","Microsoft YaHei",sans-serif;
-  padding:8px 14px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.25); }
-#enTopBtn:active, #zhTopBtn:active { transform:scale(.94); }
-
-/* ================= 语文 · 点字成诗 小扩展 ================= */
-#zhGrid { z-index:2; }
-
-/* ================= 弹层 / 面板（hub + 英语共用一套风格） ================= */
-.overlay { position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
-  background:rgba(15,30,60,.45); backdrop-filter:blur(4px); }
-.overlay.hidden { display:none; }
-.panel { background:#fff; border-radius:20px; padding:32px 40px; text-align:center;
-  box-shadow:0 20px 60px rgba(0,0,0,.35); max-width:560px; max-height:94vh; overflow-y:auto; }
-.panel h1 { font-size:34px; color:#1e3a5f; margin-bottom:6px; line-height:1.3; }
-.panel h1 .en { color:#f59e0b; }
-.panel .sub { color:#64748b; font-size:14px; margin-bottom:16px; }
-.panel .desc { color:#334155; font-size:14px; line-height:1.9; text-align:left;
-  background:#f1f5f9; border-radius:12px; padding:13px 16px; margin-bottom:16px; }
-.panel .desc b { color:#0ea5e9; }
-.btn { display:inline-block; border:none; cursor:pointer; font-size:19px; font-weight:bold;
-  padding:12px 38px; border-radius:999px; color:#fff; font-family:inherit;
-  background:linear-gradient(180deg,#38bdf8,#0284c7); box-shadow:0 6px 0 #075985;
-  transition:transform .08s; }
-.btn:active { transform:translateY(4px); box-shadow:0 2px 0 #075985; }
-.btn.alt { background:linear-gradient(180deg,#94a3b8,#64748b); box-shadow:0 6px 0 #334155;
-  font-size:14px; padding:9px 20px; }
-.btn-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:4px; }
-.stats { display:flex; justify-content:center; gap:22px; margin:14px 0 18px; }
-.stats .s { text-align:center; }
-.stats .s .v { font-size:26px; font-weight:bold; color:#0284c7; }
-.stats .s .k { font-size:12px; color:#94a3b8; margin-top:2px; }
-.newbest { color:#f59e0b; font-weight:bold; font-size:15px; margin-bottom:8px; }
-.board { background:#f8fafc; border:2px solid #e2e8f0; border-radius:12px;
-  padding:8px 14px 10px; margin:10px 0 16px; }
-.board h3 { font-size:15px; color:#1e3a5f; margin-bottom:6px; }
-.board .row { display:flex; align-items:center; gap:10px; font-size:14px;
-  color:#334155; padding:4px 8px; border-radius:8px; }
-.board .row .medal { width:26px; text-align:center; }
-.board .row .num { flex:1; text-align:left; font-weight:bold; color:#0284c7; }
-.board .row .lv, .board .row .date { color:#94a3b8; font-size:12px; }
-.board .row.me { background:#fef3c7; }
-.board .empty { color:#94a3b8; font-size:13px; text-align:center; padding:4px 0; }
-
-/* ================= hub 主菜单 ================= */
-.hub-panel { max-width:800px; }
-.hub-row { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:6px 0 12px; }
-.mode-card { border:none; cursor:pointer; width:225px; padding:18px 14px 14px; border-radius:20px;
-  font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:4px;
-  transition:transform .08s; color:#fff; }
-.mode-card:active { transform:translateY(4px); }
-.mode-card.en { background:linear-gradient(180deg,#38bdf8,#0369a1); box-shadow:0 8px 0 #075985; }
-.mode-card.math { background:linear-gradient(180deg,#ff9f1c,#e8590c); box-shadow:0 8px 0 #c2410c; }
-.mode-card.zh { background:linear-gradient(180deg,#a78bfa,#6d28d9); box-shadow:0 8px 0 #4c1d95; }
-.mode-card .mc-emoji { font-size:44px; line-height:1.2; }
-.mode-card .mc-name { font-size:20px; font-weight:bold; }
-.mode-card .mc-desc { font-size:12.5px; line-height:1.6; opacity:.92; }
-.mode-card .mc-rec { font-size:12.5px; font-weight:bold; margin-top:6px;
-  background:rgba(255,255,255,.25); padding:3px 12px; border-radius:999px; }
-.hub-tip { color:#94a3b8; font-size:12.5px; }
-
-/* ---------- 英语单词大炮 · 选关（与数学选关风格呼应） ---------- */
-#enGrid { z-index:2; }
-.en-group-label { margin:10px 4px 6px; font-weight:bold; color:#56719c; font-size:14px; }
-.en-level-row { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
-.en-level-card { border:none; border-radius:16px; padding:10px 3px 9px; cursor:pointer;
-  background:#fff; box-shadow:0 4px 0 rgba(0,0,0,.15); font-family:inherit;
-  display:flex; flex-direction:column; align-items:center; gap:3px; }
-.en-level-card:not(:disabled):active { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.15); }
-.en-level-card:disabled { opacity:.55; filter:grayscale(1); cursor:default; }
-.en-lc-icon { font-size:26px; line-height:1.2; }
-.en-lc-name { font-size:12px; font-weight:bold; color:#334155; text-align:center; }
-.en-lc-stars { font-size:11px; letter-spacing:1px; }
-.en-lc-stars i { font-style:normal; filter:grayscale(1); opacity:.3; }
-.en-lc-stars i.on { filter:none; opacity:1; }
-.btn.green { background:linear-gradient(180deg,#4ade80,#16a34a); box-shadow:0 6px 0 #15803d; }
-.btn.green:active { box-shadow:0 2px 0 #15803d; }
-.btn.pink { background:linear-gradient(180deg,#f472b6,#db2777); box-shadow:0 6px 0 #9d174d; }
-.btn.pink:active { box-shadow:0 2px 0 #9d174d; }
-#enStars { font-size:44px; letter-spacing:5px; line-height:1.15; margin:2px 0 6px; }
-#enStars i { font-style:normal; display:inline-block; }
-#enStars i.on { animation:mStarPop .55s both; }
-#enStars i.off { filter:grayscale(1); opacity:.3; }
-
-/* ================= 数学模式（mathApp 专属，类名前缀 m-） ================= */
+/* ================= 数学 · 小勇士（类名前缀 m-） ================= */
 #mathApp { position:fixed; inset:0; z-index:10;
   background:linear-gradient(180deg,#63b7f2 0%,#cdeeff 55%,#d8f5d8 100%);
   display:flex; flex-direction:column; }
@@ -149,7 +64,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
 .m-link { margin-top:12px; border:none; background:none; cursor:pointer; color:#8494b5;
   font-size:13px; font-weight:bold; font-family:inherit; text-decoration:underline; z-index:2; }
 
-/* ---------- 数学游戏屏 ---------- */
+/* ---------- 游戏屏 ---------- */
 #mHud { display:flex; align-items:center; gap:8px; padding:8px 12px;
   background:rgba(255,255,255,.55); }
 .m-spacer { flex:1; }
@@ -215,7 +130,8 @@ html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
 @keyframes mWiggle {
   0%,100% { transform:translateX(0); } 25% { transform:translateX(-8px); }
   50% { transform:translateX(8px); } 75% { transform:translateX(-5px); } }
-/* 电脑端已移除九宫格键盘，用户直接使用物理键盘输入数字（0-9、退格、回车） */
+/* 电脑端已移除九宫格键盘，用户直接使用物理键盘输入数字（0-9、退格、回车）；
+   键盘 DOM 与样式按既有约定保留，便于后续移动端恢复输入 */
 #mKeypad { display:none !important; }
 .m-kpGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; width:100%;
   max-width:480px; }
@@ -238,7 +154,7 @@ html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
 .m-modal-text { font-size:16px; color:#45568a; line-height:1.7; }
 .m-modal-text b { color:#ff6b00; }
 .m-modal-text p { margin:6px 0; }
-.m-btn-row, .m-modal-btns { display:flex; gap:11px; justify-content:center; flex-wrap:wrap; }
+.m-modal-btns { display:flex; gap:11px; justify-content:center; flex-wrap:wrap; }
 /* 结算界面：在整个屏幕中垂直+水平居中 */
 #mResult { align-items:center; justify-content:center; padding:20px; }
 .m-rEmoji { font-size:68px; line-height:1.2; animation:mHeroBob 1s ease-in-out infinite alternate; }

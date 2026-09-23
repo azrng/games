@@ -503,7 +503,7 @@ function mShowModal(html, { okText = '确定', cancelText = '取消', onOk = nul
 }
 function mHideModal() { $m('#mModal').classList.add('hidden'); modalCb = null; }
 
-/* ---------------- 键盘按键（由外部总调度调用） ---------------- */
+/* ---------------- 键盘按键（独立页面自装监听，mathKey 内部自带状态守卫） ---------------- */
 window.mathKey = function (e) {
   if (game.state !== 'playing' || !game.waveActive) return;
   if (/^[0-9]$/.test(e.key)) {
