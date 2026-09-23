@@ -45,7 +45,8 @@ src/<game>/
 1. 在 `src/` 下新建游戏目录，并确保入口文件是 `src/<game>/index.html`
 2. 在 `data/games.js` 中新增一条游戏清单记录
 3. 如果游戏需要持久化数据，统一使用 `js/store.js`
-4. localStorage 键名统一使用 `app_game_<slug>_<field>` 格式
+4. 游戏页返回首页按钮统一引入 `js/game-back.js`（按钮样式随脚本注入，无需额外引入 CSS）
+5. localStorage 键名统一使用 `app_game_<slug>_<field>` 格式
 
 ## 统一清单字段
 

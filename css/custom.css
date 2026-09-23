@@ -218,43 +218,4 @@ body {
     }
 }
 
-/* ===== 游戏页共享返回按钮 ===== */
-
-.game-back-btn {
-    position: fixed;
-    top: max(12px, env(safe-area-inset-top));
-    left: max(12px, env(safe-area-inset-left));
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border: 0;
-    border-radius: 20px;
-    background: rgba(17, 24, 39, 0.72);
-    backdrop-filter: blur(8px);
-    color: #fff;
-    font-size: 13px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    text-decoration: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    transition: background 150ms, transform 150ms;
-    line-height: 1;
-}
-
-.game-back-btn:active {
-    background: rgba(17, 24, 39, 0.9);
-    transform: scale(0.95);
-}
-
-.game-back-btn svg {
-    width: 16px;
-    height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
+/* 说明：游戏页共享返回按钮样式已随 js/game-back.js 自包含注入，此处不再重复定义 */

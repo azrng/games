@@ -258,6 +258,7 @@ function setBattleBoard(api) {
 
 function testFilesAndStylesExist() {
     const html = read('index.html');
+    assert(html.includes("../../js/game-back.js"), 'page should mount the shared back button script');
     const css = read('style.css');
     const script = read('script.js');
 
