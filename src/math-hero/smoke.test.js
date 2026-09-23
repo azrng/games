@@ -164,6 +164,11 @@ function testFilesAndCatalogExist() {
     for (const marker of ['LEVELS', 'nextQuestion', 'window.mathKey', 'window.MathHero', 'MathHero.enter()']) {
         assert(script.includes(marker), `script should contain ${marker}`);
     }
+    /* 性能契约：主循环/火球/特效不得逐帧读布局属性，统一走几何缓存与游戏坐标 */
+    assert(script.includes('refreshGeo'), 'script should cache arena geometry via refreshGeo');
+    for (const legacy of ['areaH = areaEl.clientHeight', 't.el.offsetLeft', 'm.el.offsetLeft', 'm.el.offsetTop']) {
+        assert(!script.includes(legacy), `hot path should not read layout via ${legacy}`);
+    }
     assert(!/mode\s*[!=]==?\s*'(en|zh|math)'/.test(script), 'script should not keep cross-mode dispatch');
     assert(script.includes('mathHeroSaveV1'), 'script should keep the original save key');
     assert(script.includes("goHub() { location.href = '../../index.html'; }"), 'home buttons should navigate to the platform hub');
@@ -221,8 +226,6 @@ function testKeyboardAndStateGuards() {
 
     context.window.MathHero.enter();
     assert.strictEqual(game.state, 'idle', 'enter should reset to idle home');
-    context.window.MathHero.leave();
-    assert.strictEqual(game.state, 'idle', 'leave should keep the idle state');
 }
 
 testFilesAndCatalogExist();

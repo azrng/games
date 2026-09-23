@@ -54,7 +54,12 @@ html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
 
 /* ================= 选关 ================= */
 #enGrid { z-index:2; }
-.en-group-label { margin:10px 4px 6px; font-weight:bold; color:#56719c; font-size:14px; }
+.en-group-label { margin:10px 4px 6px; font-weight:bold; color:#56719c; font-size:14px;
+  display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.en-dictation-btn { border:none; cursor:pointer; background:#e0f2fe; color:#0369a1;
+  font:bold 12px "Segoe UI","Microsoft YaHei",sans-serif; padding:4px 12px; border-radius:999px;
+  box-shadow:0 2px 0 rgba(3,105,161,.35); white-space:nowrap; }
+.en-dictation-btn:active { transform:scale(.94); }
 .en-level-row { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; }
 .en-level-card { border:none; border-radius:16px; padding:10px 3px 9px; cursor:pointer;
   background:#fff; box-shadow:0 4px 0 rgba(0,0,0,.15); font-family:inherit;
@@ -70,9 +75,24 @@ html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
 .btn.green:active { box-shadow:0 2px 0 #15803d; }
 .btn.pink { background:linear-gradient(180deg,#f472b6,#db2777); box-shadow:0 6px 0 #9d174d; }
 .btn.pink:active { box-shadow:0 2px 0 #9d174d; }
+.btn:disabled { opacity:.5; filter:grayscale(.9); cursor:default; }
+.btn:disabled:active { transform:none; }
 #enStars { font-size:44px; letter-spacing:5px; line-height:1.15; margin:2px 0 6px; }
 #enStars i { font-style:normal; display:inline-block; }
 #enStars i.on { animation:starPop .55s both; }
 @keyframes starPop { 0% { transform:scale(0) rotate(-40deg); } 60% { transform:scale(1.35); }
   100% { transform:scale(1); } }
 #enStars i.off { filter:grayscale(1); opacity:.3; }
+
+/* ================= 结算生词 ================= */
+#enWordsBoard .word-row { display:flex; align-items:center; gap:8px; padding:5px 8px;
+  border-radius:8px; font-size:14px; color:#475569; }
+#enWordsBoard .word-row:nth-child(odd) { background:#f1f5f9; }
+.word-row .ww { font-weight:bold; color:#0f172a; min-width:84px; text-align:left;
+  font-family:Consolas,"Courier New",monospace; }
+.word-row .wi { color:#64748b; font-size:12px; white-space:nowrap; }
+.word-row .wz { flex:1; text-align:left; }
+.word-row .wsay { border:none; background:#e0f2fe; border-radius:999px; cursor:pointer;
+  font-size:13px; padding:3px 9px; line-height:1.4; }
+.word-row .wsay:active { transform:scale(.92); }
+.word-empty { color:#94a3b8; font-size:13px; text-align:center; padding:4px 0; }

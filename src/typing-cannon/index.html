@@ -15,7 +15,7 @@
 <!-- ==================== 英语 · 单词大炮菜单（选关 + 无尽） ==================== -->
 <div id="enMenu" class="overlay">
   <div class="panel hub-panel">
-    <h1>王乐乐的单词大炮 <span class="en">Typing Cannon</span></h1>
+    <h1>单词大炮 <span class="en">Typing Cannon</span></h1>
     <div class="sub">🎁 用键盘打字，把掉下来的单词一个个击碎！</div>
     <div class="stats">
       <div class="s"><div class="v" id="enStarTotal">⭐ 0/36</div><div class="k">闯关星星</div></div>
@@ -25,14 +25,21 @@
     <div class="desc" style="margin-bottom:12px;padding:11px 14px">
       📖 <b>闯关模式</b>：点下面的关卡开始！消灭关卡里的<b>全部单词</b>就过关，
       剩的 ❤️ 越多星星越多，过关解锁<b>下一关</b>。<br>
+      🎓 <b>四六级·日常高频</b>（🧠 词义回忆）：选自四六级词表里日常真正用得上的词，
+      覆盖社交、居家、购物、天气、网络等场景。<br>
+      🎯 <b>日常高频核心</b>（🧠 词义回忆）：气泡显示<b>中文释义</b>，凭回忆拼出单词；
+      词出现时会先展示单词和音标，结算页还能复习本局生词。<br>
+      📖 <b>错词复习</b>：词义关里漏接 / 打错的词会自动进错词本，完整拼对 2 轮即毕业移出。<br>
+      🎧 <b>听写挑战</b>（点成人词包分组上的"🎧 听写"）：听发音拼单词，点击气泡可重听。<br>
       🌪️ <b>无尽模式</b>：没有终点，掉落越来越快，挑战最高分！<br>
       🅰️ <b>字母练习</b>：掉下来的是<b>单个字母</b>，看到哪个字母就按哪个键——把 A 到 Z 都打熟！
-      <span style="color:#94a3b8;font-size:12.5px"><br>玩法：看到单词直接打字，大炮自动打最危险的 · Esc 放弃 · F1 暂停 · F2 静音</span>
+      <span style="color:#94a3b8;font-size:12.5px"><br>玩法：看到单词直接打字，大炮自动打最危险的 · 点气泡可换目标 · Esc 放弃 · F1 暂停 · F2 静音</span>
     </div>
     <div id="enGrid"></div>
     <div class="btn-row">
       <button class="btn" id="startBtn">🌪️ 无尽模式 ▶</button>
       <button class="btn pink" id="practiceBtn">🅰️ 字母练习</button>
+      <button class="btn green" id="reviewBtn" disabled>📖 错词复习（0）</button>
     </div>
     <div class="btn-row" style="margin-top:8px">
       <button class="btn alt" id="enToHub">🏠 主菜单</button>
@@ -48,7 +55,7 @@
 <div id="enOver" class="overlay hidden">
   <div class="panel">
     <h1>游戏结束 <span class="en">Game Over</span></h1>
-    <div class="sub" id="overGreet">王乐乐，再来一次会更好！</div>
+    <div class="sub" id="overGreet">再来一次会更好！</div>
     <div class="newbest" id="newBest" style="display:none">🎉 新纪录！</div>
     <div id="enStars" style="display:none"></div>
     <div class="stats">
@@ -57,6 +64,10 @@
       <div class="s"><div class="v" id="stAcc">0%</div><div class="k">准确率</div></div>
       <div class="s"><div class="v" id="stCombo">0</div><div class="k">最高连击</div></div>
       <div class="s"><div class="v" id="stWpm">0</div><div class="k">WPM</div></div>
+    </div>
+    <div class="board hidden" id="enWordsBoard">
+      <h3 id="enWordsTitle">📖 本局生词</h3>
+      <div id="enWords"></div>
     </div>
     <div class="board" id="enBoard">
       <h3>🏅 无尽模式 · 荣耀榜</h3>
@@ -71,6 +82,7 @@
   </div>
 </div>
 
+<script src="wordpacks.js"></script>
 <script src="script.js"></script>
     <script src="../../js/game-back.js"></script>
 </body>

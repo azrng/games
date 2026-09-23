@@ -125,6 +125,13 @@ function speakQuestion(q) {
 /* ---------------- 游戏状态 ---------------- */
 const areaEl = $m('#mArea'), wallEl = $m('#mWall'), heroEl = $m('#mHero'),
       comboEl = $m('#mCombo'), answerEl = $m('#mAnswer');
+
+/* 战场几何缓存：主循环与火球追踪只读缓存值，避免帧内读写交错触发强制重排 */
+const geo = { w: 0, h: 0, wallTop: 0 };
+function refreshGeo() {
+  geo.w = areaEl.clientWidth; geo.h = areaEl.clientHeight; geo.wallTop = wallEl.offsetTop;
+}
+window.addEventListener('resize', refreshGeo);
 const game = {
   mode: 'level', levelIdx: 0, cfg: null, q: null,
   hearts: 3, score: 0, combo: 0, bestCombo: 0, solved: 0, asked: 0,
@@ -214,11 +221,14 @@ function spawnWave() {
   const el = document.createElement('div');
   el.className = 'm-monster';
   el.innerHTML = `<div class="m-in"><div class="m-bubble">${game.q.text} = ?</div><div class="m-body">${pick(MONSTERS)}</div></div>`;
-  el.style.left = rnd(25, 75) + '%';
+  const leftPct = rnd(25, 75);
+  el.style.left = leftPct + '%';
   const startY = -(12 + rnd(0, 10));
   el.style.top = startY + '%';
   areaEl.appendChild(el);
-  game.monsters.push({ el, y: startY, jitter: rnd(-10, 10) / 100, alive: true, defeated: false, h: el.offsetHeight });
+  // mx 为像素横坐标（等价 offsetLeft），帧内追踪只用它不再读布局
+  game.monsters.push({ el, mx: leftPct / 100 * geo.w, y: startY, jitter: rnd(-10, 10) / 100,
+    alive: true, defeated: false, h: el.offsetHeight });
 }
 
 /* ==================== 核心战斗逻辑 ==================== */
@@ -238,8 +248,9 @@ function mUpdateFireballs(dt) {
   for (let i = game.fireballs.length - 1; i >= 0; i--) {
     const f = game.fireballs[i], t = f.target;
     if (!t.el.isConnected) { f.el.remove(); game.fireballs.splice(i, 1); continue; }
-    const tx = t.el.offsetLeft;
-    const ty = t.el.offsetTop + t.el.offsetHeight * .35;
+    // 目标坐标来自怪物缓存（mx / y%），不读 offsetLeft/offsetTop
+    const tx = t.mx;
+    const ty = t.y / 100 * geo.h + t.h * .35;
     const dx = tx - f.x, dy = ty - f.y, d = Math.hypot(dx, dy) || 1;
     const step = f.speed * dt;
     if (d <= step + 16) {
@@ -336,8 +347,8 @@ function mExplosionAt(m) {
   const el = document.createElement('div');
   el.className = 'm-explosion';
   el.textContent = '💥';
-  el.style.left = m.el.offsetLeft + 'px';
-  el.style.top = (m.el.offsetTop + m.el.offsetHeight / 2) + 'px';
+  el.style.left = m.mx + 'px';
+  el.style.top = (m.y / 100 * geo.h + m.h / 2) + 'px';
   areaEl.appendChild(el);
   setTimeout(() => el.remove(), 520);
 }
@@ -346,8 +357,8 @@ function mFloatAt(m, txt, color) {
   el.className = 'm-float-text';
   el.textContent = txt;
   el.style.color = color;
-  el.style.left = m.el.offsetLeft + 'px';
-  el.style.top = (m.el.offsetTop - 6) + 'px';
+  el.style.left = m.mx + 'px';
+  el.style.top = (m.y / 100 * geo.h - 6) + 'px';
   areaEl.appendChild(el);
   setTimeout(() => el.remove(), 980);
 }
@@ -377,14 +388,14 @@ function loop(ts) {
   if (game.state !== 'playing') { lastTs = ts; return; }
   const dt = clamp((ts - lastTs) / 1000, 0, .05);
   lastTs = ts;
-  const areaH = areaEl.clientHeight;
-  if (!areaH) return;
-  const wallTop = wallEl.offsetTop;
+  if (!geo.h) refreshGeo();
+  if (!geo.h) return;
   for (const mo of game.monsters) {
     if (!mo.alive) continue;
-    const sp = game.cfg.speed * game.speedFactor * (1 + mo.jitter); // 每秒下落高度（占区域高度的百分比）
+    // 每秒下落高度（占区域高度百分比）；开读题时整体减速 15%，补偿听题占用的时间
+    const sp = game.cfg.speed * game.speedFactor * (1 + mo.jitter) * (save.speech ? .85 : 1);
     mo.y += sp * dt;
-    const trig = (wallTop - mo.h) / areaH * 100;
+    const trig = (geo.wallTop - mo.h) / geo.h * 100;
     if (mo.y >= trig) {
       if (game.fireballs.some(f => f.target === mo)) mo.y = trig;  // 已答对、火球在飞：贴墙等待命中
       else { breach(mo); continue; }
@@ -418,6 +429,7 @@ function mStart(mode, idx = 0) {
   updateHud();
   renderAnswer();
   mShowScreen('mGame');
+  refreshGeo();   // 切到游戏屏后布局才稳定，此时缓存战场几何
   game.state = 'playing';
   if (!save.seenTip && mode === 'level' && idx === 0) {
     save.seenTip = true; persist();
@@ -568,7 +580,7 @@ areaEl.addEventListener('contextmenu', e => e.preventDefault());
 
 /* ---------------- 对外接口 ---------------- */
 window.MathHero = {
-  enter() {           // 从主菜单进入数学模式
+  enter() {           // 页面加载/回到选关首页
     clearTimeout(game.waveTimer);
     game.state = 'idle';
     mResetArea();
@@ -576,13 +588,6 @@ window.MathHero = {
     $m('#mPause').classList.add('hidden');
     renderHome();
     mShowScreen('mHome');
-  },
-  leave() {           // 切走时清理战场
-    clearTimeout(game.waveTimer);
-    game.state = 'idle';
-    mResetArea();
-    mHideModal();
-    $m('#mPause').classList.add('hidden');
   },
   /* 供 smoke test 校验题库与内部状态 */
   _levels: LEVELS,

@@ -9,8 +9,6 @@ function showZhMenu() {
   document.getElementById('zhOver').classList.add('hidden');
   document.getElementById('zhTopBtn').classList.add('hidden');
   renderZhHome();
-  const zc = document.getElementById('zhCanvas');
-  zc.style.display = 'block';
   document.getElementById('zhMenu').classList.remove('hidden');
 }
 
@@ -57,10 +55,15 @@ function zshuffle(a) {
 }
 const zTween = v => v * v * (3 - 2 * v);   // smoothstep
 
-/* ---- 题库：词语（空最后一个字） + 古诗（空任意一个只出现一次的字） ---- */
+/* ---- 题库：词语（随机空首/末字） + 古诗（空任意一个只出现一次的字） ---- */
 const ZH_WORDS = ['太阳', '月亮', '星星', '白云', '花朵', '雨水', '雪花', '彩虹', '草地', '大树',
   '小草', '大山', '大海', '石头', '泥土', '小鸟', '小鱼', '老虎', '狮子', '熊猫',
-  '青蛙', '蜜蜂', '蝴蝶', '蚂蚁', '苹果', '香蕉', '西瓜', '草莓', '樱桃', '菠萝'];
+  '青蛙', '蜜蜂', '蝴蝶', '蚂蚁', '苹果', '香蕉', '西瓜', '草莓', '樱桃', '菠萝',
+  '雨伞', '雪人', '天空', '森林', '河流', '树叶', '松树', '竹子', '玉米', '葡萄',
+  '桃子', '橙子', '小狗', '小猫', '白马', '奶牛', '绵羊', '鸭子', '公鸡', '乌龟',
+  '蜗牛', '刺猬', '金鱼', '海豚', '贝壳', '沙滩', '帆船', '火车', '飞机', '汽车',
+  '桌子', '椅子', '台灯', '电视', '书包', '铅笔', '橡皮', '篮球', '足球', '气球',
+  '风筝', '灯笼', '饺子', '面条', '米饭', '学校', '老师', '朋友', '快乐', '早晨'];
 const ZH_POEMS = [
   ['床前明月光', '疑是地上霜', '举头望明月', '低头思故乡'],          // 静夜思
   ['春眠不觉晓', '处处闻啼鸟', '夜来风雨声', '花落知多少'],          // 春晓
@@ -102,7 +105,8 @@ const ZH = {
   spawnT: 0, respawnT: 0,
   clouds: [], parts: [], floats: [],
   score: 0, groups: 0, rounds: 0, hearts: 3,
-  combo: 0, bestCombo: 0, wrong: 0,
+  combo: 0, bestCombo: 0, wrong: 0, lastWrongAt: -9,
+  blurred: false,
   shake: 0, toast: null, playT: 0, lastPhrase: ''
 };
 for (let i = 0; i < 7; i++) ZH.clouds.push({ x: Math.random() * 2000, y: 30 + Math.random() * 200, s: .5 + Math.random() * .8, v: 5 + Math.random() * 10 });
@@ -114,7 +118,8 @@ function zhNewQuestion() {
   for (let t = 0; t < 8; t++) {
     if (isWord) {
       phrase = zpick(ZH_WORDS);
-      blank = phrase.length - 1;
+      // 词语随机空首字或末字，避免"永远猜末字"的固定套路
+      blank = Math.random() < 0.5 ? 0 : phrase.length - 1;
     } else {
       group = zpick(ZH_POEMS);
       phrase = zpick(group);
@@ -193,6 +198,12 @@ function zhHitWrong(o) {
   const i = ZH.opts.indexOf(o);
   if (i >= 0) ZH.opts.splice(i, 1);
   ZH.combo = 0; ZH.wrong++;
+  // 0.9 秒内的连续错点视为手滑误触：只清连击与提示，不重复扣心
+  if (ZH.playT - ZH.lastWrongAt < 0.9) {
+    zhFloat(o.x, o.y - 24, '别急，看清楚再点～', '#c2410c', 20);
+    return;
+  }
+  ZH.lastWrongAt = ZH.playT;
   ZH.hearts--;
   ZH.shake = 10;
   burstZH(o.x, o.y, ['#ef4444', '#f97316', '#fecaca'], 16, 170);
@@ -239,11 +250,11 @@ function zhEnd() {
   if (ZH.rounds > zhSave.bestRounds) zhSave.bestRounds = ZH.rounds;
   zhPersist();
   const g = document.getElementById('zhGreet');
-  if (isNew) g.textContent = '🏆 王乐乐太厉害了，打破了最高分纪录！';
+  if (isNew) g.textContent = '🏆 太厉害了，打破了最高分纪录！';
   else if (ZH.groups >= 15) g.textContent = '🎉 完成 ' + ZH.groups + ' 组，真是识字小达人！';
   else if (ZH.groups >= 8) g.textContent = '👍 认对了 ' + ZH.groups + ' 个字，越来越棒啦！';
   else if (ZH.groups > 0) g.textContent = '💪 认对了 ' + ZH.groups + ' 个字，再练练能认更多！';
-  else g.textContent = '王乐乐别灰心，先读一读再点，一定可以的！';
+  else g.textContent = '别灰心，先读一读再点，一定可以的！';
   document.getElementById('zhNew').style.display = isNew ? 'block' : 'none';
   const acc = ZH.groups + ZH.wrong > 0 ? Math.round(ZH.groups * 100 / (ZH.groups + ZH.wrong)) : 0;
   document.getElementById('zhScore').textContent = ZH.score;
@@ -320,6 +331,8 @@ function zhResize() {
   zhCanvasEl.width = window.innerWidth * d;
   zhCanvasEl.height = window.innerHeight * d;
   zhCtx.setTransform(d, 0, 0, d, 0, 0);
+  // 窗口变窄时把场上字牌拉回可视区，避免屏幕外的牌既看不见也点不到
+  for (const o of ZH.opts) o.x = Math.min(Math.max(o.x, 70), W - 70);
 }
 zhResize();
 window.addEventListener('resize', zhResize);
@@ -461,11 +474,11 @@ function zhDraw() {
 
 function zhHUD(c) {
   const ink = 'rgba(74,47,27,.9)';
-  // 得分
+  // 得分（x 起点 104 避开左上角平台返回按钮）
   c.textAlign = 'left'; c.textBaseline = 'top';
   c.font = 'bold 26px "Microsoft YaHei",sans-serif';
   c.fillStyle = ink;
-  c.fillText('🏆 ' + ZH.score, 20, 14);
+  c.fillText('🏆 ' + ZH.score, 104, 14);
   // 轮次/组 + 本轮进度
   c.textAlign = 'center';
   c.font = 'bold 22px "Microsoft YaHei",sans-serif';
@@ -505,8 +518,8 @@ function zhHUD(c) {
   }
 }
 
-/* ---- 点击字牌 ---- */
-zhCanvasEl.addEventListener('click', e => {
+/* ---- 点击字牌（pointerdown 降低触屏延迟，掉落目标追点更跟手） ---- */
+zhCanvasEl.addEventListener('pointerdown', e => {
   if (ZH.state !== 'playing' || ZH.stage !== 0) return;
   const x = e.clientX, y = e.clientY;
   for (let i = ZH.opts.length - 1; i >= 0; i--) {
@@ -520,14 +533,15 @@ zhCanvasEl.addEventListener('click', e => {
 
 /* ---- 语文主循环 ---- */
 let zhLastT = performance.now();
+/* 失焦冻结掉落（与平台另两个游戏行为对齐），回到视口自动恢复 */
+window.addEventListener('blur', () => { ZH.blurred = true; });
+window.addEventListener('focus', () => { ZH.blurred = false; });
 function zhLoop(t) {
   const dt = Math.min(.05, (t - zhLastT) / 1000);
   zhLastT = t;
-  if (zhCanvasEl.style.display !== 'none') {
-    if (ZH.state === 'playing') zhUpdate(dt);
-    else zhDeco(dt);
-    zhDraw();
-  }
+  if (ZH.state === 'playing' && !ZH.blurred) zhUpdate(dt);
+  else zhDeco(dt);
+  zhDraw();
   requestAnimationFrame(zhLoop);
 }
 requestAnimationFrame(zhLoop);

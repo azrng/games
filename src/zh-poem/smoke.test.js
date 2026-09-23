@@ -230,6 +230,11 @@ function testGameplayFlow() {
     context.zhHitWrong({ ch: wrongChar, right: false, x: 100, y: 100 });
     assert.strictEqual(state.hearts, heartsBefore - 1, 'wrong hit should cost a heart');
     assert.strictEqual(state.combo, 0, 'wrong hit should reset combo');
+
+    /* 短时间内的连续错点视为误触：不再重复扣心 */
+    const wrongChar2 = state.q.chars.find((c) => c !== state.q.answer && c !== wrongChar);
+    context.zhHitWrong({ ch: wrongChar2, right: false, x: 120, y: 100 });
+    assert.strictEqual(state.hearts, heartsBefore - 1, 'rapid second wrong hit should be forgiven');
 }
 
 testFilesAndCatalogExist();
