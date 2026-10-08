@@ -3,7 +3,7 @@ doc_id: DOC-INDEX
 doc_type: index
 module: global
 status: approved
-last_updated: 2026-09-23
+last_updated: 2026-10-08
 ---
 
 # 文档总索引
@@ -26,8 +26,13 @@ last_updated: 2026-09-23
 | typing-cannon | 错词本存储 | 契约 | superseded（已落地进 `src/typing-cannon/script.js`） | [doc/contracts/typing-cannon/review-book.md](contracts/typing-cannon/review-book.md) |
 | typing-cannon | 听写模式 | 需求 | approved | [doc/requirements/typing-cannon/dictation-mode.md](../requirements/typing-cannon/dictation-mode.md) |
 | typing-cannon | 听写模式 | 设计 | approved | [doc/design/typing-cannon/dictation-mode.md](design/typing-cannon/dictation-mode.md) |
+| color-challenge | 色觉挑战核心玩法 | 需求 | approved | [doc/requirements/color-challenge/core-game.md](../requirements/color-challenge/core-game.md) |
+| sliding-puzzle | 数字华容道核心玩法 | 需求 | approved | [doc/requirements/sliding-puzzle/core-game.md](../requirements/sliding-puzzle/core-game.md) |
+| hidden-cats | 找猫咪核心玩法 | 需求 | approved | [doc/requirements/hidden-cats/core-game.md](../requirements/hidden-cats/core-game.md) |
+| animal-flip-chess | 动物翻翻棋核心玩法 | 需求 | approved | [doc/requirements/animal-flip-chess/core-game.md](../requirements/animal-flip-chess/core-game.md) |
 
 ## 兼容入口
 
+- `doc/requirement.md`：旧版需求合体文档，色觉挑战 / 数字华容道 / 找猫咪 / 动物翻翻棋四章已拆分至 `doc/requirements/<module>/core-game.md`；仅保留迁移说明与全局约定，不追加新章节。
 - `doc/design/设计文档.md`：旧版按功能追加的合体设计文档，仅保留历史内容，不追加新章节；新功能一律使用上述模块化结构。
 - `doc/devlog/`：按日期记录的开发日志，不属于需求/设计/契约体系。

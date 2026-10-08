@@ -3,7 +3,7 @@ doc_id: REQ-INDEX
 doc_type: index
 module: global
 status: approved
-last_updated: 2026-09-23
+last_updated: 2026-10-08
 ---
 
 # 需求索引与项目级目标
@@ -18,8 +18,11 @@ last_updated: 2026-09-23
 
 | 模块 | 说明 | 需求文档 |
 | --- | --- | --- |
-| typing-cannon | 单词大炮：英文打字射击游戏 | [adult-word-packs.md](typing-cannon/adult-word-packs.md)（成人词包与词义模式） |
-| 其余 14 个游戏 | 休闲/益智类，暂无独立需求文档，历史决策见 `doc/devlog/` 与 `doc/design/设计文档.md` | — |
+| color-challenge | 色觉挑战：纯移动端色觉辨识小游戏 | [core-game.md](color-challenge/core-game.md)（核心玩法） |
+| sliding-puzzle | 数字华容道：三档规格滑块拼图 | [core-game.md](sliding-puzzle/core-game.md)（核心玩法） |
+| hidden-cats | 找猫咪：程序生成画面的视觉搜索游戏 | [core-game.md](hidden-cats/core-game.md)（核心玩法） |
+| animal-flip-chess | 动物翻翻棋：翻牌博弈对战（人机 AI） | [core-game.md](animal-flip-chess/core-game.md)（核心玩法） |
+| 其余 10 个游戏 | 休闲/益智类，暂无独立需求文档，历史决策见 `doc/devlog/` 与 `doc/design/设计文档.md` | — |
 
 ## 公共约束
 
