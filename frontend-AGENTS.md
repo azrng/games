@@ -1,7 +1,7 @@
 ---
 rule_id: frontend-agents
-version: 1.81.0
-last_updated: 2026-09-22
+version: 1.87.0
+last_updated: 2026-10-08
 dependencies: [agents-root]
 ---
 
@@ -55,7 +55,7 @@ dependencies: [agents-root]
 - 优先使用 Bootstrap 组件和工具类，禁止 inline style，禁止硬编码颜色/间距/圆角
 
 ### 技术选择原则
-如果仓库已经有真实实现，以现有代码为准，不要强行重构或替换技术栈。
+如果仓库已经有真实实现，以现有代码为准，不要强行重构或替换技术栈；但「以现有实现为准」只适用于对该实现所属项目自身做增量改动——新建解决方案或全新子项目时，按已加载技能与本项目规则族声明的标准结构建项，同仓库其他项目的简化结构不构成豁免。
 技术债务与重构判断遵循 `collaboration-AGENTS.md` 的「纠错、回退与重构」。
 
 ---

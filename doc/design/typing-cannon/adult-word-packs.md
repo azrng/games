@@ -59,7 +59,7 @@ wordpacks.js ──window.WordPacks──▶ script.js
 ### 依赖边界
 
 - 不新增运行时依赖；`wordpacks.js` 与引擎同目录，`index.html` 以两个 `<script>` 顺序引入（数据在前）。
-- 平台首页（`index.html`）与共享返回按钮（`js/game-back.js`）不受影响。
+- 平台首页（`index.html`）与共享返回按钮（`src/js/game-back.js`）不受影响。
 
 ## 界面原型（ASCII 线框）
 

@@ -136,10 +136,10 @@ function loadApi() {
 
 function testFilesAndCatalogExist() {
     const html = read('index.html');
-    assert(html.includes("../../js/game-back.js"), 'page should mount the shared back button script');
+    assert(html.includes("../js/game-back.js"), 'page should mount the shared back button script');
     const css = read('style.css');
     const script = read('script.js');
-    const catalog = fs.readFileSync(path.join(root, '..', '..', 'data', 'games.js'), 'utf8');
+    const catalog = fs.readFileSync(path.join(root, '..', 'data', 'games.js'), 'utf8');
 
     assert(html.includes('user-scalable=no'), 'mobile viewport should disable scaling');
     assert(html.includes('id="board"'), 'page should include board host');

@@ -60,7 +60,18 @@ const REVIEW_PACK = { id: 'review', name: '错词复习', icon: '📖', tone: 'a
 const REVIEW_GRADUATE = 2;   // 连对毕业阈值
 const REVIEW_TAKE = 10;      // 单局复习词数上限
 let reviewBook = {};
-try { const r = JSON.parse(localStorage.getItem(REVIEW_KEY) || 'null'); if (r && typeof r === 'object') reviewBook = r; } catch (e) {}
+try {
+  const r = JSON.parse(localStorage.getItem(REVIEW_KEY) || 'null');
+  if (r && typeof r === 'object') {
+    // 清洗历史/损坏数据：right 缺失或非数字会让连对变 NaN，词永远无法毕业
+    for (const k of Object.keys(r)) {
+      const e = r[k];
+      if (!e || typeof e.w !== 'string') { delete r[k]; continue; }
+      if (typeof e.right !== 'number' || !Number.isFinite(e.right)) e.right = 0;
+    }
+    reviewBook = r;
+  }
+} catch (e) {}
 function reviewPersist() { try { localStorage.setItem(REVIEW_KEY, JSON.stringify(reviewBook)); } catch (e) {} }
 function reviewCount() { return Object.keys(reviewBook).length; }
 /* 结算回写：missed/wrong 入本并清零连对；本内词完整拼对连对 +1，达阈值毕业 */
@@ -106,8 +117,16 @@ function startDictation(packId) {   // 🎧 听写挑战
   const pack = packById(packId);
   if (!pack) return;
   const pool = pack.levels.flatMap(l => l.words).filter(x => x.zh);
-  const words = [...pool].sort(() => Math.random() - 0.5).slice(0, DICTATION_TAKE)
-    .map(x => ({ w: x.w, emoji: null, ipa: x.ipa, zh: x.zh }));
+  // 听写卡与 recall 卡同为盲打，沿用"同场首字母唯一"前提；跨关随机抽词会撞首字母，
+  // 让首按键锁定歧义，这里抽词时按首字母去重
+  const initials = new Set();
+  const words = [];
+  for (const x of [...pool].sort(() => Math.random() - 0.5)) {
+    if (initials.has(x.w[0])) continue;
+    initials.add(x.w[0]);
+    words.push({ w: x.w, emoji: null, ipa: x.ipa, zh: x.zh });
+    if (words.length >= DICTATION_TAKE) break;
+  }
   if (!words.length) return;
   G.mode = 'dictation';
   G.pack = pack;
@@ -133,8 +152,13 @@ function enPersist() { try { localStorage.setItem(EN_SAVE_KEY, JSON.stringify(en
 function enStarsFor(packId, i) { const p = enSave.stars[packId]; return (p && p[i]) || 0; }
 function enUnlocked(packId, i) { return i === 0 || enStarsFor(packId, i - 1) > 0; }
 function enStarTotal() {
+  // 只统计当前词包的星星：已下线词包/迁移残留键的星星不计入，避免总分超过满分
   let sum = 0;
-  for (const p of Object.values(enSave.stars)) for (const v of Object.values(p)) sum += v;
+  for (const p of PACKS) {
+    const st = enSave.stars[p.id];
+    if (!st) continue;
+    for (const v of Object.values(st)) sum += v;
+  }
   return sum;
 }
 function enLevelTotal() { return PACKS.reduce((a, p) => a + p.levels.length, 0); }
@@ -287,25 +311,41 @@ function floatText(x, y, text, color, size = 22) {
   G.floats.push({ x, y, text, color, size, life: 1 });
 }
 
-/* ==================== 输入处理（修复版） ====================
+/* ==================== 输入处理 ====================
    规则：
    1. 每次按键，在【所有还没打完】的掉落物中寻找“下一个待打字母 = 按键”的目标，
       新单词只会从【第一个字母】开始比对，绝不会在单词中间被套中；
-   2. 若当前锁定单词能继续（前缀对齐）就继续，同时场上还有其它匹配的单词时，
-      【越靠下（y 越大，越接近地面）越优先】，先打最危险的；
-   3. 全部不匹配才判为错误按键；
-   4. 首字母相同的词同场时（copy 关数据允许），自动锁定未必是玩家想要的目标，
-      点击气泡可手动切换锁定（保留已打进度）。 */
+   2. 盲拼场景（词义回忆/听写）：当前锁定词能继续就继续；无锁定时有进度的词
+      优先于新词，同级再选最靠下的——中间字母撞车时若被新词抢走锁定，
+      后续按键会被新词吞掉并误记错词本；换目标用 Esc 放弃或点击气泡手动切换；
+   3. 看词场景（copy/字母练习）：词可见，越靠下（y 越大，越接近地面）越优先，
+      先打最危险的；首字母相同的词同场时点击气泡可手动切换锁定（保留已打进度）；
+   4. 全部不匹配才判为错误按键。 */
 function handleChar(ch) {
   if (G.state !== 'playing') return;
   if (!/^[a-z]$/.test(ch)) return;
   ensureAudio();
 
   let best = null;
-  for (const it of G.items) {
-    if (it.typed >= it.word.length) continue;     // 已打完（待销毁）
-    if (it.word[it.typed] !== ch) continue;       // 必须对齐单词的下一字母
-    if (!best || it.y > best.y) best = it;        // 优先打最靠下的
+  if (isRecallLike()) {
+    if (G.lock && G.lock.word[G.lock.typed] === ch) {
+      best = G.lock;   // 锁定词能继续就继续，不被其他词抢占
+    } else {
+      for (const it of G.items) {
+        if (it.typed >= it.word.length) continue;
+        if (it.word[it.typed] !== ch) continue;
+        if (!best) { best = it; continue; }
+        const itStarted = it.typed > 0, bestStarted = best.typed > 0;
+        if (itStarted && !bestStarted) best = it;                        // 已开拼的压过未开拼的
+        else if (itStarted === bestStarted && it.y > best.y) best = it;  // 同级选最靠下的
+      }
+    }
+  } else {
+    for (const it of G.items) {
+      if (it.typed >= it.word.length) continue;
+      if (it.word[it.typed] !== ch) continue;
+      if (!best || it.y > best.y) best = it;       // 优先打最靠下的
+    }
   }
   if (!best) {
     G.combo = 0; G.mistakes++;
@@ -343,7 +383,8 @@ function destroyItem(it) {
   // 听写卡击碎时揭示"单词 + 释义"，即时反馈刚才听到的是什么
   if (it.dir === 'dictation') {
     floatText(it.x, it.y - 44, it.word + (it.zh ? ' ' + it.zh : ''), '#38bdf8', 15);
-    if (!G.wrongWords.has(it.word)) G.cleanKills++;   // 未打错过的才算"一次拼对"
+    // "一次拼对"要求从头到尾没出过岔子：打错或漏接过的词不计入
+    if (!G.wrongWords.has(it.word) && !G.missedWords.has(it.word)) G.cleanKills++;
   }
   burst(it.x, it.y, ['#fbbf24','#f97316','#ef4444','#fff'], 26, 240);
   sfx.destroy();
@@ -557,7 +598,7 @@ function prepareRun() {
   G.score = 0; G.kills = 0;
   G.combo = 0; G.bestCombo = 0; G.typedOk = 0; G.mistakes = 0;
   G.wrongWords = new Set(); G.missedWords = new Set(); G.killedWords = new Set();
-  G.cleanKills = 0;
+  G.cleanKills = 0; G.rounds = 0;
   G.spawnTimer = 0.5; G.playTime = 0; G.lock = null; G.toast = null;
   G.cannon.angle = -Math.PI / 2;
   document.getElementById('enMenu').classList.add('hidden');
@@ -602,7 +643,7 @@ function practiceOver() {
 
 function startPractice() {      // 🅰️ 字母练习
   G.mode = 'practice';
-  G.level = 1; G.lives = 5; G.killsNeeded = 26; G.rounds = 0;
+  G.level = 1; G.lives = 5; G.killsNeeded = 26;
   prepareRun();
   G.toast = { text: '🅰️ 字母练习', sub: '掉下来是哪个字母，就按哪个键！', t: 2.6 };
 }
@@ -1059,6 +1100,8 @@ mobileInput.addEventListener('input', () => {
 });
 canvas.addEventListener('pointerdown', (e) => {
   if (G.state !== 'playing') return;
+  // 二合一设备用鼠标点击时复位触屏标记，避免误 focus 软键盘
+  if (e.pointerType === 'mouse') usingTouch = false;
   // 点击气泡手动切换锁定目标（首字母重复时的兜底选择手段）
   const hit = pickTargetAt(e.clientX, e.clientY);
   if (hit && hit !== G.lock) { G.lock = hit; hit.hitFlash = 0.6; }
@@ -1081,7 +1124,8 @@ document.getElementById('nextBtn').addEventListener('click', () => {
   if (G.levelIdx < G.pack.levels.length - 1) enStartLevel(G.pack.id, G.levelIdx + 1);
 });
 document.getElementById('retryBtn').addEventListener('click', () => {
-  if (G.mode === 'review') startReview();
+  // 错词本已清空时没有可复习的词，回菜单看状态（复习按钮会显示 0 并禁用），避免点击无反应
+  if (G.mode === 'review') { if (reviewCount()) startReview(); else showEnMenu(); }
   else if (G.mode === 'dictation') startDictation(G.pack.id);
   else if (G.mode === 'level') enStartLevel(G.pack.id, G.levelIdx);
   else if (G.mode === 'practice') startPractice();

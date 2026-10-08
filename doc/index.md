@@ -26,6 +26,12 @@ last_updated: 2026-10-08
 | typing-cannon | 错词本存储 | 契约 | superseded（已落地进 `src/typing-cannon/script.js`） | [doc/contracts/typing-cannon/review-book.md](contracts/typing-cannon/review-book.md) |
 | typing-cannon | 听写模式 | 需求 | approved | [doc/requirements/typing-cannon/dictation-mode.md](../requirements/typing-cannon/dictation-mode.md) |
 | typing-cannon | 听写模式 | 设计 | approved | [doc/design/typing-cannon/dictation-mode.md](design/typing-cannon/dictation-mode.md) |
+| pinyin-typing | 拼音打字乐园核心玩法 | 需求 | approved | [doc/requirements/pinyin-typing/core-game.md](../requirements/pinyin-typing/core-game.md) |
+| pinyin-typing | 拼音打字乐园核心玩法 | 设计 | approved | [doc/design/pinyin-typing/core-game.md](design/pinyin-typing/core-game.md) |
+| pinyin-typing | 存储与字库结构 | 契约 | superseded（已落地进 `src/pinyin-typing/script.js` 与 `wordbank.js`） | [doc/contracts/pinyin-typing/core-game.md](contracts/pinyin-typing/core-game.md) |
+| game-hub | 首页年龄筛选 Tab | 需求 | approved | [doc/requirements/game-hub/age-filter.md](../requirements/game-hub/age-filter.md) |
+| game-hub | 首页年龄筛选 Tab | 设计 | approved | [doc/design/game-hub/age-filter.md](design/game-hub/age-filter.md) |
+| game-hub | 首页目录适龄分类结构 | 契约 | superseded（已落地为 `src/data/games.js`） | [doc/contracts/game-hub/age-filter.md](contracts/game-hub/age-filter.md) |
 | color-challenge | 色觉挑战核心玩法 | 需求 | approved | [doc/requirements/color-challenge/core-game.md](../requirements/color-challenge/core-game.md) |
 | sliding-puzzle | 数字华容道核心玩法 | 需求 | approved | [doc/requirements/sliding-puzzle/core-game.md](../requirements/sliding-puzzle/core-game.md) |
 | hidden-cats | 找猫咪核心玩法 | 需求 | approved | [doc/requirements/hidden-cats/core-game.md](../requirements/hidden-cats/core-game.md) |

@@ -4,7 +4,7 @@ const path = require('path');
 
 const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const catalog = fs.readFileSync(path.join(root, '..', '..', 'data', 'games.js'), 'utf8');
+const catalog = fs.readFileSync(path.join(root, '..', 'data', 'games.js'), 'utf8');
 const readme = fs.readFileSync(path.join(root, 'readme.md'), 'utf8');
 
 function testThemeUsesLightGameHubPalette() {

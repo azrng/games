@@ -4,7 +4,7 @@ const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
 const htmlPath = path.join(root, "hidden-cats", "index.html");
-const catalogPath = path.join(root, "..", "data", "games.js");
+const catalogPath = path.join(root, "data", "games.js");
 
 function assert(condition, message) {
     if (!condition) {

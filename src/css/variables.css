@@ -8,6 +8,7 @@
     --app-text-muted: #5d6880;
     --app-primary: #2957c8;
     --app-primary-soft: #e8efff;
+    --app-on-primary: #ffffff;
     --app-shadow: 0 18px 40px rgba(31, 50, 81, 0.12);
     --app-shadow-soft: 0 10px 24px rgba(31, 50, 81, 0.08);
     --app-radius-lg: 24px;

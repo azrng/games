@@ -145,12 +145,12 @@ function runScriptWithContext(seedStorage = []) {
 
 function testFilesAndCatalogExist() {
     const html = read('index.html');
-    assert(html.includes("../../js/game-back.js"), 'page should mount the shared back button script');
+    assert(html.includes("../js/game-back.js"), 'page should mount the shared back button script');
     const css = read('style.css');
     const script = read('script.js');
     const packs = read('wordpacks.js');
-    const catalog = fs.readFileSync(path.join(root, '..', '..', 'data', 'games.js'), 'utf8');
-    const homeApp = fs.readFileSync(path.join(root, '..', '..', 'js', 'app.js'), 'utf8');
+    const catalog = fs.readFileSync(path.join(root, '..', 'data', 'games.js'), 'utf8');
+    const homeApp = fs.readFileSync(path.join(root, '..', 'js', 'app.js'), 'utf8');
 
     assert(html.includes('charset="UTF-8"'), 'page should declare UTF-8');
     assert(html.includes('user-scalable=no'), 'mobile page should disable viewport scaling');
@@ -454,6 +454,60 @@ function testDictationMode() {
     assert.strictEqual(context.enStarTotal(), 0, 'dictation should never award stars');
 }
 
+/* 业务逻辑修复回归：盲拼锁定优先、听写抽词首字母唯一、幽灵星、错词本清洗、cleanKills 口径、rounds 重置 */
+function testLogicFixes() {
+    const { context } = runScriptWithContext([]);
+    const api = context.window.TypingCannon;
+
+    /* 1. 盲拼锁定优先：拼到一半的词不被"待打字母相同"的新词抢占 */
+    context.enStartLevel('daily-core', 0);
+    api.state.items = [];
+    context.spawnItem();
+    context.spawnItem();
+    const [itA, itB] = api.state.items;
+    itA.word = 'delay'; itB.word = 'explain';   // delay 打 1 个字母后待 e，与 explain 首字母撞车
+    context.handleChar('d');
+    context.handleChar('e');
+    assert.strictEqual(itA.typed, 2, 'locked word should keep its progress across a colliding letter');
+    assert.strictEqual(itB.typed, 0, 'fresh word should not steal the lock while the locked word continues');
+    assert.strictEqual(api.state.lock, itA, 'lock should stay on the word being typed');
+
+    /* 2. 听写抽词首字母唯一：同场听写卡不允许锁定歧义 */
+    context.window.speechSynthesis = { speak() {}, cancel() {} };
+    context.startDictation('workplace-core');
+    const initials = api.state.entry.words.map((x) => x.w[0]);
+    assert.strictEqual(new Set(initials).size, initials.length,
+        'dictation words should not share a first letter');
+
+    /* 3. 幽灵星：已下线词包的星星不计入总分 */
+    api.save.stars['removed-pack'] = { 0: 3 };
+    assert.strictEqual(context.enStarTotal(), 0, 'stars of removed packs should not count into the total');
+
+    /* 4. 错词本数据清洗：缺失/非法 right 归零，缺词名的垃圾条目剔除 */
+    const dirty = JSON.stringify({ ghost: { ts: 1 }, broken: { w: 'cat', right: 'x', ts: 2 } });
+    const cleaned = runScriptWithContext([['typcannon_review_v1', dirty]]);
+    assert.strictEqual(cleaned.context.window.TypingCannon.review.broken.right, 0,
+        'invalid streak should be reset to zero on load');
+    assert.strictEqual(cleaned.context.window.TypingCannon.review.ghost, undefined,
+        'entries without a word should be dropped on load');
+
+    /* 5. cleanKills 口径：漏接过的听写词不算"一次拼对" */
+    context.startDictation('workplace-core');
+    api.state.items = [];
+    api.state.missedWords = new Set(['hotel']);
+    api.state.wrongWords = new Set();
+    const killsBefore = api.state.cleanKills;
+    context.destroyItem({ word: 'hotel', dir: 'dictation', x: 100, y: 100, typed: 0, flash: 0, hitFlash: 0, zh: 'n. 酒店' });
+    assert.strictEqual(api.state.cleanKills, killsBefore,
+        'a missed dictation word should not count as a clean kill');
+
+    /* 6. rounds 随局重置：字母练习残留不带入下一局 */
+    context.startPractice();
+    api.state.rounds = 5;
+    context.startGame();
+    assert.strictEqual(api.state.rounds, 0, 'prepareRun should reset rounds for every run');
+}
+
 testFilesAndCatalogExist();
 testBootRendersLevelSelect();
 testWordPackContract();
@@ -462,5 +516,6 @@ testUnlockAndTyping();
 testRecallLevel();
 testReviewBook();
 testDictationMode();
+testLogicFixes();
 
 console.log('typing-cannon smoke test passed');

@@ -67,6 +67,61 @@ body {
     font-size: 15px;
 }
 
+/* ===== 年龄筛选 Tab ===== */
+
+.hub-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 28px;
+}
+
+.hub-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    background: var(--app-panel-muted);
+    color: var(--app-text-muted);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background var(--app-transition),
+        color var(--app-transition),
+        border-color var(--app-transition);
+}
+
+.hub-tab:hover {
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
+}
+
+.hub-tab[aria-selected="true"] {
+    background: var(--app-primary);
+    border-color: var(--app-primary);
+    color: var(--app-on-primary);
+}
+
+.hub-tab-count {
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.75;
+}
+
+.hub-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 48px 16px;
+    text-align: center;
+    color: var(--app-text-muted);
+    font-size: 14px;
+}
+
 /* ===== 卡片网格 ===== */
 
 .hub-grid {
@@ -175,6 +230,16 @@ body {
 
     .hub-header {
         margin-bottom: 24px;
+    }
+
+    .hub-tabs {
+        gap: 6px;
+        margin-bottom: 20px;
+    }
+
+    .hub-tab {
+        padding: 6px 12px;
+        font-size: 13px;
     }
 
     .hub-brand-title {
