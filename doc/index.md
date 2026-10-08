@@ -32,6 +32,8 @@ last_updated: 2026-10-08
 | game-hub | 首页年龄筛选 Tab | 需求 | approved | [doc/requirements/game-hub/age-filter.md](../requirements/game-hub/age-filter.md) |
 | game-hub | 首页年龄筛选 Tab | 设计 | approved | [doc/design/game-hub/age-filter.md](design/game-hub/age-filter.md) |
 | game-hub | 首页目录适龄分类结构 | 契约 | superseded（已落地为 `src/data/games.js`） | [doc/contracts/game-hub/age-filter.md](contracts/game-hub/age-filter.md) |
+| game-hub | 首页设备筛选 Tab | 需求 | approved | [doc/requirements/game-hub/device-filter.md](../requirements/game-hub/device-filter.md) |
+| game-hub | 首页设备筛选 Tab | 设计 | approved | [doc/design/game-hub/device-filter.md](design/game-hub/device-filter.md) |
 | color-challenge | 色觉挑战核心玩法 | 需求 | approved | [doc/requirements/color-challenge/core-game.md](../requirements/color-challenge/core-game.md) |
 | sliding-puzzle | 数字华容道核心玩法 | 需求 | approved | [doc/requirements/sliding-puzzle/core-game.md](../requirements/sliding-puzzle/core-game.md) |
 | hidden-cats | 找猫咪核心玩法 | 需求 | approved | [doc/requirements/hidden-cats/core-game.md](../requirements/hidden-cats/core-game.md) |

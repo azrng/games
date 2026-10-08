@@ -67,14 +67,19 @@ body {
     font-size: 15px;
 }
 
-/* ===== 年龄筛选 Tab ===== */
+/* ===== 年龄 / 设备筛选 Tab ===== */
 
 .hub-tabs {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
-    margin-bottom: 28px;
+    margin-bottom: 12px;
+}
+
+/* 设备 Tab 行紧随年龄行，用相邻选择器与卡片区拉开距离 */
+.hub-tabs + .hub-grid {
+    margin-top: 16px;
 }
 
 .hub-tab {
@@ -234,7 +239,11 @@ body {
 
     .hub-tabs {
         gap: 6px;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
+    }
+
+    .hub-tabs + .hub-grid {
+        margin-top: 12px;
     }
 
     .hub-tab {

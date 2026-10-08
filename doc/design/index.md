@@ -15,6 +15,7 @@ last_updated: 2026-10-08
 | typing-cannon | 听写模式 | approved | [dictation-mode.md](typing-cannon/dictation-mode.md) | REQ-TC003 |
 | pinyin-typing | 拼音打字乐园核心玩法（5-8 岁三档） | approved | [core-game.md](pinyin-typing/core-game.md) | REQ-PT001 |
 | game-hub | 首页年龄筛选 Tab | approved | [age-filter.md](game-hub/age-filter.md) | REQ-GH001 |
+| game-hub | 首页设备筛选 Tab | approved | [device-filter.md](game-hub/device-filter.md) | REQ-GH002 |
 
 ## 跨模块
 

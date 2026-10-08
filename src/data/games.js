@@ -7,7 +7,7 @@
             icon: "src/img/game.svg",
             desc: "经典数字合成玩法，支持撤销和最高分记录。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "gomoku-advanced",
@@ -17,7 +17,7 @@
             icon: "src/img/game.svg",
             desc: "基于 worker 的高阶 AI 五子棋版本，PC 端保留提示能力。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "tetris",
@@ -26,7 +26,7 @@
             icon: "src/img/game.svg",
             desc: "现有编译产物游戏，已纳入统一目录清单管理。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "desktop" }
         },
         {
             slug: "maze",
@@ -35,7 +35,7 @@
             icon: "src/img/game.svg",
             desc: "递归回溯生成迷宫的桌面端专用挑战，关卡会逐步扩张。",
             readme: "src/maze/readme.md",
-            meta: { age: "all" }
+            meta: { age: "all", device: "desktop" }
         },
         {
             slug: "color-challenge",
@@ -45,7 +45,7 @@
             icon: "src/img/game.svg",
             desc: "纯移动端色觉辨识挑战，找出唯一不同色并冲击最高分。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "mobile" }
         },
         {
             slug: "sliding-puzzle",
@@ -55,7 +55,7 @@
             icon: "src/img/game.svg",
             desc: "移动端数字滑块拼图，支持 3×3、4×4、5×5 和历史最优记录。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "mobile" }
         },
         {
             slug: "hidden-cats",
@@ -65,7 +65,7 @@
             icon: "src/img/game.svg",
             desc: "在程序生成的素描画中找出隐藏的所有猫咪，关卡逐步升级。",
             readme: null,
-            meta: { age: "kids" }
+            meta: { age: "kids", device: "all" }
         },
         {
             slug: "yibihua",
@@ -75,7 +75,7 @@
             icon: "src/img/game.svg",
             desc: "经典欧拉路径挑战，一笔画完所有边不重复，50 关闯关递进。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "mobile" }
         },
         {
             slug: "animal-flip-chess",
@@ -85,7 +85,7 @@
             icon: "src/img/game.svg",
             desc: "双人对战翻翻棋，翻牌收集动物棋子，大吃小，鼠吃象。",
             readme: null,
-            meta: { age: "kids" }
+            meta: { age: "kids", device: "all" }
         },
         {
             slug: "pipes",
@@ -95,7 +95,7 @@
             icon: "src/img/game.svg",
             desc: "点击旋转管道，把水源接通到每个端点，生成树关卡必有解。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "mobile" }
         },
         {
             slug: "lights-out",
@@ -105,7 +105,7 @@
             icon: "src/img/game.svg",
             desc: "点一盏灯翻转十字相邻，把整块灯板全部点亮，关卡必有解。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "mobile" }
         },
         {
             slug: "minesweeper",
@@ -115,7 +115,7 @@
             icon: "src/img/game.svg",
             desc: "经典扫雷轻量版，首点必安全，长按插旗，三档难度记录用时。",
             readme: null,
-            meta: { age: "all" }
+            meta: { age: "all", device: "mobile" }
         },
         {
             slug: "typing-cannon",
@@ -125,7 +125,7 @@
             icon: "src/img/game.svg",
             desc: "打字击碎掉落的单词，12 个主题关卡摘星，还有无尽模式与字母练习。",
             readme: null,
-            meta: { age: "adult" }
+            meta: { age: "adult", device: "all" }
         },
         {
             slug: "math-hero",
@@ -135,7 +135,7 @@
             icon: "src/img/game.svg",
             desc: "心算答案炮轰怪兽守护城堡，12 关口算递进，支持读题与每日挑战。",
             readme: null,
-            meta: { age: "kids" }
+            meta: { age: "kids", device: "all" }
         },
         {
             slug: "zh-poem",
@@ -145,7 +145,7 @@
             icon: "src/img/game.svg",
             desc: "词语古诗缺一字，点中天上掉落的正确字牌，连击越高分越高。",
             readme: null,
-            meta: { age: "kids" }
+            meta: { age: "kids", device: "all" }
         },
         {
             slug: "pinyin-typing",
@@ -155,7 +155,7 @@
             icon: "src/img/game.svg",
             desc: "看汉字打拼音的儿童打字启蒙：5-8 岁三档难度，键位高亮、零失败、贴纸激励。",
             readme: null,
-            meta: { age: "kids" }
+            meta: { age: "kids", device: "all" }
         }
     ];
 

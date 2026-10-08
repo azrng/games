@@ -15,9 +15,11 @@ related:
 
 ## 落地结论
 
-- `GAME_CATALOG` 条目的 `meta` 字段为 `null` 或 `{ age: "kids" | "adult" | "all" }`。
+- `GAME_CATALOG` 条目的 `meta` 字段为 `null` 或 `{ age: "kids" | "adult" | "all", device?: "desktop" | "mobile" | "all" }`。
+  - `age`：缺失/非法按 `"all"` 兜底（2026-10-08 落地）。
+  - `device`：REQ-GH002 / DES-GH002 增量扩展，缺失/非法同样按 `"all"` 兜底（2026-10-08 落地）。
 - `meta` 缺失、缺少 `age` 键或取值非法时，消费方（`src/js/app.js` 的 `normalizeAge`）一律按 `"all"` 兜底，不抛错、不隐藏条目。
-- 筛选语义为包含关系：儿童 Tab = kids + all，成人 Tab = adult + all，全部 Tab = 全量。
+- 筛选语义为包含关系：儿童 Tab = kids + all，成人 Tab = adult + all，全部 Tab = 全量；设备维度同理（电脑端 = desktop + all，移动端 = mobile + all），两维度叠加时列表展示交集。
 
 ## 原草案要点（历史存档）
 
