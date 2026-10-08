@@ -1,0 +1,406 @@
+/* ==========================================================
+   拼音打字乐园 · 「贴纸绘本」玩具风
+   奶油纸底 + 糖果三色（薄荷/杏黄/珊瑚）+ 粗描边贴纸卡片 + 硬阴影
+   全部视觉 token 收敛在 :root，禁止在规则里出现裸色值（装饰阴影除外）
+   ========================================================== */
+:root {
+    --pt-bg: #FFF6E9;
+    --pt-ink: #4A3B32;
+    --pt-ink-soft: rgba(74, 59, 50, 0.55);
+    --pt-line: rgba(74, 59, 50, 0.16);
+    --pt-paper: #FFFDF7;
+    --pt-sprout: #3EB489;
+    --pt-sprout-dark: #2E8C6B;
+    --pt-basic: #FFB338;
+    --pt-basic-dark: #D98E1B;
+    --pt-rocket: #FF7A6B;
+    --pt-rocket-dark: #E0584A;
+    --pt-gold: #FFD24C;
+    --pt-gold-dark: #E8B93A;
+    --pt-err: #FF6B6B;
+    --pt-radius: 24px;
+    --pt-pop-shadow: 0 6px 0 rgba(74, 59, 50, 0.14);
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+    min-height: 100vh;
+    font-family: "PingFang SC", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+    color: var(--pt-ink);
+    background-color: var(--pt-bg);
+    /* 奶油纸上的双色波点纹理 */
+    background-image:
+        radial-gradient(rgba(255, 178, 56, 0.16) 2.4px, transparent 2.8px),
+        radial-gradient(rgba(62, 180, 137, 0.12) 2.4px, transparent 2.8px);
+    background-size: 48px 48px;
+    background-position: 0 0, 24px 24px;
+    overflow-x: hidden;
+}
+
+/* 三档主题色挂在档位容器上，内部组件统一引用 --tier */
+.pt-screen { --tier: var(--pt-sprout); --tier-dark: var(--pt-sprout-dark); }
+.pt-screen[data-tier="basic"] { --tier: var(--pt-basic); --tier-dark: var(--pt-basic-dark); }
+.pt-screen[data-tier="rocket"] { --tier: var(--pt-rocket); --tier-dark: var(--pt-rocket-dark); }
+
+.pt-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    padding: 28px 20px 40px;
+    position: relative;
+    z-index: 1;
+}
+
+.hidden { display: none; }
+
+/* ---------- 背景云朵 ---------- */
+.pt-cloud {
+    position: fixed;
+    font-size: 44px;
+    opacity: 0.75;
+    pointer-events: none;
+    z-index: 0;
+    animation: pt-drift 26s ease-in-out infinite alternate;
+}
+.pt-cloud-1 { top: 8%; left: 4%; }
+.pt-cloud-2 { top: 16%; right: 6%; animation-duration: 32s; animation-direction: alternate-reverse; }
+.pt-cloud-3 { bottom: 10%; left: 10%; animation-duration: 38s; }
+
+@keyframes pt-drift {
+    from { transform: translateX(0); }
+    to { transform: translateX(46px); }
+}
+
+/* ---------- 选档页 ---------- */
+.pt-hero { text-align: center; }
+
+.pt-title {
+    margin: 0;
+    font-size: clamp(34px, 6vw, 58px);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: var(--pt-ink);
+    text-shadow: 0 4px 0 rgba(255, 210, 76, 0.55);
+}
+
+.pt-sub {
+    margin: 8px 0 0;
+    font-size: clamp(15px, 2vw, 20px);
+    font-weight: 600;
+    color: var(--pt-ink-soft);
+    letter-spacing: 0.22em;
+}
+
+.pt-tiers {
+    display: flex;
+    gap: 26px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.pt-tier {
+    width: min(240px, 82vw);
+    padding: 24px 18px 20px;
+    font-family: inherit;
+    color: var(--pt-ink);
+    text-align: center;
+    background: var(--pt-paper);
+    border: 3px solid var(--line, var(--pt-line));
+    border-radius: var(--pt-radius);
+    box-shadow: var(--pt-pop-shadow);
+    cursor: pointer;
+    transition: transform 160ms, box-shadow 160ms;
+}
+.pt-tier[data-tier="sprout"] { --line: var(--pt-sprout); --line-dark: var(--pt-sprout-dark); }
+.pt-tier[data-tier="basic"] { --line: var(--pt-basic); --line-dark: var(--pt-basic-dark); }
+.pt-tier[data-tier="rocket"] { --line: var(--pt-rocket); --line-dark: var(--pt-rocket-dark); }
+
+.pt-tier:hover { transform: translateY(-6px) rotate(-1deg); box-shadow: 0 10px 0 rgba(74, 59, 50, 0.14); }
+.pt-tier:active { transform: translateY(0) scale(0.98); }
+
+.pt-tier-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: pt-wobble 5s ease-in-out infinite; }
+.pt-tier:nth-child(2) .pt-tier-inner { animation-delay: 0.6s; }
+.pt-tier:nth-child(3) .pt-tier-inner { animation-delay: 1.2s; }
+
+@keyframes pt-wobble {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-1.4deg); }
+    75% { transform: rotate(1.4deg); }
+}
+
+.pt-tier-icon { font-size: 46px; line-height: 1; }
+.pt-tier-name { font-size: 24px; font-weight: 900; color: var(--line-dark, var(--pt-ink)); }
+.pt-tier-age {
+    padding: 3px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--line, var(--pt-ink-soft));
+    border-radius: 999px;
+}
+.pt-tier-stat { font-size: 16px; font-weight: 600; color: var(--pt-ink-soft); }
+
+.pt-menu-foot { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+.pt-tip {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--pt-ink-soft);
+    text-align: center;
+}
+.pt-warn { color: var(--pt-err); font-weight: 700; }
+
+/* ---------- 按钮 ---------- */
+.pt-btn {
+    padding: 12px 30px;
+    font-family: inherit;
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--pt-ink);
+    background: var(--pt-paper);
+    border: 3px solid var(--pt-line);
+    border-radius: 999px;
+    box-shadow: var(--pt-pop-shadow);
+    cursor: pointer;
+    transition: transform 140ms, box-shadow 140ms;
+}
+.pt-btn:hover { transform: translateY(-3px); }
+.pt-btn:active { transform: translateY(1px); box-shadow: 0 3px 0 rgba(74, 59, 50, 0.14); }
+
+.pt-btn-main {
+    color: #fff;
+    background: var(--tier, var(--pt-sprout));
+    border-color: var(--tier-dark, var(--pt-sprout-dark));
+}
+.pt-btn-ghost { font-size: 16px; padding: 9px 22px; }
+
+/* ---------- 对局页 HUD ---------- */
+.pt-hud {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.pt-hud-item {
+    padding: 6px 18px;
+    font-size: 17px;
+    font-weight: 800;
+    background: var(--pt-paper);
+    border: 2px solid var(--pt-line);
+    border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(74, 59, 50, 0.1);
+}
+
+.pt-combo { color: var(--pt-rocket-dark); }
+
+.pt-hud-btn {
+    padding: 6px 13px;
+    font-size: 17px;
+    background: var(--pt-paper);
+    border: 2px solid var(--pt-line);
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(74, 59, 50, 0.1);
+}
+
+/* ---------- 汉字卡片 ---------- */
+.pt-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: min(430px, 88vw);
+    padding: 16px 46px 24px;
+    font-family: inherit;
+    color: var(--pt-ink);
+    background: var(--pt-paper);
+    border: 5px solid var(--tier, var(--pt-sprout));
+    border-radius: 34px;
+    box-shadow: 0 12px 0 rgba(74, 59, 50, 0.12);
+    cursor: pointer;
+}
+
+.pt-card-emoji { font-size: 42px; line-height: 1.2; animation: pt-float 3s ease-in-out infinite; }
+
+@keyframes pt-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+}
+
+.pt-card-hanzi {
+    font-size: clamp(110px, 24vmin, 190px);
+    font-weight: 900;
+    line-height: 1.08;
+}
+
+.pt-card-info {
+    font-size: clamp(19px, 2.6vw, 25px);
+    font-weight: 700;
+    color: var(--pt-ink-soft);
+    letter-spacing: 0.12em;
+}
+
+.pt-card.pt-shake { animation: pt-shake 0.4s; }
+
+@keyframes pt-shake {
+    10%, 50%, 90% { transform: translateX(-9px) rotate(-1deg); }
+    30%, 70% { transform: translateX(9px) rotate(1deg); }
+}
+
+.pt-card.pt-win { animation: pt-win 0.8s; }
+
+@keyframes pt-win {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.07) rotate(-1.5deg); }
+    70% { transform: scale(0.99) rotate(1deg); }
+    100% { transform: scale(1); }
+}
+
+/* ---------- 拼音槽位 ---------- */
+.pt-slots { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; min-height: 64px; }
+
+.pt-slot {
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    font-size: 33px;
+    font-weight: 800;
+    text-transform: lowercase;
+    color: rgba(74, 59, 50, 0.26);
+    background: rgba(255, 253, 247, 0.72);
+    border: 3px solid var(--pt-line);
+    border-radius: 18px;
+}
+
+.pt-slot.pt-filled {
+    color: #fff;
+    background: var(--tier, var(--pt-sprout));
+    border-color: var(--tier-dark, var(--pt-sprout-dark));
+    animation: pt-pop 0.28s;
+}
+
+@keyframes pt-pop {
+    0% { transform: scale(0.45); }
+    60% { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
+/* ---------- 屏幕键位图 ---------- */
+.pt-kb { display: flex; flex-direction: column; gap: 8px; }
+
+.pt-kb-row { display: flex; gap: 8px; justify-content: center; }
+
+.pt-key {
+    width: 52px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    font-size: 23px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--pt-ink-soft);
+    background: var(--pt-paper);
+    border: 2px solid var(--pt-line);
+    border-radius: 14px;
+    box-shadow: 0 4px 0 rgba(74, 59, 50, 0.16);
+    user-select: none;
+}
+
+.pt-key.pt-next {
+    color: var(--pt-ink);
+    background: var(--pt-gold);
+    border-color: var(--pt-gold-dark);
+    animation: pt-pulse 1s ease-in-out infinite;
+}
+
+@keyframes pt-pulse {
+    50% { transform: scale(1.13); box-shadow: 0 6px 0 var(--pt-gold-dark); }
+}
+
+.pt-key.pt-miss {
+    color: #fff;
+    background: var(--pt-err);
+    border-color: #E0584A;
+}
+
+/* ---------- 庆祝彩点 ---------- */
+.pt-confetti {
+    position: fixed;
+    z-index: 60;
+    font-size: 27px;
+    pointer-events: none;
+    animation: pt-fly 1s ease-out forwards;
+}
+
+@keyframes pt-fly {
+    from { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    to { transform: translate(var(--dx, 0px), var(--dy, -180px)) rotate(260deg); opacity: 0; }
+}
+
+/* ---------- 结算页 ---------- */
+.pt-result-title {
+    margin: 0;
+    font-size: clamp(30px, 5vw, 46px);
+    font-weight: 900;
+    text-shadow: 0 4px 0 rgba(255, 210, 76, 0.55);
+}
+
+.pt-result-stars { display: flex; flex-direction: column; gap: 10px; }
+
+.pt-star-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 26px;
+    font-size: 24px;
+    font-weight: 800;
+    background: var(--pt-paper);
+    border: 2px solid var(--pt-line);
+    border-radius: 18px;
+    box-shadow: 0 4px 0 rgba(74, 59, 50, 0.1);
+    animation: pt-pop 0.35s backwards;
+}
+
+.pt-star-row .pt-star { opacity: 0.22; }
+.pt-star-row .pt-star.pt-on { opacity: 1; }
+
+.pt-result-stickers { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+.pt-chip {
+    padding: 7px 18px;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--tier-dark, var(--pt-sprout-dark));
+    background: var(--pt-paper);
+    border: 2px solid var(--tier, var(--pt-sprout));
+    border-radius: 999px;
+    animation: pt-pop 0.35s backwards;
+}
+
+.pt-chip-none { font-size: 15px; font-weight: 600; color: var(--pt-ink-soft); }
+
+.pt-result-combo {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--pt-rocket-dark);
+}
+
+.pt-result-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+/* ---------- 窄屏降级（基础兜底，本游戏以 PC 为主） ---------- */
+@media (max-width: 720px) {
+    .pt-key { width: 34px; height: 42px; font-size: 17px; border-radius: 10px; }
+    .pt-slot { width: 46px; height: 46px; font-size: 24px; }
+    .pt-card { min-width: 0; width: 94vw; padding: 12px 18px 18px; }
+    .pt-cloud { display: none; }
+}

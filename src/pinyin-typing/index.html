@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼音打字乐园 - 游戏平台</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 背景装饰：缓慢漂移的云朵 -->
+<div class="pt-cloud pt-cloud-1" aria-hidden="true">☁️</div>
+<div class="pt-cloud pt-cloud-2" aria-hidden="true">🌈</div>
+<div class="pt-cloud pt-cloud-3" aria-hidden="true">☀️</div>
+
+<!-- ==================== 选档页 ==================== -->
+<div id="menu" class="pt-screen">
+  <header class="pt-hero">
+    <h1 class="pt-title">🌸 拼音打字乐园</h1>
+    <p class="pt-sub">看汉字 · 打拼音 · 收贴纸</p>
+  </header>
+  <div class="pt-tiers" id="tierGrid" role="list" aria-label="选择难度"></div>
+  <div class="pt-menu-foot">
+    <button id="soundBtn" class="pt-btn pt-btn-ghost" type="button">🔊 声音：开</button>
+    <p class="pt-tip">💡 请把输入法切到英文（ABC）再开玩哦 · 按键盘上的字母键就是打字</p>
+    <p class="pt-tip pt-warn hidden" id="storeWarn">⚠️ 浏览器无法保存进度，本次练习不会被记住</p>
+  </div>
+</div>
+
+<!-- ==================== 对局页 ==================== -->
+<div id="play" class="pt-screen hidden">
+  <header class="pt-hud">
+    <span class="pt-hud-item" id="hudProgress">第 1/8 字</span>
+    <span class="pt-hud-item" id="hudStars">⭐ 0</span>
+    <span class="pt-hud-item pt-combo" id="hudCombo">🔥 连击 0</span>
+    <button id="muteBtn" class="pt-hud-btn" type="button" aria-label="声音开关">🔊</button>
+  </header>
+
+  <button id="hanziCard" class="pt-card" type="button" aria-label="点一下再听一遍">
+    <span class="pt-card-emoji" id="cardEmoji">🌷</span>
+    <span class="pt-card-hanzi" id="cardHanzi">花</span>
+    <span class="pt-card-info" id="cardInfo">huā · 花朵</span>
+  </button>
+
+  <div class="pt-slots" id="slots" aria-label="拼音字母，照着亮起的键按下去"></div>
+
+  <div class="pt-kb" id="kb" aria-hidden="true"></div>
+</div>
+
+<!-- ==================== 结算页 ==================== -->
+<div id="result" class="pt-screen hidden">
+  <h1 class="pt-result-title" id="resultTitle">🎉 本局打完啦！</h1>
+  <div class="pt-result-stars" id="resultStars"></div>
+  <div class="pt-result-stickers" id="resultStickers"></div>
+  <div class="pt-result-combo hidden" id="resultCombo">🔥 本局最高连击 0</div>
+  <div class="pt-result-btns">
+    <button id="againBtn" class="pt-btn pt-btn-main" type="button">🔁 再来一局</button>
+    <button id="menuBtn" class="pt-btn pt-btn-ghost" type="button">🏠 回选档</button>
+  </div>
+</div>
+
+<script src="wordbank.js"></script>
+<script src="script.js"></script>
+<script src="../js/game-back.js"></script>
+</body>
+</html>
