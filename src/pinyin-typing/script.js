@@ -346,11 +346,15 @@ function renderWord(cur) {
     const emojiEl = elById('cardEmoji');
     const hanziEl = elById('cardHanzi');
     const infoEl = elById('cardInfo');
-    if (emojiEl) emojiEl.textContent = cur.e;
+    // 扩量字库无插图时隐藏图位，保持大字卡居中
+    if (emojiEl) {
+        emojiEl.textContent = cur.e || '';
+        emojiEl.classList.toggle('hidden', !cur.e);
+    }
     if (hanziEl) hanziEl.textContent = cur.h;
     if (infoEl) {
-        // 单字展示带调拼音 + 示例词；双字词直接展示拼音
-        infoEl.textContent = cur.h.length > 1 ? cur.p : `${toneMark(cur.p, cur.t)} · ${cur.w}`;
+        // 单字展示带调拼音（+例词，若有）；双字词直接展示拼音
+        infoEl.textContent = cur.h.length > 1 ? cur.p : (cur.w ? `${toneMark(cur.p, cur.t)} · ${cur.w}` : toneMark(cur.p, cur.t));
     }
     const slots = elById('slots');
     if (slots) {
@@ -427,7 +431,7 @@ function renderResult() {
         G.queue.forEach((entry, i) => {
             const row = mk('div', 'pt-star-row');
             const got = G.roundStars[i] || 0;
-            row.appendChild(mk('span', 'pt-star-char', `${entry.e} ${entry.h}`));
+            row.appendChild(mk('span', 'pt-star-char', entry.e ? `${entry.e} ${entry.h}` : entry.h));
             for (let s = 1; s <= 3; s++) {
                 const star = mk('span', 'pt-star', '⭐');
                 if (s <= got) star.classList.add('pt-on');
@@ -481,8 +485,8 @@ function celebrate() {
 /* ---------- 语音与音效（都做静默降级，不阻塞玩法） ---------- */
 
 function speakEntry(cur) {
-    // 单字念「字 + 示例词」，双字词直接念词
-    speak(cur.h.length > 1 ? cur.h : `${cur.h}，${cur.w}`);
+    // 单字念「字 + 例词」（无例词只念字），双字词直接念词
+    speak(cur.h.length > 1 ? cur.h : (cur.w ? `${cur.h}，${cur.w}` : cur.h));
 }
 
 /** @param {boolean=} interrupt 是否打断上一段朗读（默认打断） */

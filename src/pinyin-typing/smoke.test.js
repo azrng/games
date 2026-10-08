@@ -89,23 +89,22 @@ function loadGame(storage) {
 {
     const { PT } = loadGame();
     const bank = PT.tierBank;
-    assert.strictEqual(bank('sprout').length, 40, '启蒙档 40 字');
-    assert.strictEqual(bank('basic').length, 60, '基础档 60 字');
-    assert.strictEqual(bank('rocket').length, 60, '挑战档 60 条');
-    const caps = { sprout: 2, basic: 3 };
-    [['sprout', 40], ['basic', 60], ['rocket', 60]].forEach(([tier, total]) => {
+    // 与部编版课本对齐的档位规模（build-wordbank.js 生成；数据源更新后此处同步）
+    assert.strictEqual(bank('sprout').length, 211, '启蒙档 = 一年级上册 211 字');
+    assert.strictEqual(bank('basic').length, 287, '基础档 = 一年级下册新增 287 字');
+    assert.strictEqual(bank('rocket').length, 583, '挑战档 = 二年级新增 563 字 + 双字词 20 条');
+    [['sprout', 211], ['basic', 287], ['rocket', 583]].forEach(([tier, total]) => {
         const seen = new Set();
         bank(tier).forEach((c) => {
             assert.match(c.p, /^[a-z]+$/, `${tier} ${c.h} 拼音必须是小写字母`);
             assert.ok(c.h, `${tier} 汉字非空`);
-            assert.ok(c.e, `${tier} ${c.h} 需要插图`);
-            assert.ok(c.w, `${tier} ${c.h} 需要示例词`);
             assert.ok(c.t >= 0 && c.t <= 4, `${tier} ${c.h} 声调取值 0-4`);
+            assert.strictEqual(typeof c.e, 'string', `${tier} ${c.h} 插图为字符串（可空）`);
+            assert.strictEqual(typeof c.w, 'string', `${tier} ${c.h} 例词为字符串（可空）`);
             assert.ok(!seen.has(c.h), `${tier} 汉字档内唯一：${c.h}`);
             seen.add(c.h);
-            if (caps[tier]) {
-                assert.ok(c.p.length <= caps[tier], `${tier} ${c.h} 拼音长度 ≤${caps[tier]}`);
-                assert.strictEqual(c.h.length, 1, `${tier} 应全部是单字`);
+            if (c.h.length === 1) {
+                assert.ok(!/[vü]/.test(c.p), `${tier} ${c.h} 拼音不得含 v/ü`);
             }
         });
         assert.strictEqual(seen.size, total, `${tier} 去重后数量一致`);
@@ -115,8 +114,6 @@ function loadGame(storage) {
         if (c.h.length === 2) {
             assert.strictEqual(c.t, 0, `双字词 ${c.h} 无声调`);
             assert.ok(c.p.length >= 2 && c.p.length <= 8, `双字词 ${c.h} 总长 ≤8`);
-        } else {
-            assert.ok(c.p.length <= 4, `挑战单字 ${c.h} 拼音 ≤4 字母`);
         }
     });
     // 双字词共 20 条
@@ -149,12 +146,10 @@ function loadGame(storage) {
     assert.strictEqual(queue.length, 8);
     queue.forEach((c) => assert.ok(!PT.hasStar('basic', c.h), '未学充足时不出已学字'));
     // 场景 B：未学只剩 5 个 → 用已学补齐到 8
-    basic.slice(50).forEach((c) => { PT.PT_SAVE.stars.basic[c.h] = 2; }); // 全部已学
-    delete PT.PT_SAVE.stars.basic[basic[55].h];
-    delete PT.PT_SAVE.stars.basic[basic[56].h];
-    delete PT.PT_SAVE.stars.basic[basic[57].h];
-    delete PT.PT_SAVE.stars.basic[basic[58].h];
-    delete PT.PT_SAVE.stars.basic[basic[59].h];
+    basic.forEach((c) => { PT.PT_SAVE.stars.basic[c.h] = 2; }); // 全部已学
+    [basic[100], basic[200], basic[250], basic[280], basic[286]].forEach((c) => {
+        delete PT.PT_SAVE.stars.basic[c.h];
+    });
     queue = PT.pickQueue('basic', 8);
     assert.strictEqual(queue.length, 8, '未学不足时补齐到 8');
     assert.strictEqual(new Set(queue.map((c) => c.h)).size, 8, '一局内不重复');
