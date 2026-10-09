@@ -235,6 +235,21 @@ function testGameplayFlow() {
     const wrongChar2 = state.q.chars.find((c) => c !== state.q.answer && c !== wrongChar);
     context.zhHitWrong({ ch: wrongChar2, right: false, x: 120, y: 100 });
     assert.strictEqual(state.hearts, heartsBefore - 1, 'rapid second wrong hit should be forgiven');
+
+    /* 回归：上一局的错点时间戳不得带进新一局，否则新局首次错点
+       会落进 0.9 秒误触豁免分支被静默免扣心（wrong 却照计，拉低准确率） */
+    state.playT = 120; // 模拟上一局已进行两分钟后点错一次
+    const wrongChar3 = state.q.chars.find((c) => c !== state.q.answer);
+    context.zhHitWrong({ ch: wrongChar3, right: false, x: 140, y: 100 });
+    assert.strictEqual(state.lastWrongAt, 120, 'wrong hit should stamp the play clock');
+    context.zhStartRun();
+    assert.strictEqual(state.playT, 0, 'new run should reset the play clock');
+    assert.strictEqual(state.lastWrongAt, -9, 'new run should reset the last-wrong stamp');
+    const heartsAfterRestart = state.hearts;
+    const wrongCharNew = state.q.chars.find((c) => c !== state.q.answer);
+    context.zhHitWrong({ ch: wrongCharNew, right: false, x: 100, y: 100 });
+    assert.strictEqual(state.hearts, heartsAfterRestart - 1,
+        'first wrong hit in a new run should cost a heart');
 }
 
 testFilesAndCatalogExist();

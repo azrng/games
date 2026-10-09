@@ -131,9 +131,14 @@ html, body { width:100%; height:100%; overflow:hidden; background:#7fc4ef;
 @keyframes mWiggle {
   0%,100% { transform:translateX(0); } 25% { transform:translateX(-8px); }
   50% { transform:translateX(8px); } 75% { transform:translateX(-5px); } }
-/* 电脑端已移除九宫格键盘，用户直接使用物理键盘输入数字（0-9、退格、回车）；
-   键盘 DOM 与样式按既有约定保留，便于后续移动端恢复输入 */
+/* 电脑端隐藏九宫格键盘，用物理键盘输入（0-9、退格、回车）；
+   触屏设备（手机/平板）没有物理键盘，按指针类型恢复九宫格，否则无法作答。
+   键盘 DOM 与点击处理始终保留（script.js 事件委托不依赖显隐状态） */
 #mKeypad { display:none !important; }
+@media (pointer: coarse) {
+  #mKeypad { display:flex !important; justify-content:center;
+    padding:6px 12px calc(8px + env(safe-area-inset-bottom)); }
+}
 .m-kpGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; width:100%;
   max-width:480px; }
 .m-kp { border:none; border-radius:13px; cursor:pointer; height:clamp(46px,8.5vh,60px);

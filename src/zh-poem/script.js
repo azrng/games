@@ -231,6 +231,9 @@ function zhStartRun() {
   ZH.opts = []; ZH.parts = []; ZH.floats = [];
   ZH.score = 0; ZH.groups = 0; ZH.rounds = 0; ZH.hearts = 3;
   ZH.combo = 0; ZH.bestCombo = 0; ZH.wrong = 0;
+  // lastWrongAt 必须随新局重置：否则上一局的残留值会让新局首次错点
+  // 命中"0.9 秒内误触豁免"分支，被静默免扣一颗心
+  ZH.lastWrongAt = -9;
   ZH.stage = 0; ZH.shake = 0; ZH.playT = 0;
   ZH.toast = { text: '📜 点字成诗', sub: '先读题，再点天上掉下来的正确字！', t: 2.6 };
   document.getElementById('zhMenu').classList.add('hidden');

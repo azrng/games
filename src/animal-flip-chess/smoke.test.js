@@ -291,6 +291,10 @@ function testBoardCellsAreAccessibleButtons() {
     assert.strictEqual(firstCell.type, 'button', 'board cell buttons should not submit forms');
     assert(firstCell.getAttribute('aria-label').includes('1行1列'), 'board cells should expose position labels');
     assert(firstCell.getAttribute('aria-label').includes('未翻开的牌'), 'hidden cards should not expose animal identity');
+    // 暗面 DOM 内容对辅助技术隐藏：aria-label 已承载全部状态，
+    // 牌背里的动物图标/归属角标不得进入可访问性树（否则读屏等于透视暗牌）
+    assert(firstCell.innerHTML.includes('aria-hidden="true"'),
+        'card faces should be aria-hidden so the hidden face never leaks to assistive tech');
 }
 
 function testInitialDeckHasOneAnimalPerOwner() {

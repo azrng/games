@@ -83,7 +83,7 @@
             path: "src/animal-flip-chess/index.html",
             mobilePath: "src/animal-flip-chess/index.html",
             icon: "src/img/game.svg",
-            desc: "双人对战翻翻棋，翻牌收集动物棋子，大吃小，鼠吃象。",
+            desc: "人机对战暗棋：翻牌或移动动物棋子，大吃小、鼠吃象、同级同归于尽。",
             readme: null,
             meta: { age: "kids", device: "all" }
         },

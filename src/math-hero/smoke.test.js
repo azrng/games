@@ -160,6 +160,8 @@ function testFilesAndCatalogExist() {
     assert(css.includes('#mathApp'), 'stylesheet should keep math mode styles');
     /* 电脑端隐藏九宫格、用物理键盘输入的原有约定保留 */
     assert(css.includes('#mKeypad'), 'stylesheet should keep the keypad rule');
+    /* 触屏设备没有物理键盘：九宫格必须在粗指针环境下恢复，否则手机无法作答 */
+    assert(css.includes('(pointer: coarse)'), 'stylesheet should restore the keypad on coarse-pointer (touch) devices');
 
     for (const marker of ['LEVELS', 'nextQuestion', 'window.mathKey', 'window.MathHero', 'MathHero.enter()']) {
         assert(script.includes(marker), `script should contain ${marker}`);

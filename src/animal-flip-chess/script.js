@@ -227,7 +227,7 @@
             ? '<span class="empty-label">空</span>'
             : `<span class="animal-icon">${animal.icon}</span><span class="animal-name">${animal.name}</span>`;
         const nextMarkup = `
-                    <div class="card-inner">
+                    <div class="card-inner" aria-hidden="true">
                         <div class="card-face card-back"></div>
                         <div class="card-face card-front">
                             ${ownerLabel ? `<span class="owner-badge">${ownerLabel}</span>` : ''}
