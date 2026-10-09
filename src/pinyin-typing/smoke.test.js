@@ -93,7 +93,8 @@ function loadGame(storage) {
     assert.strictEqual(bank('sprout').length, 211, '启蒙档 = 一年级上册 211 字');
     assert.strictEqual(bank('basic').length, 287, '基础档 = 一年级下册新增 287 字');
     assert.strictEqual(bank('rocket').length, 583, '挑战档 = 二年级新增 563 字 + 双字词 20 条');
-    [['sprout', 211], ['basic', 287], ['rocket', 583]].forEach(([tier, total]) => {
+    assert.strictEqual(bank('advanced').length, 440, '进阶档 = 三年级新增 440 字');
+    [['sprout', 211], ['basic', 287], ['rocket', 583], ['advanced', 440]].forEach(([tier, total]) => {
         const seen = new Set();
         bank(tier).forEach((c) => {
             assert.match(c.p, /^[a-z]+$/, `${tier} ${c.h} 拼音必须是小写字母`);

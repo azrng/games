@@ -8,10 +8,16 @@
 const PT_SAVE_KEY = 'pinyin_typing_save_v1';
 const PT_ROUND_SIZE = 8; // 每局字数
 const PT_TIERS = [
-    { id: 'sprout', icon: '🌱', name: '启蒙档', age: '5-6 岁' },
-    { id: 'basic', icon: '🌟', name: '基础档', age: '6-7 岁' },
-    { id: 'rocket', icon: '🚀', name: '挑战档', age: '7-8 岁' }
+    { id: 'sprout', icon: '🌱', name: '启蒙档', age: '5-6 岁', combo: false },
+    { id: 'basic', icon: '🌟', name: '基础档', age: '6-7 岁', combo: false },
+    { id: 'rocket', icon: '🚀', name: '挑战档', age: '7-8 岁', combo: true },
+    { id: 'advanced', icon: '🎓', name: '进阶档', age: '8-9 岁', combo: true }
 ];
+/** 挑战/进阶档显示连击统计 */
+function isComboTier(tierId) {
+    const tier = PT_TIERS.find((t) => t.id === tierId);
+    return !!(tier && tier.combo);
+}
 const PT_KB_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 const PT_TONE_VOWELS = { a: 'āáǎà', o: 'ōóǒò', e: 'ēéěè', i: 'īíǐì', u: 'ūúǔù' };
 const PT_CELEBRATION_EMOJIS = ['⭐', '✨', '🌸', '🎉', '💫', '🌈'];
@@ -50,13 +56,19 @@ let PT_SAVE = loadSave();
 
 /* ---------- 存档（读写全部 try/catch 兜底） ---------- */
 
-/** @returns {PtSave} 全新默认存档 */
+/** @returns {PtSave} 全新默认存档（档位键随 PT_TIERS 扩展） */
 function defaultSave() {
+    const stars = {};
+    const bestCombo = {};
+    PT_TIERS.forEach((tier) => {
+        stars[tier.id] = {};
+        bestCombo[tier.id] = 0;
+    });
     return {
         version: 1,
         muted: false,
-        stars: { sprout: {}, basic: {}, rocket: {} },
-        bestCombo: { sprout: 0, basic: 0, rocket: 0 },
+        stars,
+        bestCombo,
         updatedAt: ''
     };
 }
@@ -244,8 +256,8 @@ function completeWord() {
     if (bestStars(G.tier, cur.h) === 0) G.newStickers.push(cur);
     if (!PT_SAVE.stars[G.tier]) PT_SAVE.stars[G.tier] = {};
     PT_SAVE.stars[G.tier][cur.h] = Math.max(bestStars(G.tier, cur.h), stars);
-    if (G.tier === 'rocket') {
-        PT_SAVE.bestCombo.rocket = Math.max(PT_SAVE.bestCombo.rocket || 0, G.bestCombo);
+    if (isComboTier(G.tier)) {
+        PT_SAVE.bestCombo[G.tier] = Math.max(PT_SAVE.bestCombo[G.tier] || 0, G.bestCombo);
     }
     persistSave();
     G.running = false;
@@ -389,7 +401,7 @@ function renderHud() {
     if (progress) progress.textContent = `第 ${Math.min(G.qi + 1, G.queue.length)}/${G.queue.length} 字`;
     if (stars) stars.textContent = `⭐ ${totalStars()}`;
     if (combo) {
-        combo.classList.toggle('hidden', G.tier !== 'rocket');
+        combo.classList.toggle('hidden', !isComboTier(G.tier));
         combo.textContent = `🔥 连击 ${G.combo}`;
     }
 }
@@ -457,7 +469,7 @@ function renderResult() {
     }
     const comboEl = elById('resultCombo');
     if (comboEl) {
-        comboEl.classList.toggle('hidden', G.tier !== 'rocket');
+        comboEl.classList.toggle('hidden', !isComboTier(G.tier));
         comboEl.textContent = `🔥 本局最高连击 ${G.bestCombo}`;
     }
 }

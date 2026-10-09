@@ -1,14 +1,16 @@
 // @ts-check
-/* 字库生成管道：从部编版课本生字数据生成三档字库（T044）
+/* 字库生成管道：从部编版课本生字数据生成四档字库（T044 建立，T047 扩展进阶档）
  *
  * 数据源（运行时下载并缓存，不入库；来源 github.com/cjp1016/hanzi-park）：
  *   - pep-textbook-g1-g2.ts   部编版一、二年级课本生字（按册 → 单元 → 课文）
+ *   - pep-textbook-g3-g4.ts   部编版三、四年级课本生字（进阶档取三年级新增部分）
  *   - all-characters.json     汉字带调拼音/笔画/部首表
  *
- * 档位划分（用户已拍板"全量对齐课本"）：
- *   sprout 启蒙档 = 一年级上册全部生字
- *   basic  基础档 = 一年级下册新增生字（不含上册）
- *   rocket 挑战档 = 二年级新增生字 + 既有双字词
+ * 档位划分（全量对齐课本，用户已拍板）：
+ *   sprout   启蒙档 = 一年级上册全部生字
+ *   basic    基础档 = 一年级下册新增生字（不含上册）
+ *   rocket   挑战档 = 二年级新增生字 + 既有双字词
+ *   advanced 进阶档 = 三年级新增生字（不含一、二年级）
  *
  * 过滤规则：
  *   - 不雅/不宜课堂出现的字（BLACKLIST）
@@ -31,6 +33,10 @@ const SOURCES = {
     textbook: {
         url: 'https://raw.githubusercontent.com/cjp1016/hanzi-park/main/src/data/pep-textbook-g1-g2.ts',
         file: 'pep-textbook-g1-g2.ts'
+    },
+    textbook34: {
+        url: 'https://raw.githubusercontent.com/cjp1016/hanzi-park/main/src/data/pep-textbook-g3-g4.ts',
+        file: 'pep-textbook-g3-g4.ts'
     },
     characters: {
         url: 'https://raw.githubusercontent.com/cjp1016/hanzi-park/main/public/all-characters.json',
@@ -97,8 +103,7 @@ function loadCurated() {
 }
 
 /** 按册切分课本数据并提取 characters（保课文顺序） */
-function parseTextbook(text) {
-    const bookIds = ['pepG1S1', 'pepG1S2', 'pepG2S1', 'pepG2S2'];
+function parseTextbook(text, bookIds) {
     const starts = bookIds.map((id) => ({ id, at: text.indexOf(`export const ${id}`) }));
     const books = {};
     bookIds.forEach((id, i) => {
@@ -139,13 +144,16 @@ function splitTone(raw) {
 }
 
 async function main() {
-    const [textbookText, charText] = await Promise.all([
+    const [textbookText, textbook34Text, charText] = await Promise.all([
         ensureSource('textbook'),
+        ensureSource('textbook34'),
         ensureSource('characters')
     ]);
     const charMap = new Map(JSON.parse(charText).map((r) => [r[0], r]));
     const { curated, words } = loadCurated();
-    const books = parseTextbook(textbookText);
+    const books = parseTextbook(textbookText, ['pepG1S1', 'pepG1S2', 'pepG2S1', 'pepG2S2']);
+    // 传入完整册名列表保证末册切分边界正确，进阶档只取三年级两册
+    const books34 = parseTextbook(textbook34Text, ['pepG3S1', 'pepG3S2', 'pepG4S1', 'pepG4S2']);
 
     const skipped = [];
     /** 单字 → 字库条目；不合格返回 null */
@@ -184,18 +192,21 @@ async function main() {
     const basic = dedupeAppend(seen, books.pepG1S2);
     const rocketChars = dedupeAppend(seen, [...books.pepG2S1, ...books.pepG2S2]);
     const rocket = [...rocketChars, ...words];
+    const advanced = dedupeAppend(seen, [...books34.pepG3S1, ...books34.pepG3S2]);
 
     // 一致性自检：拼音/声调必须与精配一致（覆盖表生效时以覆盖为准）
     console.log(`启蒙档(一上): ${sprout.length} 字`);
     console.log(`基础档(一下新增): ${basic.length} 字`);
     console.log(`挑战档(二年级新增 ${rocketChars.length} 字 + 双字词 ${words.length} 条)`);
+    console.log(`进阶档(三年级新增): ${advanced.length} 字`);
     console.log(`过滤: ${skipped.length} 个 → ${skipped.join(' ')}`);
-    console.log(`总条目: ${sprout.length + basic.length + rocket.length}`);
+    console.log(`总条目: ${sprout.length + basic.length + rocket.length + advanced.length}`);
 
     const banner = `// @ts-check
-/* 拼音打字乐园 · 三档字库（由 build-wordbank.js 生成，勿手改；扩字改管道后重新生成）
+/* 拼音打字乐园 · 四档字库（由 build-wordbank.js 生成，勿手改；扩字改管道后重新生成）
  * 数据来源：部编版语文课本生字（github.com/cjp1016/hanzi-park），档位对齐课本册次：
  *   sprout 启蒙档 = 一年级上册 / basic 基础档 = 一年级下册新增 / rocket 挑战档 = 二年级新增 + 双字词
+ *   advanced 进阶档 = 三年级新增
  * 条目结构见 doc/design/pinyin-typing/core-game.md：
  *   h 汉字（档内唯一）/ p 拼音字母（小写无调）/ t 声调 0-4 / e 插图 emoji（可空）/ w 例词（可空）
  * e/w 为空时页面降级为大字卡（无插图、只朗读汉字）。
@@ -213,7 +224,9 @@ async function main() {
         '        /* 基础档 · 6-7 岁（一年级下册新增生字） */\n' +
         '        basic: [\n' + fmtEntries(basic) + '\n        ],\n' +
         '        /* 挑战档 · 7-8 岁（二年级新增生字 + 双字词） */\n' +
-        '        rocket: [\n' + fmtEntries(rocket) + '\n        ]\n' +
+        '        rocket: [\n' + fmtEntries(rocket) + '\n        ],\n' +
+        '        /* 进阶档 · 8-9 岁（三年级新增生字） */\n' +
+        '        advanced: [\n' + fmtEntries(advanced) + '\n        ]\n' +
         '    };\n\n    windowObject.PT_WORDBANK = Object.freeze(WORDS);\n})(window);\n';
 
     fs.writeFileSync(path.join(ROOT, 'wordbank.js'), body, 'utf8');
