@@ -1,6 +1,7 @@
 // @ts-check
 /* 拼音打字乐园 smoke 测试：node vm 直跑 + 自动桩（仿 typing-cannon）
- * 覆盖：字库数据合法性、声调标注、取字优先级、判键与星级、存档读写与损坏恢复
+ * 覆盖：字库数据合法性、声调标注、取字优先级、判键与星级、错题累计/清零/特训、
+ *       贴纸集齐判定、存档读写与损坏恢复（含旧存档 misses 兼容）
  * 运行：node src/pinyin-typing/smoke.test.js
  */
 const assert = require('assert');
@@ -258,6 +259,101 @@ function loadGame(storage) {
     assert.strictEqual(filtered.PT.PT_SAVE.stars.sprout['爸'], 2, '合法星级保留');
     assert.strictEqual(filtered.PT.PT_SAVE.bestCombo.rocket, 0, '非法连击被过滤');
     console.log('✓ 存档持久化与损坏恢复');
+}
+
+/* ---------- 7. 错题累计、3 星清零与错题特训 ---------- */
+{
+    const { PT } = loadGame();
+    const G = PT.G;
+    const mkRound = (queue) => {
+        G.tier = 'sprout';
+        G.queue = queue;
+        G.qi = 0; G.slotIdx = 0; G.wrongCount = 0; G.combo = 0; G.bestCombo = 0;
+        G.roundStars = []; G.newStickers = []; G.running = true;
+    };
+    const MA = { h: '妈', p: 'ma', t: 1, e: '👩', w: '妈妈' };
+    // 妈按错 2 次 → 2 星，小绊脚石累计 2；笔零按错 → 3 星，本来没绊过仍无记录
+    mkRound([MA, { h: '笔', p: 'bi', t: 3, e: '✏️', w: '铅笔' }]);
+    assert.strictEqual(PT.handleKey('x'), false);
+    assert.strictEqual(PT.handleKey('y'), false);
+    assert.ok(PT.handleKey('m') && PT.handleKey('a'));
+    PT.advanceRound();
+    assert.strictEqual(PT.missCount('sprout', '妈'), 2, '按错跨局累计进小绊脚石');
+    assert.ok(PT.handleKey('b') && PT.handleKey('i'));
+    PT.advanceRound();
+    assert.strictEqual(PT.missCount('sprout', '笔'), 0, '没绊过的字无记录');
+    // 重打妈零按错 → 3 星搬走绊脚石
+    mkRound([MA]);
+    assert.ok(PT.handleKey('m') && PT.handleKey('a'));
+    PT.advanceRound();
+    assert.strictEqual(PT.missCount('sprout', '妈'), 0, '3 星清零（搬走绊脚石）');
+    // 特训取字：只含绊过的字，按累计次数降序取前 8
+    const bank = PT.tierBank('basic');
+    bank.slice(0, 10).forEach((c, i) => { PT.PT_SAVE.misses.basic[c.h] = i + 1; }); // 次数 1..10
+    const missQueue = PT.pickMissQueue('basic', PT.PT_ROUND_SIZE);
+    assert.strictEqual(missQueue.length, 8, '特训队列上限 8 字');
+    // vm 上下文数组与宿主原型不同，用 join 后的字符串断言顺序
+    assert.strictEqual(missQueue.map((c) => PT.missCount('basic', c.h)).join(','), '10,9,8,7,6,5,4,3', '按累计次数降序');
+    assert.ok(!missQueue.some((c) => c.h === bank[20].h), '没绊过的字不进特训');
+    // 绊过的字不足上限时不补齐（打短局）
+    const sproutBank = PT.tierBank('sprout');
+    sproutBank.slice(0, 3).forEach((c) => { PT.PT_SAVE.misses.sprout[c.h] = 1; });
+    assert.strictEqual(PT.pickMissQueue('sprout', PT.PT_ROUND_SIZE).length, 3, '绊过的字不足上限时不补齐');
+    // 特训开局：固定队列开短局
+    PT.startGame('basic', missQueue.slice(0, 3));
+    assert.strictEqual(PT.G.queue.length, 3, '特训按固定队列开短局');
+    assert.strictEqual(PT.G.tier, 'basic');
+    assert.strictEqual(PT.G.running, true);
+    console.log('✓ 错题累计、3 星清零与错题特训');
+}
+
+/* ---------- 8. 贴纸集齐判定 ---------- */
+{
+    const { PT } = loadGame();
+    assert.strictEqual(PT.isTierComplete('sprout'), false, '空档未集齐');
+    const bank = PT.tierBank('sprout');
+    bank.forEach((c) => { PT.PT_SAVE.stars.sprout[c.h] = 1; });
+    assert.strictEqual(PT.isTierComplete('sprout'), true, '全部点亮即集齐');
+    delete PT.PT_SAVE.stars.sprout[bank[5].h];
+    assert.strictEqual(PT.isTierComplete('sprout'), false, '缺一张即未集齐');
+    console.log('✓ 贴纸集齐判定');
+}
+
+/* ---------- 9. 旧存档 misses 兼容与非法值过滤 ---------- */
+{
+    const storage = makeStorage();
+    // 旧版存档（无 misses 字段）：星级保留，misses 自动补默认键
+    storage.setItem('pinyin_typing_save_v1', JSON.stringify({
+        version: 1, muted: false,
+        stars: { sprout: { '鱼': 3 } },
+        bestCombo: {}
+    }));
+    const legacy = loadGame(storage);
+    assert.strictEqual(legacy.PT.PT_SAVE.stars.sprout['鱼'], 3, '旧存档星级保留');
+    assert.deepStrictEqual(
+        Object.keys(legacy.PT.PT_SAVE.misses).sort(),
+        ['advanced', 'basic', 'rocket', 'sprout'],
+        '旧存档自动补 misses 档位键'
+    );
+    assert.strictEqual(Object.keys(legacy.PT.PT_SAVE.misses.sprout).length, 0, '补的 misses 为空表');
+    // 非法 misses 值过滤：只收正整数
+    storage.setItem('pinyin_typing_save_v1', JSON.stringify({
+        version: 1,
+        misses: { sprout: { '鱼': 3, '马': -2, '羊': 1.5, '牛': '很多' } }
+    }));
+    const missFiltered = loadGame(storage);
+    assert.strictEqual(missFiltered.PT.PT_SAVE.misses.sprout['鱼'], 3, '合法按错数保留');
+    assert.strictEqual(missFiltered.PT.PT_SAVE.misses.sprout['马'], undefined, '负数被过滤');
+    assert.strictEqual(missFiltered.PT.PT_SAVE.misses.sprout['羊'], undefined, '小数被过滤');
+    assert.strictEqual(missFiltered.PT.PT_SAVE.misses.sprout['牛'], undefined, '非数字被过滤');
+    // misses 随 persistSave 落盘并可回读（用新字避开上一步种下的计数）
+    const { PT } = loadGame(storage);
+    PT.recordMiss('sprout', '狗');
+    PT.recordMiss('sprout', '狗');
+    PT.persistSave();
+    const raw = JSON.parse(storage.getItem('pinyin_typing_save_v1'));
+    assert.strictEqual(raw.misses.sprout['狗'], 2, 'recordMiss 累计并落盘');
+    console.log('✓ 旧存档 misses 兼容与非法值过滤');
 }
 
 console.log('\n全部 smoke 断言通过 ✓');

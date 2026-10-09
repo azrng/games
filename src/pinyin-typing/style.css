@@ -152,6 +152,8 @@ body {
 
 .pt-menu-foot { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
+.pt-menu-extras { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
 .pt-tip {
     margin: 0;
     font-size: 14px;
@@ -401,10 +403,127 @@ body {
 
 .pt-result-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
 
+.pt-chip { cursor: pointer; }
+
+/* ---------- 集齐奖杯横幅 ---------- */
+.pt-trophy {
+    font-size: clamp(22px, 3.4vw, 30px);
+    font-weight: 900;
+    color: var(--pt-gold-dark);
+    text-shadow: 0 3px 0 rgba(255, 210, 76, 0.45);
+    animation: pt-pop 0.4s backwards;
+}
+
+/* ---------- 贴纸册 / 小绊脚石共用 ---------- */
+/* 内容随档位可长可短，改为顶部对齐防 flex 居中裁切 */
+.pt-screen-scroll { justify-content: flex-start; }
+
+.pt-page-title {
+    margin: 0;
+    font-size: clamp(28px, 4.6vw, 42px);
+    font-weight: 900;
+    text-shadow: 0 4px 0 rgba(255, 210, 76, 0.55);
+}
+
+.pt-tabs { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+.pt-tab {
+    padding: 8px 20px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--pt-ink);
+    background: var(--pt-paper);
+    border: 3px solid var(--pt-line);
+    border-radius: 999px;
+    box-shadow: 0 4px 0 rgba(74, 59, 50, 0.12);
+    cursor: pointer;
+    transition: transform 140ms;
+}
+.pt-tab:hover { transform: translateY(-2px); }
+.pt-tab[data-tier="sprout"] { --tabc: var(--pt-sprout); --tabc-dark: var(--pt-sprout-dark); }
+.pt-tab[data-tier="basic"] { --tabc: var(--pt-basic); --tabc-dark: var(--pt-basic-dark); }
+.pt-tab[data-tier="rocket"] { --tabc: var(--pt-rocket); --tabc-dark: var(--pt-rocket-dark); }
+.pt-tab[data-tier="advanced"] { --tabc: var(--pt-advanced); --tabc-dark: var(--pt-advanced-dark); }
+
+.pt-tab.pt-tab-on {
+    color: #fff;
+    background: var(--tabc, var(--pt-sprout));
+    border-color: var(--tabc-dark, var(--pt-sprout-dark));
+}
+
+.pt-album-stat { margin: 0; font-size: 19px; font-weight: 800; color: var(--pt-ink-soft); }
+.pt-album-stat.pt-album-done { color: var(--pt-gold-dark); }
+
+.pt-album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 12px;
+    width: min(920px, 94vw);
+}
+
+.pt-sticker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px 8px;
+    font-family: inherit;
+    color: var(--pt-ink);
+    background: var(--pt-paper);
+    border: 3px solid var(--pt-line);
+    border-radius: 16px;
+    box-shadow: 0 4px 0 rgba(74, 59, 50, 0.12);
+    cursor: pointer;
+    transition: transform 140ms;
+}
+.pt-sticker:hover { transform: translateY(-3px) rotate(-1deg); }
+
+.pt-sticker-emoji { font-size: 30px; line-height: 1.25; }
+.pt-sticker-hanzi { font-size: 22px; font-weight: 900; }
+.pt-sticker-stars { font-size: 11px; letter-spacing: -2px; }
+.pt-sticker-stars .pt-star { opacity: 0.2; }
+.pt-sticker-stars .pt-star.pt-on { opacity: 1; }
+
+/* 未收剪影：虚线灰底「？」，不可交互 */
+.pt-sticker-off {
+    background: rgba(255, 253, 247, 0.5);
+    border-style: dashed;
+    box-shadow: none;
+    cursor: default;
+}
+.pt-sticker-off:hover { transform: none; }
+.pt-sticker-mystery { font-size: 30px; font-weight: 900; color: var(--pt-ink-soft); opacity: 0.45; }
+
+.pt-review-list { display: flex; flex-direction: column; gap: 10px; width: min(560px, 94vw); }
+
+.pt-review-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 22px;
+    font-size: 19px;
+    font-weight: 700;
+    background: var(--pt-paper);
+    border: 2px solid var(--pt-line);
+    border-radius: 16px;
+    box-shadow: 0 4px 0 rgba(74, 59, 50, 0.1);
+    animation: pt-pop 0.3s backwards;
+}
+
+.pt-review-emoji { font-size: 26px; }
+.pt-review-hanzi { font-size: 27px; font-weight: 900; min-width: 38px; }
+.pt-review-pinyin { color: var(--pt-ink-soft); letter-spacing: 0.08em; }
+.pt-review-count { margin-left: auto; font-size: 15px; font-weight: 800; color: var(--pt-rocket-dark); }
+
 /* ---------- 窄屏降级（基础兜底，本游戏以 PC 为主） ---------- */
 @media (max-width: 720px) {
     .pt-key { width: 34px; height: 42px; font-size: 17px; border-radius: 10px; }
     .pt-slot { width: 46px; height: 46px; font-size: 24px; }
     .pt-card { min-width: 0; width: 94vw; padding: 12px 18px 18px; }
     .pt-cloud { display: none; }
+    .pt-album-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+    .pt-sticker-emoji, .pt-sticker-mystery { font-size: 24px; }
+    .pt-sticker-hanzi { font-size: 18px; }
+    .pt-review-row { padding: 8px 14px; gap: 10px; }
 }

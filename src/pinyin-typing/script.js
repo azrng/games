@@ -30,6 +30,7 @@ const PT_PRAISE = ['真棒！', '太厉害了！', '你真聪明！', '继续加
  * @property {boolean} muted
  * @property {Object<string, Object<string, number>>} stars 各档每字历史最佳星级（1-3）
  * @property {Object<string, number>} bestCombo 各档历史最高连击
+ * @property {Object<string, Object<string, number>>} misses 各档每字累计按错次数（小绊脚石，3 星清零）
  * @property {string} updatedAt
  */
 
@@ -44,6 +45,7 @@ const G = {
     bestCombo: 0,
     roundStars: /** @type {number[]} */ ([]),
     newStickers: /** @type {PtEntry[]} */ ([]),
+    tierWasComplete: false,
     running: false
 };
 /** @type {Record<string, HTMLElement>} 键位字母 → 键帽元素 */
@@ -60,15 +62,18 @@ let PT_SAVE = loadSave();
 function defaultSave() {
     const stars = {};
     const bestCombo = {};
+    const misses = {};
     PT_TIERS.forEach((tier) => {
         stars[tier.id] = {};
         bestCombo[tier.id] = 0;
+        misses[tier.id] = {};
     });
     return {
         version: 1,
         muted: false,
         stars,
         bestCombo,
+        misses,
         updatedAt: ''
     };
 }
@@ -92,6 +97,14 @@ function loadSave() {
             }
             const best = Number(parsed.bestCombo && parsed.bestCombo[tier.id]);
             if (best > 0) save.bestCombo[tier.id] = Math.floor(best);
+            // 小绊脚石：旧存档缺字段时保持默认空表；只收正整数
+            const tierMisses = parsed.misses && parsed.misses[tier.id];
+            if (tierMisses && typeof tierMisses === 'object') {
+                Object.keys(tierMisses).forEach((h) => {
+                    const v = Number(tierMisses[h]);
+                    if (v > 0 && Number.isInteger(v)) save.misses[tier.id][h] = v;
+                });
+            }
         });
         return save;
     } catch (e) {
@@ -130,6 +143,33 @@ function hasStar(tierId, hanzi) {
 function bestStars(tierId, hanzi) {
     const tier = PT_SAVE.stars[tierId];
     return (tier && tier[hanzi]) || 0;
+}
+
+/** 某字累计按错次数（小绊脚石，0 = 没绊过） */
+function missCount(tierId, hanzi) {
+    const tier = PT_SAVE.misses[tierId];
+    return (tier && tier[hanzi]) || 0;
+}
+
+/** 记一笔按错：只写内存，字完成时随 persistSave 一次性落盘 */
+function recordMiss(tierId, hanzi) {
+    if (!tierId || !hanzi) return;
+    if (!PT_SAVE.misses[tierId]) PT_SAVE.misses[tierId] = {};
+    PT_SAVE.misses[tierId][hanzi] = missCount(tierId, hanzi) + 1;
+}
+
+/** 某档贴纸是否全部点亮（集齐） */
+function isTierComplete(tierId) {
+    const bank = tierBank(tierId);
+    return bank.length > 0 && bank.every((entry) => hasStar(tierId, entry.h));
+}
+
+/** 错题特训取字：绊过的字按累计次数降序（并列按字库顺序）取前 size 个，可少于 size */
+function pickMissQueue(tierId, size) {
+    return tierBank(tierId)
+        .filter((entry) => missCount(tierId, entry.h) > 0)
+        .sort((a, b) => missCount(tierId, b.h) - missCount(tierId, a.h))
+        .slice(0, size);
 }
 
 /** 原地 Fisher-Yates 洗牌 */
@@ -200,6 +240,7 @@ function handleKey(key) {
     }
     G.wrongCount += 1;
     G.combo = 0;
+    recordMiss(G.tier, cur.h);
     renderHud();
     renderMiss(key);
     beep('miss');
@@ -217,16 +258,21 @@ function computeStars(wrongCount) {
     return 1;
 }
 
-/** 开一局：取字 → 进对局页 → 出第一个字 */
-function startGame(tierId) {
+/**
+ * 开一局：取字 → 进对局页 → 出第一个字
+ * @param {string} tierId 档位 id
+ * @param {PtEntry[]=} fixedQueue 错题特训的固定队列（不传走常规取字）
+ */
+function startGame(tierId, fixedQueue) {
     if (!tierBank(tierId).length) return;
     G.tier = tierId;
-    G.queue = pickQueue(tierId, PT_ROUND_SIZE);
+    G.queue = (fixedQueue && fixedQueue.length ? fixedQueue : pickQueue(tierId, PT_ROUND_SIZE)).slice(0, PT_ROUND_SIZE);
     G.qi = 0;
     G.combo = 0;
     G.bestCombo = 0;
     G.roundStars = [];
     G.newStickers = [];
+    G.tierWasComplete = isTierComplete(tierId);
     G.running = true;
     ['play', 'result'].forEach((id) => {
         const el = document.getElementById(id);
@@ -256,6 +302,8 @@ function completeWord() {
     if (bestStars(G.tier, cur.h) === 0) G.newStickers.push(cur);
     if (!PT_SAVE.stars[G.tier]) PT_SAVE.stars[G.tier] = {};
     PT_SAVE.stars[G.tier][cur.h] = Math.max(bestStars(G.tier, cur.h), stars);
+    // 3 星 = 本局零按错，搬走绊脚石（清零重算，给掌握正反馈）
+    if (stars === 3 && PT_SAVE.misses[G.tier]) delete PT_SAVE.misses[G.tier][cur.h];
     if (isComboTier(G.tier)) {
         PT_SAVE.bestCombo[G.tier] = Math.max(PT_SAVE.bestCombo[G.tier] || 0, G.bestCombo);
     }
@@ -296,8 +344,12 @@ function elById(id) {
     return document.getElementById(id);
 }
 
+/** 当前所在页（Esc 回选档用） */
+let CURRENT_SCREEN = 'menu';
+
 function switchScreen(name) {
-    ['menu', 'play', 'result'].forEach((id) => {
+    CURRENT_SCREEN = name;
+    ['menu', 'play', 'result', 'album', 'review'].forEach((id) => {
         const el = elById(id);
         if (el) el.classList.toggle('hidden', id !== name);
     });
@@ -315,6 +367,9 @@ function renderMenu() {
     const grid = elById('tierGrid');
     if (!grid) return;
     grid.innerHTML = '';
+    let totalGot = 0;
+    let totalCount = 0;
+    let missChars = 0;
     PT_TIERS.forEach((tier) => {
         const bank = tierBank(tier.id);
         let got = 0;
@@ -323,6 +378,11 @@ function renderMenu() {
             const s = bestStars(tier.id, entry.h);
             if (s > 0) got += 1;
             starSum += s;
+        });
+        totalGot += got;
+        totalCount += bank.length;
+        bank.forEach((entry) => {
+            if (missCount(tier.id, entry.h) > 0) missChars += 1;
         });
         const card = mk('button', 'pt-tier');
         card.type = 'button';
@@ -337,6 +397,10 @@ function renderMenu() {
         card.appendChild(inner);
         grid.appendChild(card);
     });
+    const albumBtn = elById('albumBtn');
+    if (albumBtn) albumBtn.textContent = `📖 我的贴纸册 ${totalGot}/${totalCount}`;
+    const reviewBtn = elById('reviewBtn');
+    if (reviewBtn) reviewBtn.textContent = missChars > 0 ? `🎯 小绊脚石 ${missChars}` : '🎯 小绊脚石';
 }
 
 function renderKeyboard() {
@@ -431,6 +495,104 @@ function totalStars() {
     return sum;
 }
 
+/* ---------- 贴纸册与小绊脚石（存档的两个只读视图） ---------- */
+
+/** 贴纸册当前查看的档位 */
+let ALBUM_TIER = PT_TIERS[0].id;
+/** 小绊脚石当前查看的档位 */
+let REVIEW_TIER = PT_TIERS[0].id;
+
+/** 渲染四档 tab（贴纸册/小绊脚石共用，点击行为由调用方容器委托） */
+function renderTabs(containerId, activeTier) {
+    const box = elById(containerId);
+    if (!box) return;
+    box.innerHTML = '';
+    PT_TIERS.forEach((tier) => {
+        const tab = mk('button', tier.id === activeTier ? 'pt-tab pt-tab-on' : 'pt-tab', `${tier.icon} ${tier.name}`);
+        tab.type = 'button';
+        tab.setAttribute('data-tier', tier.id);
+        box.appendChild(tab);
+    });
+}
+
+function openAlbum(tierId) {
+    ALBUM_TIER = tierId || G.tier || PT_TIERS[0].id;
+    renderAlbum();
+    switchScreen('album');
+}
+
+/** 贴纸册：已收展示插图+汉字+星级（点击重听），未收只画「？」剪影 */
+function renderAlbum() {
+    renderTabs('albumTabs', ALBUM_TIER);
+    const bank = tierBank(ALBUM_TIER);
+    const stat = elById('albumStat');
+    if (stat) {
+        let got = 0;
+        bank.forEach((entry) => {
+            if (hasStar(ALBUM_TIER, entry.h)) got += 1;
+        });
+        const done = bank.length > 0 && got >= bank.length;
+        stat.textContent = done ? `🏆 集齐 ${bank.length} 张，太棒啦！` : `🧧 已收 ${got}/${bank.length}`;
+        stat.classList.toggle('pt-album-done', done);
+    }
+    const grid = elById('albumGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    bank.forEach((entry) => {
+        const got = hasStar(ALBUM_TIER, entry.h);
+        const card = mk('button', got ? 'pt-sticker' : 'pt-sticker pt-sticker-off');
+        card.type = 'button';
+        if (got) {
+            card.setAttribute('data-hanzi', entry.h);
+            card.setAttribute('aria-label', `贴纸 ${entry.h}，点一下听读音`);
+            card.appendChild(mk('span', 'pt-sticker-emoji', entry.e || '🧧'));
+            card.appendChild(mk('span', 'pt-sticker-hanzi', entry.h));
+            const stars = mk('span', 'pt-sticker-stars');
+            for (let s = 0; s < 3; s++) {
+                const star = mk('span', 'pt-star', '⭐');
+                if (s < bestStars(ALBUM_TIER, entry.h)) star.classList.add('pt-on');
+                stars.appendChild(star);
+            }
+            card.appendChild(stars);
+        } else {
+            card.setAttribute('aria-label', '还没收到的贴纸');
+            card.disabled = true;
+            card.appendChild(mk('span', 'pt-sticker-mystery', '？'));
+        }
+        grid.appendChild(card);
+    });
+}
+
+function openReview(tierId) {
+    REVIEW_TIER = tierId || G.tier || PT_TIERS[0].id;
+    renderReview();
+    switchScreen('review');
+}
+
+/** 小绊脚石：绊过的字按累计次数降序列出，可一键特训 */
+function renderReview() {
+    renderTabs('reviewTabs', REVIEW_TIER);
+    const list = elById('reviewList');
+    if (!list) return;
+    list.innerHTML = '';
+    const rows = pickMissQueue(REVIEW_TIER, Infinity);
+    const trainBtn = elById('trainBtn');
+    if (trainBtn) {
+        trainBtn.classList.toggle('hidden', rows.length === 0);
+        trainBtn.textContent = rows.length > 0 ? `🎯 开始特训（${Math.min(rows.length, PT_ROUND_SIZE)} 字短局）` : '🎯 开始特训';
+    }
+    const emptyTip = elById('reviewEmpty');
+    if (emptyTip) emptyTip.classList.toggle('hidden', rows.length > 0);
+    rows.forEach((entry) => {
+        const row = mk('div', 'pt-review-row');
+        row.appendChild(mk('span', 'pt-review-emoji', entry.e || '🧧'));
+        row.appendChild(mk('span', 'pt-review-hanzi', entry.h));
+        row.appendChild(mk('span', 'pt-review-pinyin', entry.h.length > 1 ? entry.p : toneMark(entry.p, entry.t)));
+        row.appendChild(mk('span', 'pt-review-count', `绊了 ${missCount(REVIEW_TIER, entry.h)} 次`));
+        list.appendChild(row);
+    });
+}
+
 function renderResult() {
     const title = elById('resultTitle');
     if (title) {
@@ -459,9 +621,10 @@ function renderResult() {
         if (G.newStickers.length === 0) {
             stickerBox.appendChild(mk('span', 'pt-chip-none', '本局没有新贴纸，再来一局收新的吧！'));
         } else {
-            stickerBox.appendChild(mk('span', 'pt-chip-none', '🧧 新收贴纸：'));
+            stickerBox.appendChild(mk('span', 'pt-chip-none', '🧧 新收贴纸（点一下看贴纸册）：'));
             G.newStickers.forEach((entry, i) => {
                 const chip = mk('span', 'pt-chip', entry.h);
+                chip.setAttribute('data-hanzi', entry.h);
                 chip.style.animationDelay = `${0.15 + i * 0.08}s`;
                 stickerBox.appendChild(chip);
             });
@@ -471,6 +634,17 @@ function renderResult() {
     if (comboEl) {
         comboEl.classList.toggle('hidden', !isComboTier(G.tier));
         comboEl.textContent = `🔥 本局最高连击 ${G.bestCombo}`;
+    }
+    // 本局收齐该档最后一张贴纸 → 奖杯横幅 + 加撒一把彩点
+    const trophy = elById('resultTrophy');
+    if (trophy) {
+        const justCompleted = !G.tierWasComplete && !!G.tier && isTierComplete(G.tier);
+        trophy.classList.toggle('hidden', !justCompleted);
+        if (justCompleted) {
+            const tier = PT_TIERS.find((t) => t.id === G.tier);
+            trophy.textContent = `🏆 恭喜集齐【${tier ? tier.name : ''}】全部贴纸！`;
+            celebrate();
+        }
     }
 }
 
@@ -561,7 +735,8 @@ function toggleMute() {
 
 function onKeydown(e) {
     if (e.key === 'Escape') {
-        if (G.running) goMenu();
+        // 任意非选档页 Esc 都回选档（对局零损失，册/错题页同理）
+        if (CURRENT_SCREEN !== 'menu') goMenu();
         return;
     }
     // 大写键（CapsLock / 键盘印字习惯）统一转小写再判
@@ -577,11 +752,72 @@ function init() {
     const muteBtn = elById('muteBtn');
     const againBtn = elById('againBtn');
     const menuBtn = elById('menuBtn');
+    const albumBtn = elById('albumBtn');
+    const reviewBtn = elById('reviewBtn');
+    const albumBackBtn = elById('albumBackBtn');
+    const reviewBackBtn = elById('reviewBackBtn');
+    const trainBtn = elById('trainBtn');
+    const albumTabs = elById('albumTabs');
+    const reviewTabs = elById('reviewTabs');
+    const albumGrid = elById('albumGrid');
+    const resultStickers = elById('resultStickers');
     const card = elById('hanziCard');
     if (soundBtn) soundBtn.addEventListener('click', toggleMute);
     if (muteBtn) muteBtn.addEventListener('click', toggleMute);
     if (againBtn) againBtn.addEventListener('click', () => startGame(/** @type {string} */ (G.tier)));
     if (menuBtn) menuBtn.addEventListener('click', goMenu);
+    if (albumBtn) albumBtn.addEventListener('click', () => openAlbum(G.tier));
+    if (reviewBtn) reviewBtn.addEventListener('click', () => openReview(G.tier));
+    if (albumBackBtn) albumBackBtn.addEventListener('click', goMenu);
+    if (reviewBackBtn) reviewBackBtn.addEventListener('click', goMenu);
+    if (trainBtn) {
+        trainBtn.addEventListener('click', () => {
+            startGame(REVIEW_TIER, pickMissQueue(REVIEW_TIER, PT_ROUND_SIZE));
+        });
+    }
+    if (albumTabs) {
+        // 事件委托：tab 是动态创建的
+        albumTabs.addEventListener('click', (e) => {
+            const target = /** @type {any} */ (e.target);
+            const tabEl = target && target.closest ? target.closest('.pt-tab') : null;
+            const tier = tabEl && tabEl.getAttribute('data-tier');
+            if (tier) {
+                ALBUM_TIER = tier;
+                renderAlbum();
+            }
+        });
+    }
+    if (reviewTabs) {
+        reviewTabs.addEventListener('click', (e) => {
+            const target = /** @type {any} */ (e.target);
+            const tabEl = target && target.closest ? target.closest('.pt-tab') : null;
+            const tier = tabEl && tabEl.getAttribute('data-tier');
+            if (tier) {
+                REVIEW_TIER = tier;
+                renderReview();
+            }
+        });
+    }
+    if (albumGrid) {
+        // 点已收贴纸重听朗读（未收剪影 disabled，点不到）
+        albumGrid.addEventListener('click', (e) => {
+            const target = /** @type {any} */ (e.target);
+            const cardEl = target && target.closest ? target.closest('.pt-sticker') : null;
+            const hanzi = cardEl && cardEl.getAttribute('data-hanzi');
+            if (!hanzi) return;
+            const entry = tierBank(ALBUM_TIER).find((c) => c.h === hanzi);
+            if (entry) speakEntry(entry);
+        });
+    }
+    if (resultStickers) {
+        // 结算页新贴纸可点，直达该档贴纸册
+        resultStickers.addEventListener('click', (e) => {
+            const target = /** @type {any} */ (e.target);
+            if (target && target.closest && target.closest('.pt-chip')) {
+                openAlbum(G.tier);
+            }
+        });
+    }
     if (card) {
         card.addEventListener('click', () => {
             const cur = currentEntry();
@@ -606,7 +842,8 @@ init();
 /** @type {any} */ (window).PT = {
     PT_SAVE, G, PT_TIERS, PT_ROUND_SIZE,
     loadSave, persistSave, defaultSave,
-    tierBank, pickQueue, toneMark, computeStars,
+    tierBank, pickQueue, pickMissQueue, toneMark, computeStars,
     handleKey, startGame, nextWord, completeWord, advanceRound, showResult, goMenu,
-    hasStar, bestStars
+    hasStar, bestStars, missCount, recordMiss, isTierComplete,
+    openAlbum, openReview, renderAlbum, renderReview
 };

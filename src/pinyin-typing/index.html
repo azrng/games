@@ -21,6 +21,10 @@
     <p class="pt-sub">看汉字 · 打拼音 · 收贴纸</p>
   </header>
   <div class="pt-tiers" id="tierGrid" role="list" aria-label="选择难度"></div>
+  <div class="pt-menu-extras">
+    <button id="albumBtn" class="pt-btn pt-btn-ghost" type="button">📖 我的贴纸册</button>
+    <button id="reviewBtn" class="pt-btn pt-btn-ghost" type="button">🎯 小绊脚石</button>
+  </div>
   <div class="pt-menu-foot">
     <button id="soundBtn" class="pt-btn pt-btn-ghost" type="button">🔊 声音：开</button>
     <p class="pt-tip">💡 请把输入法切到英文（ABC）再开玩哦 · 按键盘上的字母键就是打字</p>
@@ -53,10 +57,35 @@
   <h1 class="pt-result-title" id="resultTitle">🎉 本局打完啦！</h1>
   <div class="pt-result-stars" id="resultStars"></div>
   <div class="pt-result-stickers" id="resultStickers"></div>
+  <div class="pt-trophy hidden" id="resultTrophy">🏆 恭喜集齐全部贴纸！</div>
   <div class="pt-result-combo hidden" id="resultCombo">🔥 本局最高连击 0</div>
   <div class="pt-result-btns">
     <button id="againBtn" class="pt-btn pt-btn-main" type="button">🔁 再来一局</button>
     <button id="menuBtn" class="pt-btn pt-btn-ghost" type="button">🏠 回选档</button>
+  </div>
+</div>
+
+<!-- ==================== 贴纸册页 ==================== -->
+<div id="album" class="pt-screen pt-screen-scroll hidden">
+  <h1 class="pt-page-title">📖 我的贴纸册</h1>
+  <div class="pt-tabs" id="albumTabs" role="tablist" aria-label="选择档位"></div>
+  <p class="pt-album-stat" id="albumStat">🧧 已收 0/0</p>
+  <div class="pt-album-grid" id="albumGrid"></div>
+  <div class="pt-result-btns">
+    <button id="albumBackBtn" class="pt-btn pt-btn-ghost" type="button">🏠 回选档</button>
+  </div>
+</div>
+
+<!-- ==================== 小绊脚石页（错题本） ==================== -->
+<div id="review" class="pt-screen pt-screen-scroll hidden">
+  <h1 class="pt-page-title">🎯 小绊脚石</h1>
+  <p class="pt-tip">这些字绊过你一下，打对一次（3 星）就搬走一块！</p>
+  <div class="pt-tabs" id="reviewTabs" role="tablist" aria-label="选择档位"></div>
+  <div class="pt-review-list" id="reviewList"></div>
+  <p class="pt-tip hidden" id="reviewEmpty">🌟 现在还没有绊脚石，太棒啦！继续打字收贴纸吧。</p>
+  <div class="pt-result-btns">
+    <button id="trainBtn" class="pt-btn pt-btn-main hidden" type="button">🎯 开始特训</button>
+    <button id="reviewBackBtn" class="pt-btn pt-btn-ghost" type="button">🏠 回选档</button>
   </div>
 </div>
 
