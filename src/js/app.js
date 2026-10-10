@@ -129,6 +129,22 @@
         "math-hero":       { icon: "🛡️", tag: "学习" },
         "zh-poem":         { icon: "📜", tag: "学习" },
         "pinyin-typing":   { icon: "⌨️", tag: "学习" },
+        "tangram":         { icon: "🔺", tag: "益智" },
+        "clock-learning":  { icon: "🕐", tag: "学习" },
+        "shopping-cashier": { icon: "🛒", tag: "学习" },
+        "pattern-quest":   { icon: "🔀", tag: "学习" },
+        "code-robot":      { icon: "🤖", tag: "益智" },
+        "balance-scale":   { icon: "⚖️", tag: "学习" },
+        "water-pour":      { icon: "🥛", tag: "益智" },
+        "hanzi-parts":     { icon: "✍️", tag: "学习" },
+        "mini-sudoku":     { icon: "🔢", tag: "益智" },
+        "memory-match":    { icon: "🧠", tag: "益智" },
+        "snake":           { icon: "🐍", tag: "休闲" },
+        "breakout":        { icon: "🧱", tag: "经典" },
+        "math-24":         { icon: "🧮", tag: "益智" },
+        "nonogram":        { icon: "🖼️", tag: "益智" },
+        "sokoban":         { icon: "📦", tag: "益智" },
+        "idiom-guess":     { icon: "🀄", tag: "学习" },
     };
 
     function getGamePath(game) {

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>推箱子 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="推箱子">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Sokoban</p>
+                <h1>推箱子</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">入门 · 第 1 关</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">步数</span>
+                <strong id="moves-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">推数</span>
+                <strong id="pushes-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">本关最少步</span>
+                <strong id="best-text">--</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="仓库">
+            <div id="board" class="soko-board" aria-live="polite"></div>
+        </section>
+
+        <section class="dpad" aria-label="方向控制">
+            <span></span>
+            <button id="dpad-up" class="dpad-btn" type="button" aria-label="上">↑</button>
+            <span></span>
+            <button id="dpad-left" class="dpad-btn" type="button" aria-label="左">←</button>
+            <button id="dpad-down" class="dpad-btn" type="button" aria-label="下">↓</button>
+            <button id="dpad-right" class="dpad-btn" type="button" aria-label="右">→</button>
+        </section>
+
+        <p class="hint-text">把所有箱子推到目标点上：箱子只能推不能拉；滑动棋盘、方向键或十字键移动。</p>
+
+        <footer class="action-bar">
+            <button id="undo-btn" class="ghost-btn" type="button">撤销</button>
+            <button id="restart-btn" class="ghost-btn" type="button">重开</button>
+            <button id="levels-btn" class="ghost-btn" type="button">选关</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">全部归位！</h2>
+            <div class="result-grid">
+                <div>
+                    <span class="label">本关步数</span>
+                    <strong id="result-moves">0</strong>
+                </div>
+                <div>
+                    <span class="label">本关推数</span>
+                    <strong id="result-pushes">0</strong>
+                </div>
+                <div>
+                    <span class="label">历史最少步</span>
+                    <strong id="result-best">--</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再打一遍</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-groups" class="level-groups"></div>
+            <p class="level-credit">关卡：Microban © David W. Skinner</p>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="levels.js"></script>
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

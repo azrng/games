@@ -135,7 +135,7 @@ function clickTab(tabsElement, dimension, value) {
     /* 初始态：默认全部选中并渲染全量 */
     assert.strictEqual(tabs.children.length, 3, '应渲染三个年龄 Tab');
     assert.strictEqual(tabs.children[0].attributes['aria-selected'], 'true', '默认选中「全部」');
-    assert.strictEqual(cardSlugs(grid).length, 16, '初始应渲染全部 16 款游戏');
+    assert.strictEqual(cardSlugs(grid).length, 32, '初始应渲染全部 32 款游戏');
     assert.deepStrictEqual(
         [
             tabCountText(tabs, 'age', 'all'),
@@ -145,8 +145,8 @@ function clickTab(tabsElement, dimension, value) {
             tabCountText(deviceTabs, 'device', 'desktop'),
             tabCountText(deviceTabs, 'device', 'mobile')
         ],
-        ['16', '15', '11', '16', '16', '14'],
-        '年龄 Tab 计数应为 16/15/11，设备 Tab 计数应为 16/16/14'
+        ['32', '31', '19', '32', '32', '31'],
+        '年龄 Tab 计数应为 32/31/19，设备 Tab 计数应为 32/32/31'
     );
 
     /* 儿童 Tab：隐藏成人向，保留儿童专属与全龄 */
@@ -157,7 +157,7 @@ function clickTab(tabsElement, dimension, value) {
     assert.ok(!kidsSlugs.includes('typing-cannon'), '儿童 Tab 不应出现单词大炮');
     assert.ok(['math-hero', 'pinyin-typing', '2048'].every((slug) => kidsSlugs.includes(slug)),
         '儿童 Tab 应包含儿童专属与全龄游戏');
-    assert.strictEqual(kidsSlugs.length, 15, '儿童 Tab 应为 15 款');
+    assert.strictEqual(kidsSlugs.length, 31, '儿童 Tab 应为 31 款');
     assert.strictEqual(tabCountText(tabs, 'age', 'kids'), String(kidsSlugs.length), 'Tab 计数应与卡片数一致');
 
     /* 成人 Tab：隐藏儿童专属，保留成人向与全龄 */
@@ -167,12 +167,12 @@ function clickTab(tabsElement, dimension, value) {
         .some((slug) => adultSlugs.includes(slug)), '成人 Tab 不应出现儿童专属游戏');
     assert.ok(adultSlugs.includes('typing-cannon') && adultSlugs.includes('minesweeper'),
         '成人 Tab 应包含成人向与全龄游戏');
-    assert.strictEqual(adultSlugs.length, 11, '成人 Tab 应为 11 款');
+    assert.strictEqual(adultSlugs.length, 19, '成人 Tab 应为 19 款');
     assert.strictEqual(tabCountText(tabs, 'age', 'adult'), String(adultSlugs.length), 'Tab 计数应与卡片数一致');
 
     /* 回到全部 */
     clickTab(tabs, 'age', 'all');
-    assert.strictEqual(cardSlugs(grid).length, 16, '回到「全部」应恢复 16 款');
+    assert.strictEqual(cardSlugs(grid).length, 32, '回到「全部」应恢复 32 款');
 
     /* 重复点击当前 Tab 不应重建列表 */
     const stableGrid = cardSlugs(grid);
@@ -214,47 +214,55 @@ function clickTab(tabsElement, dimension, value) {
 /* ===== 场景 C：设备与年龄交集过滤 ===== */
 {
     const { grid, tabs, deviceTabs } = setup();
-    /* 儿童 + 移动端：kids 5 款全部可见（均为双端），
-     * 全龄中 8 款双端（含 2048/五子棋）也可见 → 13 款 */
+    /* 儿童 + 移动端：kids 13 款全部可见（均为双端），
+     * 全龄中 17 款双端（含 2048/五子棋/迷宫/七巧板/倒水谜题与 T058 六游戏）也可见 → 30 款 */
     clickTab(tabs, 'age', 'kids');
     clickTab(deviceTabs, 'device', 'mobile');
     assert.deepStrictEqual(
         cardSlugs(grid),
         [
-            '2048', 'gomoku-advanced', 'color-challenge', 'sliding-puzzle',
+            '2048', 'gomoku-advanced', 'maze', 'color-challenge', 'sliding-puzzle',
             'hidden-cats', 'yibihua', 'animal-flip-chess', 'pipes',
-            'lights-out', 'minesweeper', 'math-hero', 'zh-poem', 'pinyin-typing'
+            'lights-out', 'minesweeper', 'math-hero', 'zh-poem', 'pinyin-typing',
+            'tangram', 'clock-learning', 'shopping-cashier', 'pattern-quest',
+            'code-robot', 'balance-scale', 'water-pour', 'hanzi-parts',
+            'mini-sudoku', 'memory-match', 'snake', 'breakout', 'math-24',
+            'nonogram', 'sokoban', 'idiom-guess'
         ],
-        '儿童 + 移动端交集应为 13 款（5 款儿童 + 8 款支持移动的全龄）'
+        '儿童 + 移动端交集应为 30 款（13 款儿童 + 17 款支持移动的全龄）'
     );
 
-    /* 儿童 + 电脑端：kids 5 款全为双端可见，加全龄双端与仅电脑 tetris/maze
-     * → 15 款；仅电脑端只有俄罗斯方块与迷宫 2 款全龄 */
+    /* 儿童 + 电脑端：kids 13 款全为双端可见，加全龄双端与仅电脑 tetris
+     * → 31 款；仅电脑端只剩俄罗斯方块 1 款全龄 */
     clickTab(deviceTabs, 'device', 'desktop');
     assert.deepStrictEqual(
         cardSlugs(grid),
         [
             '2048', 'gomoku-advanced', 'tetris', 'maze', 'color-challenge',
             'sliding-puzzle', 'hidden-cats', 'yibihua', 'animal-flip-chess', 'pipes',
-            'lights-out', 'minesweeper', 'math-hero', 'zh-poem', 'pinyin-typing'
+            'lights-out', 'minesweeper', 'math-hero', 'zh-poem', 'pinyin-typing',
+            'tangram', 'clock-learning', 'shopping-cashier', 'pattern-quest',
+            'code-robot', 'balance-scale', 'water-pour', 'hanzi-parts',
+            'mini-sudoku', 'memory-match', 'snake', 'breakout', 'math-24',
+            'nonogram', 'sokoban', 'idiom-guess'
         ],
-        '儿童 + 电脑端交集应为 15 款（仅电脑端的俄罗斯方块与迷宫之外全部可见）'
+        '儿童 + 电脑端交集应为 31 款（仅电脑端的俄罗斯方块之外全部可见）'
     );
 
-    /* 成人 + 移动端：单词大炮（双端）+ 8 款双端全龄 = 9 款 */
+    /* 成人 + 移动端：单词大炮（双端）+ 17 款双端全龄 = 18 款 */
     clickTab(tabs, 'age', 'adult');
     clickTab(deviceTabs, 'device', 'mobile');
     const adultMobile = cardSlugs(grid);
-    assert.strictEqual(adultMobile.length, 9, '成人 + 移动端交集应为 9 款');
-    assert.ok(!adultMobile.includes('tetris') && !adultMobile.includes('maze'),
-        '成人 + 移动端不应包含仅电脑端的俄罗斯方块与迷宫');
-    assert.ok(adultMobile.includes('typing-cannon') && adultMobile.includes('2048'),
-        '成人 + 移动端应包含双端的单词大炮与 2048');
+    assert.strictEqual(adultMobile.length, 18, '成人 + 移动端交集应为 18 款');
+    assert.ok(!adultMobile.includes('tetris'),
+        '成人 + 移动端不应包含仅电脑端的俄罗斯方块');
+    assert.ok(adultMobile.includes('typing-cannon') && adultMobile.includes('2048') && adultMobile.includes('maze'),
+        '成人 + 移动端应包含双端的单词大炮、2048 与迷宫');
 
     /* 恢复默认 */
     clickTab(tabs, 'age', 'all');
     clickTab(deviceTabs, 'device', 'all');
-    assert.strictEqual(cardSlugs(grid).length, 16, '两维度都回到「全部」应恢复 16 款');
+    assert.strictEqual(cardSlugs(grid).length, 32, '两维度都回到「全部」应恢复 32 款');
 }
 
 /* ===== 场景 D：设备分类为空时的空态与独立计数 ===== */
@@ -291,7 +299,7 @@ function clickTab(tabsElement, dimension, value) {
     const { grid, tabs, deviceTabs } = setup(null, storageStub);
 
     /* 启动时按存储恢复「儿童 + 移动端」并渲染交集 */
-    assert.strictEqual(cardSlugs(grid).length, 13, '启动时应恢复上次的儿童+移动端筛选（13 款）');
+    assert.strictEqual(cardSlugs(grid).length, 30, '启动时应恢复上次的儿童+移动端筛选（30 款）');
     assert.strictEqual(tabs.children[1].attributes['aria-selected'], 'true', '恢复后年龄「儿童」应选中');
     assert.strictEqual(deviceTabs.children[2].attributes['aria-selected'], 'true', '恢复后设备「移动端」应选中');
 
@@ -304,7 +312,7 @@ function clickTab(tabsElement, dimension, value) {
     /* 存储中的非法取值按「全部」兜底，不抛错 */
     store.app_game_hub_filters = JSON.stringify({ age: 'baby', device: 'tv' });
     const fallback = setup(null, storageStub);
-    assert.strictEqual(cardSlugs(fallback.grid).length, 16, '非法存储值应兜底为「全部」并渲染 16 款');
+    assert.strictEqual(cardSlugs(fallback.grid).length, 32, '非法存储值应兜底为「全部」并渲染 32 款');
 }
 
 console.log('js/app.smoke.test.js：全部断言通过');

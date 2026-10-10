@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>贪吃蛇 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="贪吃蛇">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Snake</p>
+                <h1>贪吃蛇</h1>
+            </div>
+            <div class="best-pill" aria-label="历史最高分">
+                <span id="best-pill-text">最佳 0</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">得分</span>
+                <strong id="score-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">长度</span>
+                <strong id="length-text">3</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">最高</span>
+                <strong id="best-text">0</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="贪吃蛇棋盘">
+            <div class="board-frame">
+                <canvas id="board" width="480" height="480"></canvas>
+                <div id="board-overlay" class="board-overlay">
+                    <p id="board-overlay-text" class="board-overlay-text">点开始或按空格</p>
+                </div>
+            </div>
+        </section>
+
+        <p class="hint-text">方向键 / WASD 或在棋盘上滑动转向，吃食物变长提速，别撞墙、别咬到自己。</p>
+
+        <footer class="action-bar">
+            <button id="start-btn" class="ghost-btn" type="button">开始</button>
+            <button id="pause-btn" class="ghost-btn" type="button" disabled>暂停</button>
+            <button id="restart-btn" class="ghost-btn" type="button" disabled>重开</button>
+        </footer>
+    </main>
+
+    <section id="over-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="over-title">
+            <p class="eyebrow">Game Over</p>
+            <h2 id="over-title">游戏结束</h2>
+            <p id="record-badge" class="record-badge" hidden>破纪录！</p>
+            <div class="result-grid">
+                <div>
+                    <span class="label">本局得分</span>
+                    <strong id="result-score">0</strong>
+                </div>
+                <div>
+                    <span class="label">蛇身长度</span>
+                    <strong id="result-length">3</strong>
+                </div>
+                <div>
+                    <span class="label">历史最高</span>
+                    <strong id="result-best">0</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="primary-btn" type="button">再来一局</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

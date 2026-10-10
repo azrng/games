@@ -38,6 +38,38 @@ last_updated: 2026-10-08
 | sliding-puzzle | 数字华容道核心玩法 | 需求 | approved | [doc/requirements/sliding-puzzle/core-game.md](../requirements/sliding-puzzle/core-game.md) |
 | hidden-cats | 找猫咪核心玩法 | 需求 | approved | [doc/requirements/hidden-cats/core-game.md](../requirements/hidden-cats/core-game.md) |
 | animal-flip-chess | 动物翻翻棋核心玩法 | 需求 | approved | [doc/requirements/animal-flip-chess/core-game.md](../requirements/animal-flip-chess/core-game.md) |
+| tangram | 七巧板核心玩法 | 需求 | approved | [doc/requirements/tangram/core-game.md](../requirements/tangram/core-game.md) |
+| tangram | 七巧板核心玩法 | 设计 | approved | [doc/design/tangram/core-game.md](design/tangram/core-game.md) |
+| clock-learning | 时钟认知核心玩法 | 需求 | approved | [doc/requirements/clock-learning/core-game.md](../requirements/clock-learning/core-game.md) |
+| clock-learning | 时钟认知核心玩法 | 设计 | approved | [doc/design/clock-learning/core-game.md](design/clock-learning/core-game.md) |
+| shopping-cashier | 购物小掌柜核心玩法 | 需求 | approved | [doc/requirements/shopping-cashier/core-game.md](../requirements/shopping-cashier/core-game.md) |
+| shopping-cashier | 购物小掌柜核心玩法 | 设计 | approved | [doc/design/shopping-cashier/core-game.md](design/shopping-cashier/core-game.md) |
+| pattern-quest | 图案找规律核心玩法 | 需求 | approved | [doc/requirements/pattern-quest/core-game.md](../requirements/pattern-quest/core-game.md) |
+| pattern-quest | 图案找规律核心玩法 | 设计 | approved | [doc/design/pattern-quest/core-game.md](design/pattern-quest/core-game.md) |
+| code-robot | 编程小机器人核心玩法 | 需求 | approved | [doc/requirements/code-robot/core-game.md](../requirements/code-robot/core-game.md) |
+| code-robot | 编程小机器人核心玩法 | 设计 | approved | [doc/design/code-robot/core-game.md](design/code-robot/core-game.md) |
+| balance-scale | 天平称重核心玩法 | 需求 | approved | [doc/requirements/balance-scale/core-game.md](../requirements/balance-scale/core-game.md) |
+| balance-scale | 天平称重核心玩法 | 设计 | approved | [doc/design/balance-scale/core-game.md](design/balance-scale/core-game.md) |
+| water-pour | 倒水谜题核心玩法 | 需求 | approved | [doc/requirements/water-pour/core-game.md](../requirements/water-pour/core-game.md) |
+| water-pour | 倒水谜题核心玩法 | 设计 | approved | [doc/design/water-pour/core-game.md](design/water-pour/core-game.md) |
+| hanzi-parts | 汉字拼字核心玩法 | 需求 | approved | [doc/requirements/hanzi-parts/core-game.md](../requirements/hanzi-parts/core-game.md) |
+| hanzi-parts | 汉字拼字核心玩法 | 设计 | approved | [doc/design/hanzi-parts/core-game.md](design/hanzi-parts/core-game.md) |
+| mini-sudoku | 儿童数独核心玩法 | 需求 | approved | [doc/requirements/mini-sudoku/core-game.md](../requirements/mini-sudoku/core-game.md) |
+| mini-sudoku | 儿童数独核心玩法 | 设计 | approved | [doc/design/mini-sudoku/core-game.md](design/mini-sudoku/core-game.md) |
+| memory-match | 记忆翻牌核心玩法 | 需求 | approved | [doc/requirements/memory-match/core-game.md](../requirements/memory-match/core-game.md) |
+| memory-match | 记忆翻牌核心玩法 | 设计 | approved | [doc/design/memory-match/core-game.md](design/memory-match/core-game.md) |
+| snake | 贪吃蛇核心玩法 | 需求 | approved | [doc/requirements/snake/core-game.md](../requirements/snake/core-game.md) |
+| snake | 贪吃蛇核心玩法 | 设计 | approved | [doc/design/snake/core-game.md](design/snake/core-game.md) |
+| breakout | 打砖块核心玩法 | 需求 | approved | [doc/requirements/breakout/core-game.md](../requirements/breakout/core-game.md) |
+| breakout | 打砖块核心玩法 | 设计 | approved | [doc/design/breakout/core-game.md](design/breakout/core-game.md) |
+| math-24 | 24 点核心玩法 | 需求 | approved | [doc/requirements/math-24/core-game.md](../requirements/math-24/core-game.md) |
+| math-24 | 24 点核心玩法 | 设计 | approved | [doc/design/math-24/core-game.md](design/math-24/core-game.md) |
+| nonogram | 数织核心玩法 | 需求 | approved | [doc/requirements/nonogram/core-game.md](../requirements/nonogram/core-game.md) |
+| nonogram | 数织核心玩法 | 设计 | approved | [doc/design/nonogram/core-game.md](design/nonogram/core-game.md) |
+| sokoban | 推箱子核心玩法 | 需求 | approved | [doc/requirements/sokoban/core-game.md](../requirements/sokoban/core-game.md) |
+| sokoban | 推箱子核心玩法 | 设计 | approved | [doc/design/sokoban/core-game.md](design/sokoban/core-game.md) |
+| idiom-guess | 猜成语核心玩法 | 需求 | approved | [doc/requirements/idiom-guess/core-game.md](../requirements/idiom-guess/core-game.md) |
+| idiom-guess | 猜成语核心玩法 | 设计 | approved | [doc/design/idiom-guess/core-game.md](design/idiom-guess/core-game.md) |
 
 ## 兼容入口
 

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>打砖块 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="打砖块">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Breakout</p>
+                <h1>打砖块</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1/6 关</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">总分</span>
+                <strong id="score-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">本关剩余</span>
+                <strong id="left-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">命</span>
+                <strong id="lives-text">●●●</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="打砖块棋盘">
+            <canvas id="board" width="480" height="640"></canvas>
+        </section>
+
+        <p class="hint-text">移动鼠标 / 方向键 / 触屏拖动控板，点击或按空格发射；空格暂停。</p>
+
+        <footer class="action-bar">
+            <button id="start-btn" class="ghost-btn" type="button">开始</button>
+            <button id="restart-btn" class="ghost-btn" type="button" disabled>重开</button>
+            <button id="levels-btn" class="ghost-btn" type="button">选关</button>
+        </footer>
+    </main>
+
+    <section id="result-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <p id="result-eyebrow" class="eyebrow">Level Clear</p>
+            <h2 id="result-title">过关！</h2>
+            <p id="record-badge" class="record-badge" hidden>破纪录！</p>
+            <div class="result-grid">
+                <div>
+                    <span class="label">总分</span>
+                    <strong id="result-score">0</strong>
+                </div>
+                <div>
+                    <span class="label">最高分</span>
+                    <strong id="result-best">0</strong>
+                </div>
+                <div>
+                    <span class="label">当前关卡</span>
+                    <strong id="result-level">1</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="result-levels-btn" class="ghost-btn" type="button">选关</button>
+                <button id="result-primary-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

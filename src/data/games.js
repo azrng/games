@@ -24,7 +24,7 @@
             title: "俄罗斯方块",
             path: "src/tetris/index.html",
             icon: "src/img/game.svg",
-            desc: "现有编译产物游戏，已纳入统一目录清单管理。",
+            desc: "原生实现的现代俄罗斯方块：SRS 旋转、暂存、落点投影与 T-spin 计分。",
             readme: null,
             meta: { age: "all", device: "desktop" }
         },
@@ -33,9 +33,9 @@
             title: "迷宫冒险",
             path: "src/maze/index.html",
             icon: "src/img/game.svg",
-            desc: "递归回溯生成迷宫的桌面端专用挑战，关卡会逐步扩张。",
+            desc: "回溯法生成迷宫的双端挑战，终点取路径最远格，关卡逐步扩张。",
             readme: "src/maze/readme.md",
-            meta: { age: "all", device: "desktop" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "color-challenge",
@@ -156,6 +156,166 @@
             desc: "看汉字打拼音的儿童打字启蒙：5-8 岁三档难度，键位高亮、零失败、贴纸激励。",
             readme: null,
             meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "tangram",
+            title: "七巧板",
+            path: "src/tangram/index.html",
+            mobilePath: "src/tangram/index.html",
+            icon: "src/img/game.svg",
+            desc: "点选七块板块填满剪影，从彩色提示到纯剪影，12 关空间想象闯关。",
+            readme: null,
+            meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "clock-learning",
+            title: "时钟认知",
+            path: "src/clock-learning/index.html",
+            mobilePath: "src/clock-learning/index.html",
+            icon: "src/img/game.svg",
+            desc: "拨动时针分针读时间、按题拨时间，整点、半点到五分钟渐进练习。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "shopping-cashier",
+            title: "购物小掌柜",
+            path: "src/shopping-cashier/index.html",
+            mobilePath: "src/shopping-cashier/index.html",
+            icon: "src/img/game.svg",
+            desc: "看价签凑钱付账、算找零，认识人民币面额的购物数学启蒙。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "pattern-quest",
+            title: "图案找规律",
+            path: "src/pattern-quest/index.html",
+            mobilePath: "src/pattern-quest/index.html",
+            icon: "src/img/game.svg",
+            desc: "找出图形与颜色序列的规律，从备选里挑出下一张卡片。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "code-robot",
+            title: "编程小机器人",
+            path: "src/code-robot/index.html",
+            mobilePath: "src/code-robot/index.html",
+            icon: "src/img/game.svg",
+            desc: "编排方向指令让小机器人走到终点，集宝石避墙壁，12 关编程启蒙。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "balance-scale",
+            title: "天平称重",
+            path: "src/balance-scale/index.html",
+            mobilePath: "src/balance-scale/index.html",
+            icon: "src/img/game.svg",
+            desc: "看天平算等量代换，推理 1 个水果等于几个柠檬，12 关递进。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "water-pour",
+            title: "倒水谜题",
+            path: "src/water-pour/index.html",
+            mobilePath: "src/water-pour/index.html",
+            icon: "src/img/game.svg",
+            desc: "用没有刻度的杯子量出目标水量，经典倒水谜题，BFS 保底有解。",
+            readme: null,
+            meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "hanzi-parts",
+            title: "汉字拼字",
+            path: "src/hanzi-parts/index.html",
+            mobilePath: "src/hanzi-parts/index.html",
+            icon: "src/img/game.svg",
+            desc: "点选部件拼出汉字，日加月是明，部件组合识字启蒙题库。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "mini-sudoku",
+            title: "儿童数独",
+            path: "src/mini-sudoku/index.html",
+            mobilePath: "src/mini-sudoku/index.html",
+            icon: "src/img/game.svg",
+            desc: "动物图案 4×4 与 6×6 数独，行列宫不重复，唯一解生成。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "memory-match",
+            title: "记忆翻牌",
+            path: "src/memory-match/index.html",
+            mobilePath: "src/memory-match/index.html",
+            icon: "src/img/game.svg",
+            desc: "翻两张找同款的记忆配对挑战，卡阵逐关变大，主题图案轮换。",
+            readme: null,
+            meta: { age: "kids", device: "all" }
+        },
+        {
+            slug: "snake",
+            title: "贪吃蛇",
+            path: "src/snake/index.html",
+            mobilePath: "src/snake/index.html",
+            icon: "src/img/game.svg",
+            desc: "经典贪吃蛇：方向键或滑动转向吃果变长，逐渐提速冲击最高分。",
+            readme: null,
+            meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "breakout",
+            title: "打砖块",
+            path: "src/breakout/index.html",
+            mobilePath: "src/breakout/index.html",
+            icon: "src/img/game.svg",
+            desc: "经典打砖块：控板反弹击碎砖阵，六关递进，反弹角随击点变化。",
+            readme: null,
+            meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "math-24",
+            title: "24 点",
+            path: "src/math-24/index.html",
+            mobilePath: "src/math-24/index.html",
+            icon: "src/img/game.svg",
+            desc: "四张牌算出 24：两两合并触屏友好，分数精确求解保证必有解。",
+            readme: null,
+            meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "nonogram",
+            title: "数织",
+            path: "src/nonogram/index.html",
+            mobilePath: "src/nonogram/index.html",
+            icon: "src/img/game.svg",
+            desc: "数织像素绘：按行列数字推理填格，唯一解生成，完成显现底图。",
+            readme: null,
+            meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "sokoban",
+            title: "推箱子",
+            path: "src/sokoban/index.html",
+            mobilePath: "src/sokoban/index.html",
+            icon: "src/img/game.svg",
+            desc: "推箱子：Microban 60 关递进，推箱到目标点，支持撤销与最少步纪录。",
+            readme: null,
+            meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "idiom-guess",
+            title: "猜成语",
+            path: "src/idiom-guess/index.html",
+            mobilePath: "src/idiom-guess/index.html",
+            icon: "src/img/game.svg",
+            desc: "汉兜式猜成语：九次机会按字色推理四字成语，附拼音释义出处。",
+            readme: null,
+            meta: { age: "all", device: "all" }
         }
     ];
 

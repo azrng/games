@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>猜成语 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="猜成语">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Idiom Guess</p>
+                <h1>猜成语</h1>
+            </div>
+            <div class="level-pill" aria-label="连胜统计">
+                <span id="stats-text">连胜 0 · 最高 0</span>
+            </div>
+        </header>
+
+        <section class="board-section" aria-label="猜测记录">
+            <div id="hint-chips" class="hint-chips" aria-label="提示揭示的字"></div>
+            <div id="guess-rows" class="guess-rows" aria-live="polite"></div>
+        </section>
+
+        <section class="input-area">
+            <input id="guess-input" class="guess-input" type="text" inputmode="text"
+                autocomplete="off" autocapitalize="none" spellcheck="false"
+                placeholder="输入四个汉字" aria-label="输入四个汉字">
+            <button id="submit-btn" class="primary-btn" type="button">提交</button>
+        </section>
+
+        <p class="hint-text">九次机会猜一个四字成语：绿=字和位置都对，橙=字对位置错，灰=没有这个字。</p>
+
+        <footer class="action-bar">
+            <button id="hint-btn" class="ghost-btn" type="button">提示<span id="hint-count">(2)</span></button>
+            <button id="forfeit-btn" class="ghost-btn" type="button">看答案</button>
+        </footer>
+    </main>
+
+    <section id="result-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <p class="eyebrow">Result</p>
+            <h2 id="result-title">猜中了！</h2>
+            <p id="result-word" class="result-word">兴高采烈</p>
+            <p id="result-pinyin" class="result-pinyin">xīng gāo cǎi liè</p>
+            <div class="result-info">
+                <p id="result-explanation" class="result-explanation"></p>
+                <p id="result-derivation" class="result-derivation"></p>
+            </div>
+            <p id="result-stats" class="result-stats"></p>
+            <div class="modal-actions">
+                <button id="next-btn" class="primary-btn" type="button">下一局</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="idiom-bank.js"></script>
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

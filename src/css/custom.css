@@ -253,6 +253,24 @@ body {
 .game-card[data-slug="pinyin-typing"] .game-card-banner { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
 .game-card[data-slug="pinyin-typing"] .game-card-tag { background: #d1fae5; color: #065f46; }
 
+.game-card[data-slug="snake"] .game-card-banner { background: linear-gradient(135deg, #dcfce7, #86efac); }
+.game-card[data-slug="snake"] .game-card-tag { background: #dcfce7; color: #14532d; }
+
+.game-card[data-slug="breakout"] .game-card-banner { background: linear-gradient(135deg, #dbeafe, #93c5fd); }
+.game-card[data-slug="breakout"] .game-card-tag { background: #dbeafe; color: #1e3a8a; }
+
+.game-card[data-slug="math-24"] .game-card-banner { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+.game-card[data-slug="math-24"] .game-card-tag { background: #fef3c7; color: #92400e; }
+
+.game-card[data-slug="nonogram"] .game-card-banner { background: linear-gradient(135deg, #ede9fe, #c4b5fd); }
+.game-card[data-slug="nonogram"] .game-card-tag { background: #ede9fe; color: #4c1d95; }
+
+.game-card[data-slug="sokoban"] .game-card-banner { background: linear-gradient(135deg, #ffedd5, #fdba74); }
+.game-card[data-slug="sokoban"] .game-card-tag { background: #ffedd5; color: #7c2d12; }
+
+.game-card[data-slug="idiom-guess"] .game-card-banner { background: linear-gradient(135deg, #ffe4e6, #fecdd3); }
+.game-card[data-slug="idiom-guess"] .game-card-tag { background: #ffe4e6; color: #881337; }
+
 /* ===== 响应式 ===== */
 
 @media (max-width: 640px) {

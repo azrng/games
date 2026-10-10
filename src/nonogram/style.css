@@ -1,0 +1,406 @@
+:root {
+    --ng-bg: #141126;
+    --ng-panel: #1e1a38;
+    --ng-panel-muted: #191631;
+    --ng-border: #33305c;
+    --ng-text: #eef1fb;
+    --ng-muted: #8f93bb;
+    --ng-primary: #a78bfa;
+    --ng-primary-soft: rgba(167, 139, 250, 0.16);
+    --ng-fill: #c4b5fd;
+    --ng-fill-deep: #8b5cf6;
+    --ng-mark: #5b5f8f;
+    --ng-done: #4a4f7d;
+    --ng-shadow: 0 18px 40px rgba(5, 6, 18, 0.55);
+    --ng-shadow-soft: 0 10px 24px rgba(5, 6, 18, 0.4);
+    --ng-radius-lg: 24px;
+    --ng-radius-md: 16px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background:
+        radial-gradient(circle at 18% 10%, rgba(167, 139, 250, 0.14), transparent 44%),
+        radial-gradient(circle at 85% 88%, rgba(96, 118, 232, 0.14), transparent 46%),
+        linear-gradient(180deg, #191632 0%, var(--ng-bg) 100%);
+    color: var(--ng-text);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.game-shell {
+    width: min(100%, 620px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.game-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.eyebrow,
+.label {
+    margin: 0;
+    color: var(--ng-muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+h1,
+h2 {
+    margin: 4px 0 0;
+    line-height: 1.08;
+    color: var(--ng-text);
+}
+
+h1 {
+    font-size: 30px;
+}
+
+h2 {
+    font-size: 26px;
+}
+
+.level-pill {
+    min-width: 84px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ng-primary-soft);
+    color: var(--ng-primary);
+    font-weight: 800;
+}
+
+.scoreboard {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.score-card {
+    min-width: 0;
+    min-height: 64px;
+    padding: 10px 9px;
+    border: 1px solid var(--ng-border);
+    border-radius: var(--ng-radius-md);
+    background: rgba(30, 26, 56, 0.85);
+    box-shadow: var(--ng-shadow-soft);
+}
+
+.score-card strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.board-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nono-board {
+    width: min(100%, calc(100dvh - 330px));
+    max-width: 480px;
+    min-width: 280px;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: max-content repeat(var(--ng-size, 5), minmax(0, 1fr));
+    grid-template-rows: max-content repeat(var(--ng-size, 5), minmax(0, 1fr));
+    gap: clamp(2px, 0.8vw, 5px);
+    padding: clamp(10px, 2.6vw, 16px);
+    border: 1px solid var(--ng-border);
+    border-radius: var(--ng-radius-lg);
+    background: rgba(25, 22, 49, 0.88);
+    box-shadow: var(--ng-shadow);
+}
+
+.corner {
+    grid-row: 1;
+    grid-column: 1;
+}
+
+/* 列提示在顶行，行提示在左列 */
+.col-clue {
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    padding-bottom: 2px;
+    color: var(--ng-muted);
+    font-size: clamp(10px, 2.4vw, 14px);
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.col-clue span,
+.row-clue span {
+    color: inherit;
+}
+
+.col-clue.is-done,
+.row-clue.is-done {
+    color: var(--ng-done);
+}
+
+.row-clue {
+    grid-column: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding-right: 4px;
+    color: var(--ng-muted);
+    font-size: clamp(10px, 2.4vw, 14px);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.nono-cell {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border-radius: clamp(3px, 1vw, 7px);
+    background: var(--ng-panel-muted);
+    box-shadow: inset 0 0 0 1px rgba(51, 48, 92, 0.85);
+    transition: background-color 160ms ease, transform 100ms ease;
+}
+
+.nono-cell:active {
+    transform: scale(0.9);
+}
+
+.nono-cell.is-fill {
+    background: linear-gradient(150deg, var(--ng-fill) 0%, var(--ng-fill-deep) 100%);
+    box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.6);
+}
+
+.nono-cell.is-mark {
+    color: var(--ng-mark);
+    font-size: clamp(10px, 2.6vw, 15px);
+    font-weight: 800;
+    line-height: 1;
+}
+
+.nono-cell.is-mark::after {
+    content: "×";
+}
+
+.nono-cell.is-locked {
+    background: linear-gradient(150deg, var(--ng-fill) 0%, var(--ng-fill-deep) 100%);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+}
+
+.nono-board.is-solved .nono-cell.is-fill,
+.nono-board.is-solved .nono-cell.is-locked {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 0 14px rgba(167, 139, 250, 0.35);
+}
+
+.hint-text {
+    margin: 0;
+    color: var(--ng-muted);
+    font-size: 13px;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.action-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ghost-btn {
+    min-height: 48px;
+    border-radius: var(--ng-radius-md);
+    border: 1px solid var(--ng-border);
+    background: rgba(30, 26, 56, 0.85);
+    color: var(--ng-text);
+    font-weight: 700;
+    box-shadow: var(--ng-shadow-soft);
+    transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.ghost-btn:active {
+    transform: scale(0.97);
+}
+
+.ghost-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.ghost-btn span {
+    color: var(--ng-muted);
+    font-size: 12px;
+    margin-left: 2px;
+}
+
+.overlay-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+    background: rgba(5, 6, 18, 0.6);
+    backdrop-filter: blur(8px);
+}
+
+.overlay-modal[hidden] {
+    display: none;
+}
+
+.modal-card {
+    width: min(100%, 460px);
+    padding: 24px;
+    border-radius: 28px;
+    background: #201c3d;
+    border: 1px solid var(--ng-border);
+    box-shadow: 0 30px 70px rgba(5, 6, 18, 0.65);
+}
+
+.stars {
+    margin: 10px 0 0;
+    color: var(--ng-primary);
+    font-size: 30px;
+    letter-spacing: 0.2em;
+    line-height: 1;
+}
+
+.stars .star-off {
+    color: rgba(143, 147, 187, 0.3);
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.result-grid div {
+    padding: 12px;
+    border-radius: var(--ng-radius-md);
+    background: var(--ng-panel-muted);
+    border: 1px solid var(--ng-border);
+}
+
+.result-grid strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 20px;
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.modal-actions .primary-btn:only-child {
+    grid-column: 1 / -1;
+}
+
+.primary-btn {
+    min-height: 52px;
+    border-radius: var(--ng-radius-md);
+    background: var(--ng-primary);
+    color: #221446;
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 14px 28px rgba(167, 139, 250, 0.25);
+    transition: transform 120ms ease;
+}
+
+.primary-btn:active {
+    transform: scale(0.97);
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+    max-height: 46vh;
+    overflow-y: auto;
+}
+
+.level-item {
+    min-height: 52px;
+    border-radius: var(--ng-radius-md);
+    border: 1px solid var(--ng-border);
+    background: var(--ng-panel-muted);
+    color: var(--ng-text);
+    font-weight: 800;
+}
+
+.level-item.is-current {
+    background: var(--ng-primary);
+    color: #221446;
+    border-color: var(--ng-primary);
+}
+
+.level-item:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@media (max-width: 360px) {
+    .game-shell {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .nono-board {
+        min-width: 258px;
+    }
+}
+
+/* 移动端顶部为悬浮返回按钮预留安全区，避免页头标题被遮挡 */
+@media (max-width: 680px) {
+    .game-shell {
+        padding-top: calc(max(16px, env(safe-area-inset-top)) + 44px);
+    }
+}

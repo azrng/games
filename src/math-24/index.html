@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>24 点 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="24 点">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Math 24</p>
+                <h1>24 点</h1>
+            </div>
+            <div class="level-pill" aria-label="当前难度">
+                <span id="tier-text">进阶档</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">连击</span>
+                <strong id="streak-now-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">用时</span>
+                <strong id="timer-text">0.0s</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">最快</span>
+                <strong id="best-time-text">--</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">最高连击</span>
+                <strong id="streak-best-text">0</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="题面与操作">
+            <p id="banner" class="banner" hidden></p>
+            <div id="card-row" class="card-row" aria-live="polite"></div>
+            <div id="op-row" class="op-row">
+                <button class="op-btn" type="button" data-op="add">+</button>
+                <button class="op-btn" type="button" data-op="sub">−</button>
+                <button class="op-btn" type="button" data-op="mul">×</button>
+                <button class="op-btn" type="button" data-op="div">÷</button>
+            </div>
+        </section>
+
+        <p class="hint-text">先点一个数，再点运算符，最后点另一个数：两数合成一数，把四个数算成 24。</p>
+
+        <footer class="action-bar">
+            <button id="undo-btn" class="ghost-btn" type="button">撤销</button>
+            <button id="reset-btn" class="ghost-btn" type="button">重置</button>
+            <button id="skip-btn" class="ghost-btn" type="button">跳过看解法</button>
+            <button id="tier-btn" class="ghost-btn" type="button">难度</button>
+        </footer>
+    </main>
+
+    <section id="solutions-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="solutions-title">
+            <p class="eyebrow">Solutions</p>
+            <h2 id="solutions-title">解法</h2>
+            <div id="solutions-list" class="solutions-list"></div>
+            <div class="modal-actions">
+                <button id="next-btn" class="primary-btn" type="button">再来一题</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="tier-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="tier-title">
+            <p class="eyebrow">Difficulty</p>
+            <h2 id="tier-title">选择难度</h2>
+            <div id="tier-list" class="tier-list">
+                <button class="tier-item" type="button" data-tier="easy">入门档 · 1-10 必有解</button>
+                <button class="tier-item" type="button" data-tier="normal">进阶档 · 1-13 必有解</button>
+                <button class="tier-item" type="button" data-tier="hard">大师档 · 必须用分数技巧</button>
+            </div>
+            <div class="modal-actions">
+                <button id="close-tier-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>
