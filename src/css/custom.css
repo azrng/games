@@ -226,6 +226,33 @@ body {
 .game-card[data-slug="hidden-cats"] .game-card-banner { background: linear-gradient(135deg, #ecfdf5, #d1fae5); }
 .game-card[data-slug="hidden-cats"] .game-card-tag { background: #ecfdf5; color: #065f46; }
 
+.game-card[data-slug="yibihua"] .game-card-banner { background: linear-gradient(135deg, #e0f2fe, #bae6fd); }
+.game-card[data-slug="yibihua"] .game-card-tag { background: #e0f2fe; color: #0c4a6e; }
+
+.game-card[data-slug="animal-flip-chess"] .game-card-banner { background: linear-gradient(135deg, #ffedd5, #fed7aa); }
+.game-card[data-slug="animal-flip-chess"] .game-card-tag { background: #ffedd5; color: #9a3412; }
+
+.game-card[data-slug="pipes"] .game-card-banner { background: linear-gradient(135deg, #cffafe, #a5f3fc); }
+.game-card[data-slug="pipes"] .game-card-tag { background: #cffafe; color: #155e75; }
+
+.game-card[data-slug="lights-out"] .game-card-banner { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
+.game-card[data-slug="lights-out"] .game-card-tag { background: #e0e7ff; color: #3730a3; }
+
+.game-card[data-slug="minesweeper"] .game-card-banner { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+.game-card[data-slug="minesweeper"] .game-card-tag { background: #fee2e2; color: #991b1b; }
+
+.game-card[data-slug="typing-cannon"] .game-card-banner { background: linear-gradient(135deg, #ecfccb, #d9f99d); }
+.game-card[data-slug="typing-cannon"] .game-card-tag { background: #ecfccb; color: #3f6212; }
+
+.game-card[data-slug="math-hero"] .game-card-banner { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+.game-card[data-slug="math-hero"] .game-card-tag { background: #dbeafe; color: #1e40af; }
+
+.game-card[data-slug="zh-poem"] .game-card-banner { background: linear-gradient(135deg, #fae8ff, #f5d0fe); }
+.game-card[data-slug="zh-poem"] .game-card-tag { background: #fae8ff; color: #86198f; }
+
+.game-card[data-slug="pinyin-typing"] .game-card-banner { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+.game-card[data-slug="pinyin-typing"] .game-card-tag { background: #d1fae5; color: #065f46; }
+
 /* ===== 响应式 ===== */
 
 @media (max-width: 640px) {

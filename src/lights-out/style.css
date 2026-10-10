@@ -354,3 +354,10 @@ h2 {
         min-width: 258px;
     }
 }
+
+/* 移动端顶部为悬浮返回按钮预留安全区，避免页头标题被遮挡 */
+@media (max-width: 680px) {
+    .game-shell {
+        padding-top: calc(max(16px, env(safe-area-inset-top)) + 44px);
+    }
+}

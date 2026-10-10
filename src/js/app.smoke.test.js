@@ -68,10 +68,14 @@ function makeElement(tagName) {
     return element;
 }
 
-/* 组装沙箱并依次执行 games.js 与 app.js，返回关键节点引用 */
-function setup(customCatalog) {
+/* 组装沙箱并依次执行 games.js 与 app.js，返回关键节点引用。
+ * localStorageStub 可选：注入内存版 localStorage 以验证筛选持久化恢复 */
+function setup(customCatalog, localStorageStub) {
     const elements = {};
     const windowStub = {};
+    if (localStorageStub) {
+        windowStub.localStorage = localStorageStub;
+    }
     const documentStub = {
         getElementById(id) {
             if (!elements[id]) elements[id] = makeElement('div');
@@ -274,6 +278,33 @@ function clickTab(tabsElement, dimension, value) {
     const { grid, tabs } = setup([]);
     assert.strictEqual(tabs.children.length, 0, '空目录不渲染 Tab');
     assert.strictEqual(grid.children.length, 0, '空目录不渲染卡片');
+}
+
+/* ===== 场景 F：筛选持久化（从游戏页返回平台时恢复上次选择） ===== */
+{
+    const store = {};
+    const storageStub = {
+        getItem: (key) => (key in store ? store[key] : null),
+        setItem: (key, value) => { store[key] = String(value); }
+    };
+    store.app_game_hub_filters = JSON.stringify({ age: 'kids', device: 'mobile', scrollY: 240 });
+    const { grid, tabs, deviceTabs } = setup(null, storageStub);
+
+    /* 启动时按存储恢复「儿童 + 移动端」并渲染交集 */
+    assert.strictEqual(cardSlugs(grid).length, 13, '启动时应恢复上次的儿童+移动端筛选（13 款）');
+    assert.strictEqual(tabs.children[1].attributes['aria-selected'], 'true', '恢复后年龄「儿童」应选中');
+    assert.strictEqual(deviceTabs.children[2].attributes['aria-selected'], 'true', '恢复后设备「移动端」应选中');
+
+    /* 切换 Tab 后新筛选应写回存储，另一维度保持不变 */
+    clickTab(tabs, 'age', 'all');
+    const saved = JSON.parse(store.app_game_hub_filters);
+    assert.strictEqual(saved.age, 'all', '切换后年龄应写回存储');
+    assert.strictEqual(saved.device, 'mobile', '设备维度应保持不变');
+
+    /* 存储中的非法取值按「全部」兜底，不抛错 */
+    store.app_game_hub_filters = JSON.stringify({ age: 'baby', device: 'tv' });
+    const fallback = setup(null, storageStub);
+    assert.strictEqual(cardSlugs(fallback.grid).length, 16, '非法存储值应兜底为「全部」并渲染 16 款');
 }
 
 console.log('js/app.smoke.test.js：全部断言通过');

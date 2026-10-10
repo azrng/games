@@ -518,6 +518,8 @@ body {
 
 /* ---------- 窄屏降级（基础兜底，本游戏以 PC 为主） ---------- */
 @media (max-width: 720px) {
+    /* 顶部为悬浮返回按钮预留安全区 */
+    .pt-hero { margin-top: 44px; }
     .pt-key { width: 34px; height: 42px; font-size: 17px; border-radius: 10px; }
     .pt-slot { width: 46px; height: 46px; font-size: 24px; }
     .pt-card { min-width: 0; width: 94vw; padding: 12px 18px 18px; }

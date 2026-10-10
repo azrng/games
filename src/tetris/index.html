@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="../css/custom.css">
     <link href="./loader.css" rel="stylesheet" />
     <link href="css-1.0.1.css" rel="stylesheet">
+    <link href="./mobile-gate.css" rel="stylesheet">
 </head>
 
 <body>
@@ -20,7 +21,41 @@
             <div class="loader">加载中...</div>
         </div>
     </div>
+    <div id="mobile-gate">
+        <div class="mobile-gate-card">
+            <span class="mobile-gate-emoji">🕹️</span>
+            <p class="mobile-gate-tag">桌面端专用</p>
+            <h3>俄罗斯方块暂不支持手机</h3>
+            <p class="mobile-gate-desc">这个游戏需要实体键盘操作，手机上画面会被过度缩小。建议在电脑浏览器中打开，获得完整键位体验。</p>
+            <div class="mobile-gate-actions">
+                <a class="mobile-gate-primary" href="../../index.html">返回选择游戏</a>
+                <button type="button" id="mobile-gate-continue">仍要在手机上试试</button>
+            </div>
+        </div>
+    </div>
     <script type="text/javascript" src="app-1.0.1.js"></script>
     <script src="../js/game-back.js"></script>
+    <script>
+        (function () {
+            const gate = document.getElementById("mobile-gate");
+            if (!gate) return;
+            try {
+                if (window.sessionStorage.getItem("app_tetris_mobile_gate_dismissed") === "1") {
+                    gate.classList.add("is-dismissed");
+                    return;
+                }
+            } catch (error) {
+                /* 存储不可用（隐私模式等）时每次进页都提示 */
+            }
+            document.getElementById("mobile-gate-continue").addEventListener("click", () => {
+                gate.classList.add("is-dismissed");
+                try {
+                    window.sessionStorage.setItem("app_tetris_mobile_gate_dismissed", "1");
+                } catch (error) {
+                    /* 存储不可用时仅本次生效 */
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

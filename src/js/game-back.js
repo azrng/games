@@ -1,4 +1,4 @@
-(function injectBackButton(documentObject) {
+(function injectBackButton(documentObject, windowObject) {
     // 防止页面重复引入脚本时注入多个按钮
     if (documentObject.querySelector(".game-back-btn")) return;
 
@@ -51,5 +51,29 @@
 
     btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg><span>返回</span>';
 
+    // 优先走浏览器历史返回：平台页可经 bfcache 原样恢复筛选与滚动位置；
+    // 直接打开游戏页（无平台来源或无历史记录）时保持普通链接跳转兜底
+    btn.addEventListener("click", (event) => {
+        let fromHub = false;
+        try {
+            const referrerUrl = new URL(documentObject.referrer, windowObject.location.href);
+            const hubUrl = new URL(btn.href, windowObject.location.href);
+            fromHub = referrerUrl.origin === hubUrl.origin
+                && (referrerUrl.pathname === hubUrl.pathname || referrerUrl.pathname === "/");
+        } catch (error) {
+            fromHub = false;
+        }
+        if (!fromHub || windowObject.history.length <= 1) return;
+
+        event.preventDefault();
+        // 离开本页即视为返回成功，防止 bfcache 恢复后兜底定时器误触发跳转
+        let navigated = false;
+        documentObject.addEventListener("pagehide", () => { navigated = true; }, { once: true });
+        windowObject.history.back();
+        windowObject.setTimeout(() => {
+            if (!navigated) windowObject.location.href = btn.href;
+        }, 800);
+    });
+
     documentObject.body.appendChild(btn);
-})(document);
+})(document, window);

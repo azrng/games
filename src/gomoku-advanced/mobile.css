@@ -24,7 +24,8 @@ body.mobile-game {
 .mobile-shell {
     min-height: calc(100vh - 84px);
     min-height: calc(100dvh - 84px);
-    padding: max(14px, env(safe-area-inset-top)) 14px 104px;
+    /* 顶部为悬浮返回按钮预留安全区（本页布局无最大宽度限制，所有视口都需避让） */
+    padding: calc(max(14px, env(safe-area-inset-top)) + 44px) 14px 104px;
     display: flex;
     flex-direction: column;
     gap: 12px;

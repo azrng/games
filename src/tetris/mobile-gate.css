@@ -1,0 +1,93 @@
+/* 移动端桌面闸门：tetris 为固定 640px 布局且仅键盘操作，窄视口下提示前往电脑端体验 */
+#mobile-gate {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.82);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* 手机端布局视口被固定为 640px，此断点恒命中 */
+@media (max-width: 640px) {
+    #mobile-gate {
+        display: flex;
+    }
+}
+
+/* 用户点「仍要继续」后本次会话内不再弹出 */
+#mobile-gate.is-dismissed {
+    display: none;
+}
+
+.mobile-gate-card {
+    max-width: 340px;
+    padding: 28px 24px;
+    border-radius: 16px;
+    background: #fff;
+    text-align: center;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+}
+
+.mobile-gate-emoji {
+    font-size: 40px;
+    line-height: 1;
+}
+
+.mobile-gate-tag {
+    margin: 12px 0 0;
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.mobile-gate-card h3 {
+    margin: 6px 0 0;
+    color: #111827;
+    font-size: 20px;
+}
+
+.mobile-gate-desc {
+    margin: 10px 0 0;
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.mobile-gate-actions {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mobile-gate-primary,
+#mobile-gate-continue {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.mobile-gate-primary {
+    border: 0;
+    background: #2957c8;
+    color: #fff;
+}
+
+#mobile-gate-continue {
+    border: 1px solid #d7dee9;
+    background: #f3f4f6;
+    color: #374151;
+    font-family: inherit;
+}

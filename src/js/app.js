@@ -20,9 +20,38 @@
         { value: "mobile", label: "移动端" }
     ];
 
-    /* 当前选中的年龄/设备筛选，仅影响首页展示，不持久化 */
+    /* 当前选中的年龄/设备筛选，持久化到 localStorage，从游戏页返回平台时恢复上次选择 */
     let currentAge = "all";
     let currentDevice = "all";
+
+    const FILTERS_STORAGE_KEY = "app_game_hub_filters";
+
+    /* 读取上次筛选；存储不可用（隐私模式等）或取值非法时按「全部」兜底 */
+    function loadFilterPrefs() {
+        try {
+            const saved = JSON.parse(windowObject.localStorage.getItem(FILTERS_STORAGE_KEY) || "null") || {};
+            return {
+                age: AGE_TABS.some((tab) => tab.value === saved.age) ? saved.age : "all",
+                device: DEVICE_TABS.some((tab) => tab.value === saved.device) ? saved.device : "all",
+                scrollY: typeof saved.scrollY === "number" && saved.scrollY > 0 ? saved.scrollY : 0
+            };
+        } catch (error) {
+            return { age: "all", device: "all", scrollY: 0 };
+        }
+    }
+
+    /* 筛选变化与离开页面前写入存储，存储失败时静默降级为不持久化 */
+    function saveFilterPrefs() {
+        try {
+            windowObject.localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({
+                age: currentAge,
+                device: currentDevice,
+                scrollY: windowObject.scrollY || 0
+            }));
+        } catch (error) {
+            /* localStorage 不可用时跳过持久化，不影响筛选本身 */
+        }
+    }
 
     /* meta 缺失、缺少 age 键或取值非法时按全龄兜底，保证游戏不被错误隐藏（CON-GH001） */
     function normalizeAge(game) {
@@ -99,6 +128,7 @@
         "typing-cannon":   { icon: "🔤", tag: "学习" },
         "math-hero":       { icon: "🛡️", tag: "学习" },
         "zh-poem":         { icon: "📜", tag: "学习" },
+        "pinyin-typing":   { icon: "⌨️", tag: "学习" },
     };
 
     function getGamePath(game) {
@@ -168,6 +198,7 @@
         currentAge = age;
         renderAllTabs();
         render();
+        saveFilterPrefs();
     });
 
     deviceTabsContainer.addEventListener("click", (event) => {
@@ -177,8 +208,21 @@
         currentDevice = device;
         renderAllTabs();
         render();
+        saveFilterPrefs();
     });
 
+    /* 启动时恢复上次筛选与浏览位置（无存储时为默认「全部 / 全部」） */
+    const prefs = loadFilterPrefs();
+    currentAge = prefs.age;
+    currentDevice = prefs.device;
     renderAllTabs();
     render();
+    if (prefs.scrollY && typeof windowObject.scrollTo === "function") {
+        windowObject.scrollTo(0, prefs.scrollY);
+    }
+
+    /* 离开页面前记录滚动位置；测试桩等无 addEventListener 的环境自动跳过 */
+    if (typeof windowObject.addEventListener === "function") {
+        windowObject.addEventListener("pagehide", saveFilterPrefs);
+    }
 })(window, document);
