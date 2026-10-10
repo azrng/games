@@ -43,9 +43,9 @@
             path: "src/color-challenge/index.html",
             mobilePath: "src/color-challenge/index.html",
             icon: "src/img/game.svg",
-            desc: "纯移动端色觉辨识挑战，找出唯一不同色并冲击最高分。",
+            desc: "色觉辨识挑战，找出唯一不同色并冲击最高分。",
             readme: null,
-            meta: { age: "all", device: "mobile" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "sliding-puzzle",
@@ -53,9 +53,9 @@
             path: "src/sliding-puzzle/index.html",
             mobilePath: "src/sliding-puzzle/index.html",
             icon: "src/img/game.svg",
-            desc: "移动端数字滑块拼图，支持 3×3、4×4、5×5 和历史最优记录。",
+            desc: "数字滑块拼图，支持 3×3、4×4、5×5 和历史最优记录。",
             readme: null,
-            meta: { age: "all", device: "mobile" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "hidden-cats",
@@ -75,7 +75,7 @@
             icon: "src/img/game.svg",
             desc: "经典欧拉路径挑战，一笔画完所有边不重复，50 关闯关递进。",
             readme: null,
-            meta: { age: "all", device: "mobile" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "animal-flip-chess",
@@ -95,7 +95,7 @@
             icon: "src/img/game.svg",
             desc: "点击旋转管道，把水源接通到每个端点，生成树关卡必有解。",
             readme: null,
-            meta: { age: "all", device: "mobile" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "lights-out",
@@ -105,7 +105,7 @@
             icon: "src/img/game.svg",
             desc: "点一盏灯翻转十字相邻，把整块灯板全部点亮，关卡必有解。",
             readme: null,
-            meta: { age: "all", device: "mobile" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "minesweeper",
@@ -113,9 +113,9 @@
             path: "src/minesweeper/index.html",
             mobilePath: "src/minesweeper/index.html",
             icon: "src/img/game.svg",
-            desc: "经典扫雷轻量版，首点必安全，长按插旗，三档难度记录用时。",
+            desc: "经典扫雷轻量版，首点必安全，右键或长按插旗，三档难度记录用时。",
             readme: null,
-            meta: { age: "all", device: "mobile" }
+            meta: { age: "all", device: "all" }
         },
         {
             slug: "typing-cannon",

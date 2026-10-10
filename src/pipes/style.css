@@ -354,40 +354,6 @@ h2 {
     cursor: not-allowed;
 }
 
-.desktop-notice {
-    display: none;
-}
-
-@media (min-width: 769px) {
-    body {
-        display: grid;
-        place-items: center;
-        padding: 24px;
-    }
-
-    .game-shell {
-        display: none;
-    }
-
-    .desktop-notice {
-        width: min(100%, 420px);
-        min-height: 260px;
-        padding: 28px;
-        border-radius: var(--pp-radius-lg);
-        display: flex;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.94);
-        border: 1px solid rgba(213, 223, 233, 0.9);
-        box-shadow: var(--pp-shadow);
-    }
-
-    .desktop-notice p:last-child {
-        margin: 12px 0 0;
-        color: var(--pp-muted);
-        line-height: 1.7;
-    }
-}
-
 @media (max-width: 360px) {
     .game-shell {
         padding-left: 10px;

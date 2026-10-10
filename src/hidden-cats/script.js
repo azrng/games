@@ -9,6 +9,8 @@
         const SKETCH_LINE = "#8c7a6b";
         const SKETCH_LIGHT = "#b8a696";
         const CAT_LINE = "#8a5a3b";
+        /* 猫咪姿势数量：0-3 基础姿势（坐/蹲/蜷/站），4-7 扩展姿势（伸懒腰/拱背/趴平/回望） */
+        const CAT_POSE_COUNT = 8;
 
         const SCENE_TEMPLATES = ["travel", "harbor", "library", "garden", "kitchen", "museum"];
         const LEVEL_DIFFICULTY = [
@@ -233,9 +235,22 @@
             } else if (pose === 2) {
                 /* 蜷睡：大圆球 */
                 ctx.arc(-0.05 * s, 0.10 * s, 0.40 * s, 0, Math.PI * 2);
-            } else {
+            } else if (pose === 3) {
                 /* 站立：横向胶囊身 */
                 ctx.ellipse(-0.05 * s, 0.05 * s, 0.34 * s, 0.20 * s, 0, 0, Math.PI * 2);
+            } else if (pose === 4) {
+                /* 伸懒腰：前低后高的斜长身 */
+                ctx.ellipse(0.10 * s, 0.00 * s, 0.42 * s, 0.17 * s, -0.42, 0, Math.PI * 2);
+            } else if (pose === 5) {
+                /* 拱背：半圆拱形背 */
+                ctx.arc(-0.02 * s, 0.26 * s, 0.40 * s, Math.PI, Math.PI * 2);
+                ctx.closePath();
+            } else if (pose === 6) {
+                /* 趴平：贴地的扁宽身 */
+                ctx.ellipse(-0.02 * s, 0.20 * s, 0.40 * s, 0.15 * s, 0, 0, Math.PI * 2);
+            } else {
+                /* 回望：朝左的横向圆身 */
+                ctx.ellipse(0.08 * s, 0.16 * s, 0.36 * s, 0.22 * s, 0, 0, Math.PI * 2);
             }
         }
 
@@ -274,7 +289,9 @@
             ctx.rotate(rotation);
 
             const s = size;
-            const pose = variant % 4;
+            const pose = variant % CAT_POSE_COUNT;
+            /* 回望姿势头朝左，脸部细节需要镜像 */
+            const facing = pose === 7 ? -1 : 1;
             /* 未找到：淡奶油暖底若隐若现；找到：亮橙点亮庆祝 */
             const fillColor = found ? "rgba(255, 152, 56, 0.55)" : "rgba(255, 216, 168, 0.14)";
             const lineColor = found ? "#d97706" : CAT_LINE;
@@ -291,6 +308,10 @@
             if (pose === 1) { hx = 0.30; hy = -0.20; hr = 0.24; }
             else if (pose === 2) { hx = 0.26; hy = -0.24; hr = 0.22; }
             else if (pose === 3) { hx = 0.34; hy = -0.24; hr = 0.24; }
+            else if (pose === 4) { hx = -0.46; hy = 0.12; hr = 0.21; }
+            else if (pose === 5) { hx = 0.34; hy = 0.02; hr = 0.23; }
+            else if (pose === 6) { hx = 0.30; hy = -0.04; hr = 0.23; }
+            else if (pose === 7) { hx = -0.28; hy = -0.18; hr = 0.24; }
 
             /* 1) 尾巴（最底层，粗笔触曲线） */
             ctx.strokeStyle = lineColor;
@@ -315,17 +336,50 @@
                 ctx.moveTo(-0.34 * s, -0.02 * s);
                 ctx.bezierCurveTo(-0.52 * s, -0.10 * s, -0.54 * s, -0.34 * s, -0.40 * s, -0.44 * s);
             }
+            if (pose === 4) {
+                /* 伸懒腰：从高抬的臀部向上翘 */
+                ctx.moveTo(0.45 * s, -0.15 * s);
+                ctx.bezierCurveTo(0.63 * s, -0.27 * s, 0.61 * s, -0.45 * s, 0.47 * s, -0.51 * s);
+            } else if (pose === 5) {
+                /* 拱背：尾根在左，尾尖上勾 */
+                ctx.moveTo(-0.38 * s, 0.18 * s);
+                ctx.bezierCurveTo(-0.56 * s, 0.26 * s, -0.58 * s, -0.02 * s, -0.44 * s, -0.12 * s);
+            } else if (pose === 6) {
+                /* 趴平：贴地绕到身前 */
+                ctx.moveTo(-0.36 * s, 0.28 * s);
+                ctx.bezierCurveTo(-0.52 * s, 0.34 * s, -0.50 * s, 0.44 * s, -0.32 * s, 0.42 * s);
+            } else if (pose === 7) {
+                /* 回望：尾从右后方上扬 */
+                ctx.moveTo(0.40 * s, 0.10 * s);
+                ctx.bezierCurveTo(0.56 * s, 0.02 * s, 0.58 * s, -0.18 * s, 0.46 * s, -0.28 * s);
+            }
             ctx.stroke();
 
             ctx.lineWidth = Math.max(2.2, s * 0.06);
 
-            /* 2) 站立姿势先补两条小腿 */
+            /* 2) 站立/伸懒腰/趴平姿势先补腿脚 */
             if (pose === 3) {
                 ctx.beginPath();
                 ctx.moveTo(-0.20 * s, 0.22 * s);
                 ctx.lineTo(-0.20 * s, 0.44 * s);
                 ctx.moveTo(0.12 * s, 0.22 * s);
                 ctx.lineTo(0.12 * s, 0.44 * s);
+                ctx.stroke();
+            } else if (pose === 4) {
+                /* 前爪向前下方伸展 */
+                ctx.beginPath();
+                ctx.moveTo(-0.26 * s, 0.18 * s);
+                ctx.lineTo(-0.46 * s, 0.28 * s);
+                ctx.moveTo(-0.18 * s, 0.24 * s);
+                ctx.lineTo(-0.38 * s, 0.34 * s);
+                ctx.stroke();
+            } else if (pose === 6) {
+                /* 趴平：下巴前的小前爪 */
+                ctx.beginPath();
+                ctx.moveTo(0.38 * s, 0.24 * s);
+                ctx.lineTo(0.38 * s, 0.40 * s);
+                ctx.moveTo(0.48 * s, 0.20 * s);
+                ctx.lineTo(0.48 * s, 0.36 * s);
                 ctx.stroke();
             }
 
@@ -349,8 +403,8 @@
 
             const eyeY = hy + 0.02;
             const noseY = hy + 0.10;
-            drawSleepyEye(hx - hr * 0.42, eyeY, s, 0.045);
-            if (pose === 0) drawSleepyEye(hx + hr * 0.42, eyeY, s, 0.045);
+            drawSleepyEye(hx - facing * hr * 0.42, eyeY, s, 0.045);
+            if (pose === 0) drawSleepyEye(hx + facing * hr * 0.42, eyeY, s, 0.045);
             /* 小三角鼻头 */
             ctx.beginPath();
             ctx.moveTo((hx - 0.022) * s, (noseY - 0.012) * s);
@@ -360,13 +414,13 @@
             ctx.fillStyle = detailColor;
             ctx.fill();
             ctx.fillStyle = fillColor;
-            /* 胡须 */
-            const wx = hx + hr * 0.86;
+            /* 胡须（朝向侧伸出） */
+            const wx = hx + facing * hr * 0.86;
             ctx.beginPath();
-            ctx.moveTo((wx - 0.02) * s, (hy + 0.06) * s);
-            ctx.quadraticCurveTo((wx + 0.06) * s, (hy + 0.03) * s, (wx + 0.13) * s, (hy + 0.02 - whiskerSpread * 0.4) * s);
-            ctx.moveTo((wx - 0.02) * s, (hy + 0.11) * s);
-            ctx.quadraticCurveTo((wx + 0.06) * s, (hy + 0.10) * s, (wx + 0.13) * s, (hy + 0.09 + whiskerSpread * 0.4) * s);
+            ctx.moveTo((wx - facing * 0.02) * s, (hy + 0.06) * s);
+            ctx.quadraticCurveTo((wx + facing * 0.06) * s, (hy + 0.03) * s, (wx + facing * 0.13) * s, (hy + 0.02 - whiskerSpread * 0.4) * s);
+            ctx.moveTo((wx - facing * 0.02) * s, (hy + 0.11) * s);
+            ctx.quadraticCurveTo((wx + facing * 0.06) * s, (hy + 0.10) * s, (wx + facing * 0.13) * s, (hy + 0.09 + whiskerSpread * 0.4) * s);
             ctx.stroke();
 
             ctx.restore();
@@ -1409,6 +1463,11 @@
             return regionsByScene[state.sceneTemplate] || regionsByScene.travel;
         }
 
+        /* 语义区域与锚点只配置基础姿势(0-3)；按种子一半概率升级为对应扩展姿势(4-7)，让新形状自然混入画面 */
+        function expandCatPose(base, random) {
+            return random() < 0.5 ? base : base + (CAT_POSE_COUNT / 2);
+        }
+
         function candidateCatsFromRegions(size, random, count) {
             const regions = semanticCatRegions(size);
             const difficulty = state.difficulty || levelDifficulty(state.level || 1);
@@ -1421,7 +1480,7 @@
                     x: size * (region.xMin + random() * (region.xMax - region.xMin)),
                     y: size * (region.yMin + random() * (region.yMax - region.yMin)),
                     r,
-                    variant: pickFrom(region.variants, random),
+                    variant: expandCatPose(pickFrom(region.variants, random), random),
                     rotation: region.rot[0] + random() * (region.rot[1] - region.rot[0]),
                     region: region.name,
                 });
@@ -1483,7 +1542,7 @@
                 y: anchor.y + randFloat(-size * 0.006, size * 0.006, catRandom),
                 r: Math.max(26, Math.min(44, anchor.r * 1.35)),
                 found: false,
-                variant: anchor.variant,
+                variant: expandCatPose(anchor.variant, catRandom),
                 rotation: anchor.rotation + randFloat(-0.1, 0.1, catRandom),
                 region: anchor.region || "anchor",
             }));

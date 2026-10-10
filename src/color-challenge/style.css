@@ -236,10 +236,6 @@ h2 {
     box-shadow: 0 14px 28px rgba(41, 87, 200, 0.22);
 }
 
-.desktop-notice {
-    display: none;
-}
-
 @keyframes wrongShake {
     0%,
     100% {
@@ -250,36 +246,6 @@ h2 {
     }
     75% {
         transform: translateX(7px);
-    }
-}
-
-@media (min-width: 769px) {
-    body {
-        display: grid;
-        place-items: center;
-        padding: 24px;
-    }
-
-    .game-shell {
-        display: none;
-    }
-
-    .desktop-notice {
-        width: min(100%, 420px);
-        min-height: 260px;
-        padding: 28px;
-        border-radius: var(--cc-radius-lg);
-        display: flex;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.94);
-        border: 1px solid rgba(215, 222, 234, 0.9);
-        box-shadow: var(--cc-shadow);
-    }
-
-    .desktop-notice p:last-child {
-        margin: 12px 0 0;
-        color: var(--cc-muted);
-        line-height: 1.7;
     }
 }
 

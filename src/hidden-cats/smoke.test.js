@@ -201,6 +201,9 @@ function testPageBootsAndRegistersCatalog() {
     assert(source.includes("shareToast.textContent"), "share feedback should not reuse proximity feedback");
     assert(source.includes("whiskerSpread"), "cat variants should vary whiskers");
     assert(source.includes("traceCatOutline"), "cat poses should use continuous single-path silhouettes");
+    assert(source.includes("CAT_POSE_COUNT"), "cat shapes should be driven by an explicit pose count constant");
+    assert(source.includes("% CAT_POSE_COUNT"), "cat drawing should wrap variants across every pose");
+    assert(source.includes("expandCatPose"), "cat placement should expand base poses into extended shapes");
     assert(source.includes("addEventListener(\"wheel\""), "desktop mouse wheel zoom should be supported");
     assert(source.includes("resizeTimer"), "resize handling should be debounced");
     assert(!source.includes(".found-ring"), "unused found-ring CSS should be removed");
@@ -270,6 +273,25 @@ function testPageBootsAndRegistersCatalog() {
     vm.runInNewContext(js, createSandbox(), { filename: "hidden-cats/script.js" });
 }
 
+/* 跨多关生成猫咪，断言 8 种姿势（基础 0-3 + 扩展 4-7）全部会出现在画面上 */
+function testAllEightCatPosesAppear() {
+    const js = fs.readFileSync(jsPath, "utf8");
+    const hook = `
+        const __seenPoses = new Set();
+        for (let lv = 1; lv <= 40; lv++) {
+            generateLevel(lv, 987654321 + lv * 7919);
+            state.cats.forEach((cat) => __seenPoses.add(cat.variant % CAT_POSE_COUNT));
+        }
+        window.__seenPoses = [...__seenPoses].sort();
+    `;
+    const sandbox = createSandbox();
+    sandbox.window.__seenPoses = null;
+    vm.runInNewContext(js.replace("generateLevel(1);", hook), sandbox, { filename: "hidden-cats/script.js" });
+    const seen = sandbox.window.__seenPoses;
+    assert(Array.isArray(seen) && seen.length === 8, `all 8 cat poses should appear across levels, got: ${JSON.stringify(seen)}`);
+}
+
 testPageBootsAndRegistersCatalog();
+testAllEightCatPosesAppear();
 
 console.log("hidden cats smoke test passed");

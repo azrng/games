@@ -454,40 +454,6 @@ h2 {
     font-size: 20px;
 }
 
-.desktop-notice {
-    display: none;
-}
-
-@media (min-width: 721px) {
-    body {
-        display: grid;
-        place-items: center;
-        padding: 24px;
-    }
-
-    .game-shell {
-        display: none;
-    }
-
-    .desktop-notice {
-        width: min(100%, 420px);
-        min-height: 260px;
-        padding: 28px;
-        border-radius: var(--sp-radius-lg);
-        display: flex;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.94);
-        border: 1px solid rgba(215, 222, 234, 0.9);
-        box-shadow: var(--sp-shadow);
-    }
-
-    .desktop-notice p:last-child {
-        margin: 12px 0 0;
-        color: var(--sp-muted);
-        line-height: 1.7;
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
     .tile.sliding,
     .puzzle-board.solved .tile,

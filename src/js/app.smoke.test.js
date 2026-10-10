@@ -141,8 +141,8 @@ function clickTab(tabsElement, dimension, value) {
             tabCountText(deviceTabs, 'device', 'desktop'),
             tabCountText(deviceTabs, 'device', 'mobile')
         ],
-        ['16', '15', '11', '16', '10', '14'],
-        '年龄 Tab 计数应为 16/15/11，设备 Tab 计数应为 16/10/14'
+        ['16', '15', '11', '16', '16', '14'],
+        '年龄 Tab 计数应为 16/15/11，设备 Tab 计数应为 16/16/14'
     );
 
     /* 儿童 Tab：隐藏成人向，保留儿童专属与全龄 */
@@ -210,8 +210,8 @@ function clickTab(tabsElement, dimension, value) {
 /* ===== 场景 C：设备与年龄交集过滤 ===== */
 {
     const { grid, tabs, deviceTabs } = setup();
-    /* 儿童 + 移动端：kids 5 款全部可见（hidden-cats 为双端，其余 4 款同为双端），
-     * 全龄中 6 款仅移动 + 2 款双端（2048/五子棋）也可见 → 13 款 */
+    /* 儿童 + 移动端：kids 5 款全部可见（均为双端），
+     * 全龄中 8 款双端（含 2048/五子棋）也可见 → 13 款 */
     clickTab(tabs, 'age', 'kids');
     clickTab(deviceTabs, 'device', 'mobile');
     assert.deepStrictEqual(
@@ -224,19 +224,20 @@ function clickTab(tabsElement, dimension, value) {
         '儿童 + 移动端交集应为 13 款（5 款儿童 + 8 款支持移动的全龄）'
     );
 
-    /* 儿童 + 电脑端：kids 5 款全为双端可见，加全龄双端 2048/五子棋与仅电脑 tetris/maze
-     * → 9 款；6 款仅移动全龄被隐藏 */
+    /* 儿童 + 电脑端：kids 5 款全为双端可见，加全龄双端与仅电脑 tetris/maze
+     * → 15 款；仅电脑端只有俄罗斯方块与迷宫 2 款全龄 */
     clickTab(deviceTabs, 'device', 'desktop');
     assert.deepStrictEqual(
         cardSlugs(grid),
         [
-            '2048', 'gomoku-advanced', 'tetris', 'maze', 'hidden-cats',
-            'animal-flip-chess', 'math-hero', 'zh-poem', 'pinyin-typing'
+            '2048', 'gomoku-advanced', 'tetris', 'maze', 'color-challenge',
+            'sliding-puzzle', 'hidden-cats', 'yibihua', 'animal-flip-chess', 'pipes',
+            'lights-out', 'minesweeper', 'math-hero', 'zh-poem', 'pinyin-typing'
         ],
-        '儿童 + 电脑端交集应为 9 款（含双端的找猫咪，不含仅移动的 6 款全龄）'
+        '儿童 + 电脑端交集应为 15 款（仅电脑端的俄罗斯方块与迷宫之外全部可见）'
     );
 
-    /* 成人 + 移动端：单词大炮（双端）+ 2048 / 五子棋（双端全龄）+ 6 款仅移动全龄 = 9 款 */
+    /* 成人 + 移动端：单词大炮（双端）+ 8 款双端全龄 = 9 款 */
     clickTab(tabs, 'age', 'adult');
     clickTab(deviceTabs, 'device', 'mobile');
     const adultMobile = cardSlugs(grid);

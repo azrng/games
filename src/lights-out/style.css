@@ -330,10 +330,6 @@ h2 {
     border-color: var(--lo-primary);
 }
 
-.desktop-notice {
-    display: none;
-}
-
 @keyframes hintPulse {
     0%,
     100% {
@@ -345,37 +341,6 @@ h2 {
         box-shadow:
             inset 0 0 0 1px rgba(43, 53, 96, 0.9),
             0 0 0 8px rgba(245, 185, 66, 0.18);
-    }
-}
-
-@media (min-width: 769px) {
-    body {
-        display: grid;
-        place-items: center;
-        padding: 24px;
-    }
-
-    .game-shell {
-        display: none;
-    }
-
-    .desktop-notice {
-        width: min(100%, 420px);
-        min-height: 260px;
-        padding: 28px;
-        border-radius: var(--lo-radius-lg);
-        display: flex;
-        align-items: center;
-        background: #1c2346;
-        border: 1px solid var(--lo-border);
-        box-shadow: var(--lo-shadow);
-        color: var(--lo-text);
-    }
-
-    .desktop-notice p:last-child {
-        margin: 12px 0 0;
-        color: var(--lo-muted);
-        line-height: 1.7;
     }
 }
 

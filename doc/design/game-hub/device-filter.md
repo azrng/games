@@ -3,7 +3,7 @@ doc_id: DES-GH002
 doc_type: design
 module: game-hub
 status: approved
-last_updated: 2026-10-08
+last_updated: 2026-10-09
 related:
   - doc/requirements/game-hub/device-filter.md
   - doc/design/game-hub/age-filter.md
@@ -15,6 +15,7 @@ related:
 
 - 关联 REQ-GH002，覆盖其全部「本次覆盖」范围。
 - 未覆盖项（来自 REQ「本次不覆盖」）：卡片设备徽章、`mobilePath` 机制调整、筛选状态持久化。
+- 2026-10-09（TASK T052）：六款原仅移动游戏解锁 PC 端（移除桌面闸门，复用既有移动布局），归类全部改为 `all`，本文档中的计数与原型数字已同步更新；筛选机制本身无变化。
 
 ## 契约引用
 
@@ -31,7 +32,7 @@ GAME_CATALOG  ──▶  normalizeAge()/normalizeDevice() 兜底 ──▶ rende
               ──▶  matchesAge && matchesDevice 交集 ──▶ render() 重建卡片 ──▶ .hub-grid
 ```
 
-- `src/data/games.js`：16 个条目补 `meta.device`（desktop 2 / mobile 7 / all 7），其余字段不动。
+- `src/data/games.js`：16 个条目补 `meta.device`（落地时为 desktop 2 / mobile 7 / all 7；2026-10-09 起为 desktop 2 / mobile 0 / all 14），其余字段不动。
 - `index.html`：`.hub-tabs#age-tabs` 之后新增 `<div class="hub-tabs" id="device-tabs" role="tablist" aria-label="按设备筛选游戏">` 容器，由 JS 填充。
 - `src/js/app.js`：
   - 新增 `DEVICE_TABS` 定义（全部/电脑端/移动端）与单一 UI 状态 `currentDevice = "all"`，不持久化。
@@ -62,7 +63,7 @@ GAME_CATALOG  ──▶  normalizeAge()/normalizeDevice() 兜底 ──▶ rende
 │           （年龄行） ┌────────┐ ┌────────┐ ┌────────┐  │
 │                     │ 全部 16 │ │ 儿童 15 │ │ 成人 11 │  │
 │           （设备行） ┌─────────┐ ┌──────────┐ ┌──────────┐
-│                     │ 全部 16 │ │ 电脑端 10 │ │ 移动端 14 │
+│                     │ 全部 16 │ │ 电脑端 16 │ │ 移动端 14 │
 │                                                      │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐            │
 │  │   🎲     │  │   ♟️     │  │   🧩     │            │
@@ -70,12 +71,12 @@ GAME_CATALOG  ──▶  normalizeAge()/normalizeDevice() 兜底 ──▶ rende
 └──────────────────────────────────────────────────────┘
 ```
 
-交集筛选态（儿童 + 电脑端，9 款，空态为防御性兜底）：
+交集筛选态（儿童 + 电脑端，15 款，空态为防御性兜底）：
 
 ```text
 │   年龄行： 全部 16 │ [儿童 15] │ 成人 11      ← 年龄选中「儿童」 │
-│   设备行： 全部 16 │ [电脑端 10] │ 移动端 14    ← 设备选中「电脑端」│
-│   卡片区： 9 张（含 tetris/maze，不含 6 款仅移动全龄）           │
+│   设备行： 全部 16 │ [电脑端 16] │ 移动端 14    ← 设备选中「电脑端」│
+│   卡片区： 15 张（仅排除成人向的单词大炮，tetris/maze 为仅电脑全龄）│
 │                                                                │
 │   交集为空时（如成人 + 仅移动分类下）：该分类下暂无游戏，看看其他分类吧 │
 └────────────────────────────────────────────────────────────────┘
@@ -103,9 +104,9 @@ GAME_CATALOG  ──▶  normalizeAge()/normalizeDevice() 兜底 ──▶ rende
 ### 验证方式
 
 1. 扩展 `src/js/app.smoke.test.js`（node + vm + assert，沿用既有桩模式）：
-   - 场景 A：真实目录默认态，断言两行 Tab 计数 16/15/11 与 16/10/14、年龄筛选行为回归。
+   - 场景 A：真实目录默认态，断言两行 Tab 计数 16/15/11 与 16/16/14、年龄筛选行为回归。
    - 场景 B：`meta` 缺失 / 非法 `age` / 非法 `device` 条目在全部 Tab 下兜底可见。
-   - 场景 C：儿童+移动端 13 款、儿童+电脑端 9 款、成人+移动端 9 款（不含 tetris/maze）等交集断言。
+   - 场景 C：儿童+移动端 13 款、儿童+电脑端 15 款、成人+移动端 9 款（不含 tetris/maze）等交集断言。
    - 场景 D：单条目目录下交集为空渲染 `.hub-empty`，且设备 Tab 计数独立于年龄选中态。
    - 场景 E：空目录两行 Tab 与卡片均不渲染。
 2. 浏览器 smoke（本次已执行）：默认态/电脑端/移动端/儿童+移动端筛选卡片数与计数一致；390px 视口下两行 Tab 换行正常、间距命中断点样式；无 console 报错；截图存 `gui-test-screenshots/`。
