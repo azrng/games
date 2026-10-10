@@ -49,7 +49,22 @@ function collectMatches(element, selector, result) {
     for (const child of element.children) collectMatches(child, selector, result);
 }
 
-function runScriptWithContext() {
+function createMemoryStorage(initial) {
+    const data = new Map(Object.entries(initial || {}));
+    return {
+        getItem(key) {
+            return data.has(key) ? data.get(key) : null;
+        },
+        setItem(key, value) {
+            data.set(key, String(value));
+        },
+        removeItem(key) {
+            data.delete(key);
+        }
+    };
+}
+
+function runScriptWithContext(storage = createMemoryStorage()) {
     const elements = new Map();
     let now = 1000;
     const timers = [];
@@ -143,7 +158,7 @@ function runScriptWithContext() {
     [
         'board', 'turn-text', 'player-a-info', 'player-b-info',
         'player-a-count', 'player-b-count', 'header-tip', 'result-modal', 'result-title', 'result-desc', 'result-a',
-        'result-b', 'restart-btn', 'play-again-btn', 'turn-indicator', 'confetti', 'result-card'
+        'result-b', 'restart-btn', 'play-again-btn', 'turn-indicator', 'confetti', 'result-card', 'stats-text'
     ].forEach(createElement);
 
     const hintText = createElement('hint-text');
@@ -194,12 +209,14 @@ function runScriptWithContext() {
     };
     context.window.window = context.window;
     context.window.document = document;
+    context.window.localStorage = storage;
 
     vm.runInNewContext(read('script.js'), context);
     return {
         api: context.window.AnimalFlipChess,
         elements,
         date,
+        storage,
         runTimersThrough(maxDelay) {
             for (const timer of timers) {
                 if (!timer.cleared && timer.delay <= maxDelay) {
@@ -281,6 +298,9 @@ function testFilesAndStylesExist() {
     assert(css.includes('@keyframes particleBurst'), 'captures should emit a particle burst');
     assert(css.includes('@keyframes confettiFall'), 'win celebration should have falling confetti');
     assert(css.includes('prefers-reduced-motion'), 'all decorative motion must respect reduced-motion');
+    assert(html.includes('id="stats-text"'), 'page should render the stats record line');
+    assert(css.includes('.record-line'), 'stats record line should have its own style');
+    assert(script.includes('flip_chess_save_v1'), 'script should persist progress via localStorage');
 }
 
 function testBoardCellsAreAccessibleButtons() {
@@ -1286,6 +1306,144 @@ function testCardsReEnabledAfterAiTurn() {
         'human piece should be enabled on the human turn');
 }
 
+// ===== 存档（localStorage）=====
+function testProgressPersistsAcrossReload() {
+    // 第一局：玩家翻一张牌，回合切给电脑后“刷新页面”
+    const first = runScriptWithContext();
+    apiSetFlipBoard(first.api);
+    cell(first.elements, 0, 0).dispatch('click');
+
+    const savedRaw = first.storage.getItem('flip_chess_save_v1');
+    assert(savedRaw, 'flip should persist the game state');
+    const saved = JSON.parse(savedRaw);
+    assert.strictEqual(saved.version, 1, 'save should carry the version field');
+    assert.strictEqual(saved.game.phase, 'play', 'in-progress phase should be saved');
+    assert.strictEqual(saved.game.currentPlayer, 'b', 'AI turn should be saved after the human flip');
+    assert.strictEqual(saved.game.board[0][0].flipped, true, 'flipped card should be in the saved board');
+    assert.strictEqual(saved.game.board[0][0].owner, 'b', 'flipped card owner should be saved');
+
+    // 用同一份 storage 重跑脚本，模拟刷新后恢复
+    const second = runScriptWithContext(first.storage);
+    const state = second.api.getStateForTest();
+    assert.strictEqual(state.phase, 'play', 'reload should restore an in-progress game');
+    assert.strictEqual(state.currentPlayer, 'b', 'reload should restore the AI turn');
+    assert.strictEqual(state.board[0][0].flipped, true, 'flipped card should survive reload');
+    assert.strictEqual(state.board[0][0].owner, 'b', 'flipped card owner should survive reload');
+    assert.strictEqual(second.elements.get('turn-text').textContent, '电脑思考中',
+        'restored AI turn should schedule the AI move immediately');
+}
+
+function testWinStatsPersistAcrossReload() {
+    const first = runScriptWithContext();
+    // 老鼠吃大象直接终局：玩家获胜
+    apiSetRatElephantBoard(first.api);
+    cell(first.elements, 0, 0).dispatch('click');
+    cell(first.elements, 0, 1).dispatch('click');
+    assert.strictEqual(first.api.getStateForTest().phase, 'end', 'precondition: game should have ended');
+
+    const saved = JSON.parse(first.storage.getItem('flip_chess_save_v1'));
+    assert.strictEqual(saved.stats.wins, 1, 'win should be recorded in stats');
+    assert.strictEqual(saved.game, null, 'finished game should not be resumable');
+
+    const second = runScriptWithContext(first.storage);
+    assert.strictEqual(second.elements.get('stats-text').textContent, '战绩 1胜 0负 0平',
+        'stats should render from the saved record after reload');
+    const state = second.api.getStateForTest();
+    assert.strictEqual(state.phase, 'play', 'no in-progress game → fresh deal after reload');
+    assert.strictEqual(state.board[0][0].flipped, false, 'fresh deal should be all face-down');
+}
+
+function testCorruptSaveFallsBackToFreshDeal() {
+    // 形状损坏的存档：对局作废、战绩保留
+    const badShape = createMemoryStorage({
+        'flip_chess_save_v1': JSON.stringify({
+            version: 1,
+            stats: { wins: 3, losses: 1, draws: 0 },
+            game: { phase: 'play', currentPlayer: 'a', board: 'not-a-board' }
+        })
+    });
+    const fromBadShape = runScriptWithContext(badShape);
+    assert.strictEqual(fromBadShape.api.getStateForTest().phase, 'play', 'bad-shape save should fall back to a fresh deal');
+    assert.strictEqual(fromBadShape.elements.get('stats-text').textContent, '战绩 3胜 1负 0平',
+        'stats should survive even when the game snapshot is invalid');
+
+    // 完全不是 JSON 的存档：整体作废、全新开局
+    const badJson = createMemoryStorage({ 'flip_chess_save_v1': '###not-json###' });
+    const fromBadJson = runScriptWithContext(badJson);
+    assert.strictEqual(fromBadJson.api.getStateForTest().phase, 'play', 'garbage save should fall back to a fresh deal');
+    assert.strictEqual(fromBadJson.elements.get('stats-text').textContent, '战绩 0胜 0负 0平',
+        'garbage save should reset stats display');
+}
+
+// 与 testFlipKeepsPresetOwnerAndShowsTurnPrompt 同款局面：左上角是电脑的暗牌象
+function apiSetFlipBoard(api) {
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        openingTurn: true,
+        board: [
+            [
+                { animal: 'elephant', owner: 'b', flipped: false, captured: false },
+                { animal: 'cat', owner: 'a', flipped: false, captured: false },
+                { animal: 'dog', owner: 'a', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: 'a', flipped: false, captured: false },
+                { animal: 'lion', owner: 'b', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'a', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: 'b', flipped: false, captured: false },
+                { animal: 'dog', owner: 'b', flipped: false, captured: false },
+                { animal: 'wolf', owner: 'a', flipped: false, captured: false },
+                { animal: 'rat', owner: 'b', flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: 'a', flipped: false, captured: false },
+                { animal: 'tiger', owner: 'b', flipped: false, captured: false },
+                { animal: 'leopard', owner: 'a', flipped: false, captured: false },
+                { animal: 'elephant', owner: 'a', flipped: false, captured: false }
+            ]
+        ]
+    });
+}
+
+// 与 testEliminatingAllPiecesEndsGameEvenWithHiddenCards 同款终局局面
+function apiSetRatElephantBoard(api) {
+    api.setStateForTest({
+        currentPlayer: 'a',
+        phase: 'play',
+        board: [
+            [
+                { animal: 'rat', owner: 'a', flipped: true, captured: false },
+                { animal: 'elephant', owner: 'b', flipped: true, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'rat', owner: null, flipped: false, captured: false },
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'cat', owner: null, flipped: false, captured: false },
+                { animal: 'dog', owner: null, flipped: false, captured: false },
+                { animal: 'wolf', owner: null, flipped: false, captured: false },
+                { animal: 'rat', owner: null, flipped: false, captured: false }
+            ],
+            [
+                { animal: 'lion', owner: null, flipped: false, captured: false },
+                { animal: 'tiger', owner: null, flipped: false, captured: false },
+                { animal: 'leopard', owner: null, flipped: false, captured: false },
+                { animal: 'elephant', owner: null, flipped: false, captured: false }
+            ]
+        ]
+    });
+}
+
 testFilesAndStylesExist();
 testBoardCellsAreAccessibleButtons();
 testInitialDeckHasOneAnimalPerOwner();
@@ -1315,5 +1473,8 @@ testFlipAnimationSurvivesTurnSwitchRender();
 testMutualFinalCancelOutIsDraw();
 testTransientAnimationClassesClearedOnGameEnd();
 testCardsReEnabledAfterAiTurn();
+testProgressPersistsAcrossReload();
+testWinStatsPersistAcrossReload();
+testCorruptSaveFallsBackToFreshDeal();
 
 console.log('animal flip chess smoke test passed');

@@ -277,7 +277,7 @@ h2 {
 .action-bar,
 .result-actions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -317,6 +317,29 @@ h2 {
 .action-btn:disabled {
     opacity: 0.45;
     box-shadow: none;
+}
+
+/* 提示按钮内的剩余次数 */
+#hint-count {
+    margin-left: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.72;
+}
+
+/* 提示高亮：琥珀色描边 + 轻微脉冲，2 秒后由脚本移除类名 */
+.tile.hint {
+    box-shadow:
+        0 0 0 3px var(--sp-warning),
+        0 10px 22px rgba(245, 158, 11, 0.35),
+        inset 0 2px 0 rgba(255, 255, 255, 0.32);
+    animation: hintPulse 0.8s ease-in-out 2;
+}
+
+@keyframes hintPulse {
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 .size-panel,
@@ -441,6 +464,19 @@ h2 {
     margin-top: 18px;
 }
 
+/* 结算星级：与点灯游戏一致的三星展示 */
+.stars {
+    margin: 10px 0 0;
+    color: var(--sp-primary);
+    font-size: 30px;
+    letter-spacing: 0.2em;
+    line-height: 1;
+}
+
+.stars .star-off {
+    color: rgba(93, 104, 128, 0.28);
+}
+
 .result-grid div {
     padding: 14px;
     border-radius: var(--sp-radius-md);
@@ -458,6 +494,7 @@ h2 {
     .tile.sliding,
     .puzzle-board.solved .tile,
     .stat-card strong.bump,
+    .tile.hint,
     .size-panel:not([hidden]),
     .result-modal:not([hidden]),
     .size-panel:not([hidden]) .panel-card,

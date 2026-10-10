@@ -58,6 +58,8 @@ function runScriptWithContext() {
         'result-time',
         'result-best',
         'result-wins',
+        'result-3bv',
+        'result-eff',
         'again-btn'
     ].forEach(createElement);
 
@@ -131,6 +133,11 @@ function testFilesAndCatalogExist() {
     assert(script.includes('CELL_MIN_PX'), 'cells should keep a minimum touch target size');
     assert(script.includes('placeMines'), 'mines should be placed after first tap');
     assert(script.includes('pointerdown'), 'long press flagging should use pointer events');
+    assert(script.includes('isSolvableByLogic'), 'no-guess generation should ship a logic solver');
+    assert(script.includes('compute3BV'), 'result panel data should include a 3BV computation');
+    assert(script.includes('generateNoGuessBoard'), 'first tap should generate a no-guess board');
+    assert(html.includes('id="result-3bv"'), 'result panel should show the board 3BV');
+    assert(html.includes('id="result-eff"'), 'result panel should show the 3BV efficiency');
     assert(catalog.includes('slug: "minesweeper"'), 'catalog should register minesweeper');
     assert(catalog.includes('mobilePath: "src/minesweeper/index.html"'), 'catalog should route mobile to minesweeper');
 }
@@ -203,11 +210,91 @@ function testTimeFormatAndRecords() {
     assert.strictEqual(storage.get('minesweeper-wins-easy'), '2', 'wins should accumulate');
 }
 
+function testCompute3BV() {
+    const { api } = runScriptWithContext();
+
+    /* 3×4 盘面，雷在 0、3、8（角与两端）：
+       M . . M
+       . . . .
+       M . . .
+       手算：空白洪泛区 {10, 11} 计 1；与空白区不相邻的数字格 1、2、4 各计 1 → 3BV = 4 */
+    const mines = new Set([0, 3, 8]);
+    assert.strictEqual(api.compute3BV(mines, 3, 4), 4, '3BV should match the hand-computed value');
+
+    /* 3×3 单雷在角上：唯一空白区 {2, 5, 6, 7, 8}，数字格 1、3、4 均与空白区相邻 → 3BV = 1 */
+    assert.strictEqual(api.compute3BV(new Set([0]), 3, 3), 1, 'single zero region should count one 3BV');
+
+    /* 全雷盘：没有空白区也没有数字格 → 3BV = 0 */
+    assert.strictEqual(api.compute3BV(new Set([0, 1, 2, 3, 4, 5, 6, 7, 8]), 3, 3), 0, 'all-mine board should have zero 3BV');
+}
+
+function testLogicSolver() {
+    const { api } = runScriptWithContext();
+
+    function openFrom(mines, rows, cols, firstIndex) {
+        const counts = api.computeCounts(mines, rows, cols);
+        const revealed = new Array(rows * cols).fill(false);
+        const flagged = new Array(rows * cols).fill(false);
+        const opened = api.floodReveal(firstIndex, mines, counts, revealed, flagged, rows, cols);
+        return { counts, opened };
+    }
+
+    /* 可解局面 1：3×3 角雷，从对角首开——洪泛开完除雷外全部，单格约束推出角上雷 */
+    const minesCorner = new Set([0]);
+    let board = openFrom(minesCorner, 3, 3, 8);
+    assert.strictEqual(
+        api.isSolvableByLogic(minesCorner, board.counts, 3, 3, board.opened),
+        true,
+        'corner-mine board opened from the far corner should be solvable'
+    );
+
+    /* 可解局面 2：3×3 雷在 (1,2)，必须靠子集化简推出远角安全才能解到胜利 */
+    const minesSubset = new Set([5]);
+    board = openFrom(minesSubset, 3, 3, 0);
+    assert.strictEqual(
+        api.isSolvableByLogic(minesSubset, board.counts, 3, 3, board.opened),
+        true,
+        'board that only opens via the subset rule should be solvable'
+    );
+
+    /* 不可解局面：中心首开只翻开一个"1"，周围 8 格信息不足只能猜 */
+    const minesCenter = new Set([0]);
+    board = openFrom(minesCenter, 3, 3, 4);
+    assert.strictEqual(
+        api.isSolvableByLogic(minesCenter, board.counts, 3, 3, board.opened),
+        false,
+        'single "1" with 8 covered cells should be unsolvable'
+    );
+}
+
+function testNoGuessGeneration() {
+    const { api } = runScriptWithContext();
+
+    /* 中级 10×13：随机生成 30 局，无猜模式下求解器都必须能独立解到胜利 */
+    for (let game = 0; game < 30; game += 1) {
+        const safeIndex = 65;
+        const generated = api.generateNoGuessBoard(10, 13, 22, safeIndex, Math.random);
+        assert.strictEqual(
+            generated.solvable,
+            true,
+            `game ${game + 1} should generate a no-guess board within the retry limit`
+        );
+        assert.strictEqual(generated.mines.size, 22, 'no-guess board should keep the configured mine count');
+        assert(!generated.mines.has(safeIndex), 'no-guess board must keep the first click safe');
+        for (const neighbor of api.neighborsOf(safeIndex, 10, 13)) {
+            assert(!generated.mines.has(neighbor), 'no-guess board must keep the first click neighbourhood safe');
+        }
+    }
+}
+
 testFilesAndCatalogExist();
 testNeighbors();
 testFirstClickSafety();
 testCountsAndFlood();
 testFloodRespectsFlags();
 testTimeFormatAndRecords();
+testCompute3BV();
+testLogicSolver();
+testNoGuessGeneration();
 
 console.log('minesweeper smoke test passed');

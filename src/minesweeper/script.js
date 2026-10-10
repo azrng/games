@@ -6,6 +6,8 @@
     const BEST_KEY_PREFIX = 'minesweeper-best-';
     const WINS_KEY_PREFIX = 'minesweeper-wins-';
     const LONG_PRESS_MS = 350;
+    /* 无猜生成重试上限：超过后回退最后一次布雷，本局允许猜测 */
+    const NO_GUESS_MAX_ATTEMPTS = 60;
     /* 单格触控目标下限：小屏上高列数棋盘改为横向滚动而不是无限压缩格子 */
     const CELL_MIN_PX = 32;
     const GRID_GAP_PX = 3;
@@ -31,6 +33,8 @@
         cellButtons: [],
         started: false,
         finished: false,
+        /* 本局是否为无猜盘面生成失败的回退局（仅内存标记，不提示玩家） */
+        allowGuess: false,
         flagMode: false,
         flagsPlaced: 0,
         revealedCount: 0,
@@ -59,6 +63,8 @@
         resultTime: documentObject.getElementById('result-time'),
         resultBest: documentObject.getElementById('result-best'),
         resultWins: documentObject.getElementById('result-wins'),
+        result3BV: documentObject.getElementById('result-3bv'),
+        resultEff: documentObject.getElementById('result-eff'),
         againBtn: documentObject.getElementById('again-btn')
     };
 
@@ -144,6 +150,175 @@
             }
         }
         return opened;
+    }
+
+    /* 3BV：盘面最少必要开格数。标准算法：空白（数字 0）洪泛连通块每块计 1；
+       不与任何空白区相邻的数字格需单独点开，每格计 1。 */
+    function compute3BV(mines, rows, cols) {
+        const counts = computeCounts(mines, rows, cols);
+        const total = rows * cols;
+        const visited = new Array(total).fill(false);
+        let bv = 0;
+
+        for (let index = 0; index < total; index += 1) {
+            if (mines.has(index) || counts[index] !== 0 || visited[index]) continue;
+            bv += 1;
+            const stack = [index];
+            visited[index] = true;
+            while (stack.length > 0) {
+                const current = stack.pop();
+                for (const neighbor of neighborsOf(current, rows, cols)) {
+                    if (visited[neighbor] || mines.has(neighbor) || counts[neighbor] !== 0) continue;
+                    visited[neighbor] = true;
+                    stack.push(neighbor);
+                }
+            }
+        }
+
+        for (let index = 0; index < total; index += 1) {
+            if (mines.has(index) || counts[index] === 0) continue;
+            const adjacentToZero = neighborsOf(index, rows, cols).some((neighbor) => (
+                !mines.has(neighbor) && counts[neighbor] === 0
+            ));
+            if (!adjacentToZero) bv += 1;
+        }
+        return bv;
+    }
+
+    /* 逻辑求解器：从首开局面出发，仅凭数字约束推理能否开完所有安全格（无需猜点）。
+       规则两级：
+       (a) 单格约束——数字格剩余雷数为 0 则未知邻域全安全；未知邻域数等于剩余雷数则全标雷；
+       (b) 子集化简——A 的未知邻域是 B 的真子集时，差集的雷数 = B 剩余雷数 - A 剩余雷数。
+       另用全局剩余雷数收尾（终局常用）。推理停滞且仍有安全格未开即为不可解。 */
+    function isSolvableByLogic(mines, counts, rows, cols, openedIndices) {
+        const total = rows * cols;
+        const revealed = new Array(total).fill(false);
+        const knownMines = new Array(total).fill(false);
+        let revealedCount = 0;
+
+        /* 翻开一格；空白格按洪泛规则连带翻开周围 */
+        function solverReveal(startIndex) {
+            const stack = [startIndex];
+            while (stack.length > 0) {
+                const index = stack.pop();
+                if (revealed[index] || knownMines[index]) continue;
+                revealed[index] = true;
+                revealedCount += 1;
+                if (counts[index] === 0) {
+                    for (const neighbor of neighborsOf(index, rows, cols)) stack.push(neighbor);
+                }
+            }
+        }
+
+        for (const index of openedIndices) solverReveal(index);
+        const targetCount = total - mines.size;
+
+        while (revealedCount < targetCount) {
+            let progress = false;
+
+            /* 收集边界数字格：未知邻域与剩余雷数 */
+            const frontier = [];
+            for (let index = 0; index < total; index += 1) {
+                if (!revealed[index] || counts[index] <= 0) continue;
+                const unknown = [];
+                let knownMineCount = 0;
+                for (const neighbor of neighborsOf(index, rows, cols)) {
+                    if (knownMines[neighbor]) knownMineCount += 1;
+                    else if (!revealed[neighbor]) unknown.push(neighbor);
+                }
+                frontier.push({ unknown, remaining: counts[index] - knownMineCount });
+            }
+
+            function markSafe(index) {
+                if (revealed[index] || knownMines[index]) return;
+                solverReveal(index);
+                progress = true;
+            }
+
+            function markMine(index) {
+                if (revealed[index] || knownMines[index]) return;
+                knownMines[index] = true;
+                progress = true;
+            }
+
+            /* 规则 a：单格约束推理 */
+            for (const cell of frontier) {
+                if (cell.remaining === 0) {
+                    for (const index of cell.unknown) markSafe(index);
+                } else if (cell.unknown.length > 0 && cell.unknown.length === cell.remaining) {
+                    for (const index of cell.unknown) markMine(index);
+                }
+            }
+
+            /* 规则 b：子集化简 */
+            if (!progress) {
+                for (let i = 0; i < frontier.length && !progress; i += 1) {
+                    for (let j = 0; j < frontier.length && !progress; j += 1) {
+                        if (i === j) continue;
+                        const a = frontier[i];
+                        const b = frontier[j];
+                        if (a.unknown.length === 0 || a.unknown.length >= b.unknown.length) continue;
+                        let isSubset = true;
+                        for (const index of a.unknown) {
+                            if (!b.unknown.includes(index)) {
+                                isSubset = false;
+                                break;
+                            }
+                        }
+                        if (!isSubset) continue;
+                        const diff = b.unknown.filter((index) => !a.unknown.includes(index));
+                        const diffMines = b.remaining - a.remaining;
+                        if (diffMines === 0) {
+                            for (const index of diff) markSafe(index);
+                        } else if (diffMines === diff.length) {
+                            for (const index of diff) markMine(index);
+                        }
+                    }
+                }
+            }
+
+            /* 全局剩余雷数收尾：剩余未开格全部必为雷或全部安全 */
+            if (!progress) {
+                let knownMineTotal = 0;
+                let unknownTotal = 0;
+                for (let index = 0; index < total; index += 1) {
+                    if (knownMines[index]) knownMineTotal += 1;
+                    else if (!revealed[index]) unknownTotal += 1;
+                }
+                const remainingMines = mines.size - knownMineTotal;
+                if (unknownTotal > 0 && remainingMines === 0) {
+                    for (let index = 0; index < total; index += 1) {
+                        if (!revealed[index]) markSafe(index);
+                    }
+                } else if (unknownTotal > 0 && unknownTotal === remainingMines) {
+                    for (let index = 0; index < total; index += 1) {
+                        if (!revealed[index]) markMine(index);
+                    }
+                }
+            }
+
+            if (!progress) return false;
+        }
+        return true;
+    }
+
+    /* 无猜布雷：重铺直到首开局面可全程推理；超限回退最后一次盘面（solvable=false 由调用方标记允许猜测） */
+    function generateNoGuessBoard(rows, cols, mineCount, safeIndex, random) {
+        let mines = null;
+        let counts = null;
+        let solvable = false;
+        for (let attempt = 0; attempt < NO_GUESS_MAX_ATTEMPTS; attempt += 1) {
+            mines = placeMines(rows, cols, mineCount, safeIndex, random);
+            counts = computeCounts(mines, rows, cols);
+            const revealed = new Array(rows * cols).fill(false);
+            const flagged = new Array(rows * cols).fill(false);
+            const opened = floodReveal(safeIndex, mines, counts, revealed, flagged, rows, cols);
+            if (isSolvableByLogic(mines, counts, rows, cols, opened)) {
+                solvable = true;
+                break;
+            }
+        }
+        return { mines, counts, solvable };
     }
 
     function formatTime(totalSeconds) {
@@ -248,6 +423,16 @@
         elements.resultTime.textContent = formatTime(state.elapsedSeconds);
         elements.resultBest.textContent = best > 0 ? formatTime(best) : '--';
         elements.resultWins.textContent = String(wins);
+        if (won) {
+            /* 3BV 效率 = 3BV / 分钟，保留 1 位小数；失败局不展示，保持占位符 */
+            const bv = compute3BV(state.mines, state.rows, state.cols);
+            const minutes = state.elapsedSeconds / 60;
+            elements.result3BV.textContent = String(bv);
+            elements.resultEff.textContent = minutes > 0 ? (bv / minutes).toFixed(1) : '--';
+        } else {
+            elements.result3BV.textContent = '--';
+            elements.resultEff.textContent = '--';
+        }
         elements.resultModal.hidden = false;
     }
 
@@ -284,9 +469,11 @@
         if (state.finished || state.revealed[index] || state.flagged[index]) return;
 
         if (!state.started) {
-            /* 首点后才布雷，保证首点安全 */
-            state.mines = placeMines(state.rows, state.cols, state.mineCount, index, Math.random);
-            state.counts = computeCounts(state.mines, state.rows, state.cols);
+            /* 首点后才布雷，保证首点安全；无猜模式下重试生成可全程推理的盘面，只动布雷阶段 */
+            const board = generateNoGuessBoard(state.rows, state.cols, state.mineCount, index, Math.random);
+            state.mines = board.mines;
+            state.counts = board.counts;
+            state.allowGuess = !board.solvable;
             state.started = true;
             startTimer();
         }
@@ -446,6 +633,7 @@
         state.flagged = new Array(config.cols * config.rows).fill(false);
         state.started = false;
         state.finished = false;
+        state.allowGuess = false;
         state.flagsPlaced = 0;
         state.revealedCount = 0;
         state.elapsedSeconds = 0;
@@ -484,6 +672,10 @@
         placeMines,
         computeCounts,
         floodReveal,
+        compute3BV,
+        isSolvableByLogic,
+        generateNoGuessBoard,
+        NO_GUESS_MAX_ATTEMPTS,
         formatTime,
         loadBest,
         saveBest,

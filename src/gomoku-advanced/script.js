@@ -26,6 +26,150 @@
         hintTimer: null
     };
 
+    // ===== 本地存档（localStorage，长期保存）=====
+    var SAVE_KEY = 'gomoku_save_v1';
+    var save = {
+        version: 1,
+        settings: null,   // { aiFirst, depth, theme, forbiddenMoves }
+        stats: { wins: 0, losses: 0 },
+        game: null         // 进行中对局快照，结束时置 null
+    };
+
+    function loadSave() {
+        try {
+            var raw = window.localStorage.getItem(SAVE_KEY);
+            var parsed = raw ? JSON.parse(raw) : null;
+            if (!parsed || parsed.version !== 1 || typeof parsed !== 'object') return;
+            if (parsed.stats && typeof parsed.stats === 'object') {
+                save.stats.wins = Number(parsed.stats.wins) || 0;
+                save.stats.losses = Number(parsed.stats.losses) || 0;
+            }
+            save.settings = isValidSettings(parsed.settings) ? parsed.settings : null;
+            save.game = isValidGameSnapshot(parsed.game) ? parsed.game : null;
+        } catch (error) {
+            // 隐私模式等存储不可用场景：静默降级为无存档
+        }
+    }
+
+    function persistSave() {
+        try {
+            window.localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+        } catch (error) {
+            // 存储不可用时对局照常进行，只是不落盘
+        }
+    }
+
+    function isValidSettings(settings) {
+        if (!settings || typeof settings !== 'object') return false;
+        if (!THEMES[settings.theme]) return false;
+        var depth = parseInt(settings.depth, 10);
+        if (isNaN(depth) || depth < 2 || depth > 8) return false;
+        return typeof settings.aiFirst === 'boolean'
+            && typeof settings.forbiddenMoves === 'boolean';
+    }
+
+    function isValidGameSnapshot(snapshot) {
+        if (!snapshot || typeof snapshot !== 'object') return false;
+        var history = snapshot.history;
+        if (!Array.isArray(history) || history.length === 0) return false;
+        if (snapshot.winner !== 0) return false;
+
+        // 在本地矩阵上重放校验：坐标合法、格子未占用、落子方与快照一致
+        var replay = [];
+        for (var i = 0; i < BOARD_SIZE; i++) {
+            replay.push(new Array(BOARD_SIZE).fill(0));
+        }
+        for (var h = 0; h < history.length; h++) {
+            var entry = history[h];
+            if (!entry || typeof entry !== 'object') return false;
+            var row = entry.i, col = entry.j, role = entry.role;
+            if (!isFinite(row) || !isFinite(col)) return false;
+            row = Math.round(row); col = Math.round(col);
+            if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return false;
+            if (role !== 1 && role !== -1) return false;
+            if (replay[row][col] !== 0) return false;
+            replay[row][col] = role;
+        }
+        if (typeof snapshot.hints !== 'number' || snapshot.hints < 0) return false;
+        return true;
+    }
+
+    function snapshotGame() {
+        if (game.status !== 'gaming' || game.winner !== 0 || game.history.length === 0) {
+            return null;
+        }
+        return {
+            board: JSON.parse(JSON.stringify(game.board)),
+            currentPlayer: game.currentPlayer,
+            history: JSON.parse(JSON.stringify(game.history)),
+            hints: game.hints,
+            winner: 0,
+            playerRole: game.currentPlayer  // 落盘点始终轮到玩家，存档即玩家回合
+        };
+    }
+
+    function persistGameState() {
+        save.game = snapshotGame();
+        persistSave();
+    }
+
+    function recordResult(winner) {
+        // 玩家执子颜色：电脑先手时 AI 执黑(1)，玩家为白(-1)
+        var playerRole = save.game && save.game.playerRole
+            ? save.game.playerRole
+            : (game.aiFirst ? -1 : 1);
+        if (winner === playerRole) {
+            save.stats.wins++;
+        } else if (winner === -playerRole) {
+            save.stats.losses++;
+        }
+        save.game = null;
+        persistSave();
+        updateStatsText();
+    }
+
+    function updateStatsText() {
+        var statsText = document.getElementById('stats-text');
+        if (statsText) {
+            statsText.textContent = save.stats.wins + '胜 ' + save.stats.losses + '负';
+        }
+    }
+
+    function applySavedSettingsToControls() {
+        if (!save.settings) return;
+        if (aiFirstInput) aiFirstInput.checked = save.settings.aiFirst;
+        if (difficultySelect) difficultySelect.value = String(save.settings.depth);
+        if (themeSelect) themeSelect.value = save.settings.theme;
+        if (forbiddenToggle) forbiddenToggle.checked = save.settings.forbiddenMoves;
+    }
+
+    function persistSettings() {
+        save.settings = {
+            aiFirst: game.aiFirst,
+            depth: game.depth,
+            theme: game.theme,
+            forbiddenMoves: game.forbiddenMoves
+        };
+        persistSave();
+    }
+
+    function restoreSavedGame() {
+        if (!save.game) return;
+        var snapshot = save.game;
+        game.hints = snapshot.hints;
+        sendToWorker('restore', {
+            size: BOARD_SIZE,
+            history: snapshot.history
+        }).then(function(data) {
+            applyWorkerData(data);
+            game.status = 'gaming';
+            updateUI();
+            render();
+            // 恢复后规范化存档（以 worker 回读数据为准）
+            persistGameState();
+        });
+    }
+
     // DOM Elements
     var canvas, ctx;
     var startBtn, undoBtn, resignBtn, hintBtn;
@@ -55,13 +199,18 @@
         themeSelect = document.getElementById('theme');
         forbiddenToggle = document.getElementById('forbidden-toggle');
 
-        worker = new Worker('ai-worker.js');
+        // 带版本参数：脚本更新时保证 worker 同步换新，避免恢复消息发进旧 worker
+        worker = new Worker('ai-worker.js?v=20261010-2');
 
+        loadSave();
+        applySavedSettingsToControls();
         syncSettingsFromControls();
         resetBoard();
         resizeCanvas();
         render();
         bindEvents();
+        updateStatsText();
+        restoreSavedGame();
     }
 
     function resetBoard() {
@@ -241,6 +390,7 @@
             game.hintMove = null;
             updateUI();
             render();
+            persistGameState();
         });
     }
 
@@ -249,6 +399,7 @@
         // Current player resigns, opponent wins
         game.winner = -game.currentPlayer;
         game.status = 'idle';
+        recordResult(game.winner);
         showResult();
     }
 
@@ -286,8 +437,11 @@
     function checkGameOver() {
         if (game.winner !== 0) {
             game.status = 'idle';
+            recordResult(game.winner);
             // Small delay so user can see the final move
             setTimeout(showResult, 300);
+        } else {
+            persistGameState();
         }
     }
 
@@ -610,19 +764,23 @@
 
         aiFirstInput.addEventListener('change', function(e) {
             game.aiFirst = e.target.checked;
+            persistSettings();
         });
 
         difficultySelect.addEventListener('change', function(e) {
             game.depth = parseInt(e.target.value, 10);
+            persistSettings();
         });
 
         themeSelect.addEventListener('change', function(e) {
             game.theme = e.target.value;
+            persistSettings();
             render();
         });
 
         forbiddenToggle.addEventListener('change', function(e) {
             game.forbiddenMoves = e.target.checked;
+            persistSettings();
             render();
         });
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>数字华容道 - 游戏平台</title>
-    <link rel="stylesheet" href="style.css?v=20260726-2">
+    <link rel="stylesheet" href="style.css?v=20261010-1">
 </head>
 <body>
     <main class="game-shell" aria-label="数字华容道">
@@ -42,6 +42,7 @@
 
         <nav class="action-bar" aria-label="游戏操作">
             <button id="undo-btn" class="action-btn" type="button" disabled>撤销</button>
+            <button id="hint-btn" class="action-btn" type="button">提示<span id="hint-count">(3)</span></button>
             <button id="shuffle-btn" class="action-btn primary" type="button">打乱</button>
             <button id="reset-btn" class="action-btn danger" type="button">重置</button>
         </nav>
@@ -71,6 +72,7 @@
         <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
             <p class="eyebrow">Puzzle Solved</p>
             <h2 id="result-title">通关成功</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
             <div class="result-grid">
                 <div>
                     <span class="label">规格</span>
@@ -100,7 +102,7 @@
         </div>
     </section>
 
-    <script src="script.js?v=20260726-2"></script>
+    <script src="script.js?v=20261010-1"></script>
     <script src="../js/game-back.js"></script>
 </body>
 </html>

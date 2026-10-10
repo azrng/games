@@ -54,27 +54,63 @@ const kidLevels = () => {
 /* 儿童包沿用拆分前的 4 段分组标签；其余包整体一个分组 */
 const KID_GROUP_LABELS = [[0, '🌱 入门（第1~3关）'], [3, '🌟 成长（第4~6关）'], [6, '🚀 冒险（第7~9关）'], [9, '👑 终极（第10~12关）']];
 
-/* ---- 错词本（持久化 + 简化 SRS：连对 2 次毕业，打错/漏接清零重来） ---- */
+/* ---- 错词本（持久化 + SM-2 简化版间隔重复：答对拉长间隔，答错归零重排，间隔 ≥ 21 天毕业） ---- */
 const REVIEW_KEY = 'typcannon_review_v1';
 const REVIEW_PACK = { id: 'review', name: '错词复习', icon: '📖', tone: 'adult', levels: [] };
-const REVIEW_GRADUATE = 2;   // 连对毕业阈值
-const REVIEW_TAKE = 10;      // 单局复习词数上限
+const REVIEW_TAKE = 10;          // 单局复习词数上限
+const DAY_MS = 86400000;         // 一天的毫秒数
+const REVIEW_EASE_INIT = 2.5;    // 初始难度系数
+const REVIEW_EASE_MIN = 1.3;     // 答错后的难度下限
+const REVIEW_EASE_MAX = 3.0;     // 连对后的难度上限
+const REVIEW_INTERVAL_MAX = 60;  // 单次复习间隔上限（天）
+const REVIEW_GRADUATE_DAYS = 21; // 毕业间隔（天）：达到即移出特训队列，记录保留
 let reviewBook = {};
 try {
   const r = JSON.parse(localStorage.getItem(REVIEW_KEY) || 'null');
   if (r && typeof r === 'object') {
-    // 清洗历史/损坏数据：right 缺失或非数字会让连对变 NaN，词永远无法毕业
+    // 清洗历史/损坏数据 + 旧结构迁移：缺失的调度字段按默认值补齐（due=0 即立即到期），
+    // 原字段（w/packId/ipa/zh/right/ts）原样保留；本项目存档无版本号字段，
+    // 沿用"按数据形状检测 + 幂等补齐"的现有迁移惯例，写回时自然落盘为新结构，老玩家错词不丢
     for (const k of Object.keys(r)) {
       const e = r[k];
       if (!e || typeof e.w !== 'string') { delete r[k]; continue; }
       if (typeof e.right !== 'number' || !Number.isFinite(e.right)) e.right = 0;
+      if (typeof e.ease !== 'number' || !Number.isFinite(e.ease)) e.ease = REVIEW_EASE_INIT;
+      else e.ease = Math.min(REVIEW_EASE_MAX, Math.max(REVIEW_EASE_MIN, e.ease));
+      if (typeof e.interval !== 'number' || !Number.isFinite(e.interval)) e.interval = 0;
+      else e.interval = Math.min(REVIEW_INTERVAL_MAX, Math.max(0, e.interval));
+      if (typeof e.due !== 'number' || !Number.isFinite(e.due)) e.due = 0;
+      if (typeof e.reps !== 'number' || !Number.isFinite(e.reps)) e.reps = 0;
+      if (typeof e.lapses !== 'number' || !Number.isFinite(e.lapses)) e.lapses = 0;
     }
     reviewBook = r;
   }
 } catch (e) {}
 function reviewPersist() { try { localStorage.setItem(REVIEW_KEY, JSON.stringify(reviewBook)); } catch (e) {} }
-function reviewCount() { return Object.keys(reviewBook).length; }
-/* 结算回写：missed/wrong 入本并清零连对；本内词完整拼对连对 +1，达阈值毕业 */
+/* 毕业判定：复习间隔拉到 21 天以上（纯函数，供测试） */
+function reviewGraduated(e) { return e.interval >= REVIEW_GRADUATE_DAYS; }
+/* 特训队列 = 未毕业词条数；已毕业的只留记录，不计入按钮/结算数量 */
+function reviewCount() { return Object.values(reviewBook).filter(e => !reviewGraduated(e)).length; }
+/* SM-2 简化版调度（纯函数，供测试）：按本次对错推进 interval/ease/due/reps/lapses 并返回词条
+   - 答对：首过 1 天，之后 interval*ease（封顶 60 天）；ease +0.05（封顶 3.0）
+   - 答错：interval 归 0、ease -0.2（下限 1.3）、lapses+1，立即重新到期 */
+function scheduleReview(e, ok, now = Date.now()) {
+  if (ok) {
+    e.interval = e.interval <= 0 ? 1 : Math.min(REVIEW_INTERVAL_MAX, e.interval * e.ease);
+    e.ease = Math.min(REVIEW_EASE_MAX, e.ease + 0.05);
+    e.due = now + e.interval * DAY_MS;
+  } else {
+    e.interval = 0;
+    e.ease = Math.max(REVIEW_EASE_MIN, e.ease - 0.2);
+    e.lapses++;
+    e.due = now;
+  }
+  e.reps++;
+  e.right = ok ? e.right + 1 : 0;   // 旧连对字段继续维护，只作统计，不再驱动毕业
+  e.ts = now;
+  return e;
+}
+/* 结算回写：missed/wrong 入本并按答错调度；本内词干净击杀按答对调度（毕业只移出队列，不删记录） */
 function reviewApply(missed, wrong, killed) {
   const now = Date.now();
   for (const w of new Set([...missed, ...wrong, ...killed])) {
@@ -82,20 +118,30 @@ function reviewApply(missed, wrong, killed) {
     if (!e) {
       if (!missed.has(w) && !wrong.has(w)) continue;   // 干净击杀且不在本：不采集
       const meta = G.entry.words.find(x => x.w === w) || {};
-      e = reviewBook[w] = { w, packId: G.pack.id, ipa: meta.ipa || null, zh: meta.zh || null, right: 0, ts: 0 };
+      e = reviewBook[w] = { w, packId: G.pack.id, ipa: meta.ipa || null, zh: meta.zh || null,
+        right: 0, ts: 0, ease: REVIEW_EASE_INIT, interval: 0, due: now, reps: 0, lapses: 0 };
     }
-    e.ts = now;
-    if (missed.has(w) || wrong.has(w)) e.right = 0;
-    else { e.right++; if (e.right >= REVIEW_GRADUATE) delete reviewBook[w]; }
+    scheduleReview(e, !(missed.has(w) || wrong.has(w)), now);
   }
   reviewPersist();
 }
-/* 复习局词表：最久未练的前 N 个 */
-function reviewTakeDue(n = REVIEW_TAKE) {
-  return Object.values(reviewBook)
-    .sort((a, b) => a.ts - b.ts)
+/* 复习局词表：到期词(due≤now)优先且必出场，未到期词次之，已毕业词只作兜底补位（低权重不完全排除） */
+function reviewTakeDue(n = REVIEW_TAKE, now = Date.now()) {
+  const queue = [], grown = [];
+  for (const e of Object.values(reviewBook)) (reviewGraduated(e) ? grown : queue).push(e);
+  const byDue = (a, b) => a.due - b.due || a.ts - b.ts;
+  queue.sort(byDue); grown.sort(byDue);
+  return [...queue.filter(e => e.due <= now), ...queue.filter(e => e.due > now), ...grown]
     .slice(0, n)
     .map(e => ({ w: e.w, emoji: null, ipa: e.ipa, zh: e.zh }));
+}
+/* 词条轻量记忆状态文案（结算生词行用，无列表页不新增面板） */
+function reviewStatusText(e, now = Date.now()) {
+  if (!e) return '';
+  if (reviewGraduated(e)) return '已毕业';
+  if (e.due <= now) return '待复习';
+  const days = Math.ceil((e.due - now) / DAY_MS);
+  return days <= 1 ? '1 天后复习' : days + ' 天后复习';
 }
 function startReview() {   // 📖 错词复习
   const words = reviewTakeDue();
@@ -106,7 +152,7 @@ function startReview() {   // 📖 错词复习
   G.entry = { name: '错词复习', icon: '📖', fall: 44, spawn: 2.4, goal: words.length, direction: 'recall', words };
   G.level = 1; G.lives = 3; G.killsNeeded = words.length;
   prepareRun();
-  G.toast = { text: '📖 错词复习', sub: '完整拼对 2 轮，这个词就毕业！', t: 2.6 };
+  G.toast = { text: '📖 错词复习', sub: '到期词优先出场，答对的词隔更久再见！', t: 2.6 };
 }
 
 /* ---- 听写模式（TTS 念词，凭发音拼写；词表运行时从成人词包随机抽取） ---- */
@@ -520,12 +566,16 @@ function renderOverWords(words) {
   }
   title.textContent = '📖 本局生词（' + words.length + '）';
   const canSpeak = typeof window.speechSynthesis !== 'undefined';
-  box.innerHTML = words.map(e =>
-    `<div class="word-row"><span class="ww">${e.w}</span>` +
+  box.innerHTML = words.map(e => {
+    // 已入错词本的词附轻量记忆状态（待复习 / N 天后复习 / 已毕业），与特训调度口径一致
+    const st = reviewStatusText(reviewBook[e.w]);
+    return `<div class="word-row"><span class="ww">${e.w}</span>` +
     (e.ipa ? `<span class="wi">${e.ipa}</span>` : '') +
     (e.zh ? `<span class="wz">${e.zh}</span>` : '') +
+    (st ? `<span class="wst">${st}</span>` : '') +
     (canSpeak ? `<button class="wsay" data-say="${e.w}" title="朗读">🔊</button>` : '') +
-    `</div>`).join('');
+    `</div>`;
+  }).join('');
 }
 
 /* 朗读单词（浏览器原生语音合成，不可用时按钮本就不渲染） */
@@ -1179,5 +1229,6 @@ renderBoard('menuBoardRows');
 /* 首屏：直接落在选关菜单 */
 showEnMenu();
 
-/* 供 smoke test 校验词包与内部状态 */
-window.TypingCannon = { WordPacks: PACKS, state: G, save: enSave, review: reviewBook, dictationAvailable };
+/* 供 smoke test 校验词包、内部状态与错词调度纯函数 */
+window.TypingCannon = { WordPacks: PACKS, state: G, save: enSave, review: reviewBook,
+  dictationAvailable, scheduleReview, reviewGraduated };

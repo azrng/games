@@ -347,27 +347,30 @@ function testRecallLevel() {
     assert.strictEqual(api.state.lives, 2, 'missing a word should cost one life');
 }
 
-/* 错词本：采集写回 → 复习局构建 → 连对累加 → 毕业移除 → 持久化
+/* 错词本：采集写回（SM-2 简化版调度）→ 复习局构建 → 间隔增长 → 未到期词补位 → 答错重置
    复习场景统一用单词本：spawn 出词无随机选择余地，kills 计到 goal 会自动触发过关结算，
    显式再调 levelClear 会造成二次结算，因此这里依赖自动触发后只读状态不断言调用 */
 function testReviewBook() {
     const { context, storage } = runScriptWithContext([]);
     const api = context.window.TypingCannon;
 
-    /* 1. 词义关漏接一词 → 结算入本（right=0，快照 ipa/zh） */
+    /* 1. 词义关漏接一词 → 结算入本：按答错调度（interval=0、ease 下降、lapses=1、立即到期） */
     context.enStartLevel('daily-core', 0);
     context.spawnItem();
     const missed = api.state.items[0];
     context.loseLife(missed);
     context.levelFailed();
     assert.strictEqual(Object.keys(api.review).length, 1, 'missed recall word should enter the book');
-    for (const e of Object.values(api.review)) {
-        assert.strictEqual(e.right, 0, 'fresh entry should start with zero streak');
-        assert(e.ipa && e.zh, 'entry should snapshot ipa and zh');
-        assert.strictEqual(e.packId, 'daily-core', 'entry should remember its source pack');
-    }
+    const entry = api.review[missed.word];
+    assert.strictEqual(entry.right, 0, 'fresh entry should start with zero streak');
+    assert(entry.ipa && entry.zh, 'entry should snapshot ipa and zh');
+    assert.strictEqual(entry.packId, 'daily-core', 'entry should remember its source pack');
+    assert.strictEqual(entry.interval, 0, 'a failed word should stay at zero interval');
+    assert.strictEqual(entry.lapses, 1, 'failing should count a lapse');
+    assert(entry.ease < 2.5, 'failing should ease down from the initial 2.5');
+    assert(entry.due <= Date.now(), 'a failed word should be immediately due');
 
-    /* 2. 复习局：词表来自错词本，干净打完自动过关，连对 +1（不到毕业） */
+    /* 2. 复习局：到期词入局，干净打完 → 答对调度 interval 0→1，写回新结构并持久化 */
     context.startReview();
     assert.strictEqual(api.state.mode, 'review', 'startReview should switch to review mode');
     assert.strictEqual(api.state.entry.direction, 'recall', 'review run should reuse the recall card engine');
@@ -377,32 +380,121 @@ function testReviewBook() {
     assert.strictEqual(item.word, missed.word, 'review spawn should drop the booked word');
     for (const ch of item.word) context.handleChar(ch);
     assert.strictEqual(api.state.state, 'over', 'killing the last booked word should auto-clear the run');
-    assert(Object.values(api.review).every((e) => e.right === 1), 'a clean review round should raise streaks to 1');
+    assert.strictEqual(entry.interval, 1, 'first clean review should set a 1-day interval');
+    assert.strictEqual(entry.right, 1, 'a clean review round should raise the streak to 1');
+    assert(entry.due > Date.now(), 'a correct word should be scheduled in the future');
+    assert(storage.get('typcannon_review_v1').includes('"interval":1'),
+        'review book should persist the new schedule fields');
 
-    /* 3. 第二轮干净打完 → 达毕业阈值移除，错词本清空并持久化 */
+    /* 3. 未到期的词不会被完全排除：下轮复习仍可取到（低权重补位），干净打完 interval 增长但未毕业 */
     context.startReview();
     context.spawnItem();
-    const again2 = api.state.items[api.state.items.length - 1];
-    for (const ch of again2.word) context.handleChar(ch);
-    assert.strictEqual(api.state.state, 'over', 'second clean round should auto-clear too');
-    assert.strictEqual(Object.keys(api.review).length, 0, 'two clean rounds should graduate every word');
-    assert(storage.get('typcannon_review_v1') === '{}' || storage.get('typcannon_review_v1') === undefined || storage.get('typcannon_review_v1').includes('{'),
-        'review book should persist to localStorage');
+    const again = api.state.items[api.state.items.length - 1];
+    assert.strictEqual(again.word, missed.word, 'not-yet-due words should still join as low-weight fillers');
+    for (const ch of again.word) context.handleChar(ch);
+    assert(api.review[missed.word].interval > 1, 'a second clean review should grow the interval');
+    assert.strictEqual(api.reviewGraduated(api.review[missed.word]), false,
+        'two clean rounds must not graduate (needs 21 days)');
+    assert.strictEqual(Object.keys(api.review).length, 1, 'graduation should keep the record in the book');
 
-    /* 4. 打错清零：入本后再打错一次，连对归零不毕业 */
-    context.enStartLevel('daily-core', 0);
-    context.spawnItem();
-    const target = api.state.items[0];
-    context.loseLife(target);                       // 漏接入本
-    context.levelFailed();
-    context.startReview();
-    context.spawnItem();
-    const again = api.state.items[0];
-    context.handleChar(again.word[0]);              // 先打对一个字母
-    const wrong = 'abcdefghijklmnopqrstuvwxyz'.split('').find((ch) => ch !== again.word[1]);
-    context.handleChar(wrong);                      // 再打错 → 记入 wrongWords 并清空进度
-    context.levelClear();
-    assert.strictEqual(api.review[again.word].right, 0, 'a mistyped review word should reset its streak');
+    /* 4. 答错重置（独立上下文保证单词条确定性）：复习中打错 → 连对清零、interval 归零、lapses 累加 */
+    const fresh = runScriptWithContext([]);
+    const fctx = fresh.context;
+    const fapi = fctx.window.TypingCannon;
+    fctx.enStartLevel('daily-core', 0);
+    fctx.spawnItem();
+    const target = fapi.state.items[0];
+    fctx.loseLife(target);                          // 漏接入本
+    fctx.levelFailed();
+    fctx.startReview();
+    fctx.spawnItem();
+    const onceMore = fapi.state.items[fapi.state.items.length - 1];
+    assert.strictEqual(onceMore.word, target.word, 'a freshly failed word should be due immediately');
+    fctx.handleChar(onceMore.word[0]);              // 先打对一个字母
+    const wrong = 'abcdefghijklmnopqrstuvwxyz'.split('').find((ch) => ch !== onceMore.word[1]);
+    fctx.handleChar(wrong);                         // 再打错 → 记入 wrongWords 并清空进度
+    fctx.levelClear();
+    assert.strictEqual(fapi.review[onceMore.word].right, 0, 'a mistyped review word should reset its streak');
+    assert.strictEqual(fapi.review[onceMore.word].interval, 0, 'a mistyped review word should collapse the interval');
+    assert(fapi.review[onceMore.word].lapses >= 2, 'each failure should count another lapse');
+}
+
+/* SM-2 简化版调度纯函数：答对间隔序列、毕业边界、ease 微调、出词权重、旧结构迁移 */
+function testReviewScheduler() {
+    const { context } = runScriptWithContext([]);
+    const api = context.window.TypingCannon;
+    const mkEntry = () => ({ w: 'test', right: 0, ts: 0, ease: 2.5, interval: 0, due: 0, reps: 0, lapses: 0 });
+    const DAY = 86400000;
+    const now = 1000000;
+
+    /* 1. 答对序列：interval 走 1→2.5→6.25→15.625→39.0625→60（封顶）。
+       为隔离间隔规则，每次答对前把 ease 固定回 2.5（ease 规则单独在第 3 段验证） */
+    const e = mkEntry();
+    for (const expected of [1, 2.5, 6.25, 15.625, 39.0625, 60]) {
+        e.ease = 2.5;
+        api.scheduleReview(e, true, now);
+        assert.strictEqual(e.interval, expected, 'correct answers should follow the SM-2-lite interval sequence');
+        assert.strictEqual(e.due, now + expected * DAY, 'due should move to now + interval days');
+    }
+    assert.strictEqual(e.reps, 6, 'every review should count a rep');
+
+    /* 2. 毕业边界：interval ≥ 21 天毕业（只移出特训队列，记录保留） */
+    assert.strictEqual(api.reviewGraduated({ interval: 21 }), true, '21 days should graduate');
+    assert.strictEqual(api.reviewGraduated({ interval: 20.9 }), false, 'just under 21 days should not graduate');
+    const g = mkEntry();
+    g.interval = 10;
+    api.scheduleReview(g, true, now);
+    assert.strictEqual(api.reviewGraduated(g), true, 'crossing 21 days via scheduling should graduate');
+
+    /* 3. ease 微调：答对 +0.05 封顶 3.0；答错 -0.2 下限 1.3，且 interval 归零、立即到期 */
+    const a = mkEntry();
+    api.scheduleReview(a, true, now);
+    assert(Math.abs(a.ease - 2.55) < 1e-9, 'a correct answer should ease up by 0.05');
+    a.ease = 2.99;
+    api.scheduleReview(a, true, now);
+    assert.strictEqual(a.ease, 3.0, 'ease should cap at 3.0');
+    const f = mkEntry();
+    api.scheduleReview(f, false, now);
+    assert(Math.abs(f.ease - 2.3) < 1e-9, 'a failure should ease down by 0.2');
+    assert.strictEqual(f.interval, 0, 'a failure should collapse the interval');
+    assert.strictEqual(f.lapses, 1, 'a failure should count a lapse');
+    assert.strictEqual(f.due, now, 'a failed word should be due immediately');
+    assert.strictEqual(f.right, 0, 'a failure should reset the streak');
+    f.ease = 1.35;
+    api.scheduleReview(f, false, now);
+    assert.strictEqual(f.ease, 1.3, 'ease should floor at 1.3');
+
+    /* 4. 出词权重：到期词优先必出场，未到期词低权重补位，已毕业词只作兜底 */
+    const book = api.review;
+    book.a = { w: 'a', right: 0, ts: 1, ease: 2.5, interval: 0, due: now - 100, reps: 1, lapses: 0 };
+    book.b = { w: 'b', right: 0, ts: 2, ease: 2.5, interval: 1, due: now + DAY, reps: 1, lapses: 0 };
+    book.c = { w: 'c', right: 0, ts: 3, ease: 2.5, interval: 30, due: now + 30 * DAY, reps: 5, lapses: 0 };
+    /* vm 上下文与测试文件的 Array 原型不同源，跨 realm 数组用 JSON 字符串比较 */
+    assert.strictEqual(JSON.stringify(context.reviewTakeDue(2, now).map((x) => x.w)), JSON.stringify(['a', 'b']),
+        'due words come first, not-yet-due words fill the rest');
+    assert.strictEqual(JSON.stringify(context.reviewTakeDue(3, now).map((x) => x.w)), JSON.stringify(['a', 'b', 'c']),
+        'graduated words should only join the session as the last resort');
+
+    /* 5. 旧结构迁移：只有连对计数的条目补齐调度字段，原字段与计数保留，特训模式可直接开 */
+    const legacy = JSON.stringify({
+        keep: { w: 'keep', packId: 'daily-core', ipa: '/ki:p/', zh: '保持', right: 1, ts: 42 }
+    });
+    const migrated = runScriptWithContext([['typcannon_review_v1', legacy]]);
+    const mctx = migrated.context;
+    const me = mctx.window.TypingCannon.review.keep;
+    assert.strictEqual(me.w, 'keep', 'migration should preserve the word');
+    assert.strictEqual(me.right, 1, 'migration should preserve the original streak count');
+    assert.strictEqual(me.ts, 42, 'migration should preserve the original timestamp');
+    assert.strictEqual(me.ease, 2.5, 'migrated entries should start at the default ease');
+    assert.strictEqual(me.interval, 0, 'migrated entries should restart at zero interval');
+    assert.strictEqual(me.due, 0, 'migrated entries should be immediately due');
+    assert.strictEqual(me.reps, 0, 'migrated entries should restart reps');
+    assert.strictEqual(me.lapses, 0, 'migrated entries should restart lapses');
+    mctx.startReview();
+    assert.strictEqual(mctx.window.TypingCannon.state.mode, 'review',
+        'a migrated book should start a review run right away');
+    assert.strictEqual(mctx.window.TypingCannon.state.entry.words.length, 1,
+        'a migrated entry should be reviewable immediately');
 }
 
 /* 听写模式：入口显隐 → 局构建（词来自所选包）→ 击碎采集入错词本 → 无语音降级 */
@@ -515,6 +607,7 @@ testLegacySaveMigration();
 testUnlockAndTyping();
 testRecallLevel();
 testReviewBook();
+testReviewScheduler();
 testDictationMode();
 testLogicFixes();
 

@@ -1,0 +1,276 @@
+/* 俄罗斯方块独立页样式：深色棋盘 + 浅色平台底，响应式双端布局 */
+
+:root {
+    --tetris-board-bg: #101828;
+    --tetris-grid-line: rgba(148, 163, 184, 0.12);
+    --tetris-panel: rgba(255, 255, 255, 0.72);
+    --tetris-panel-border: rgba(41, 87, 200, 0.14);
+    --tetris-ink: #1f2937;
+    --tetris-ink-muted: #64748b;
+}
+
+body {
+    background:
+        radial-gradient(circle at top left, rgba(41, 87, 200, 0.12), transparent 28%),
+        linear-gradient(180deg, #f7f9fc 0%, #eef2f8 100%);
+    color: var(--tetris-ink);
+}
+
+.tetris-shell {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: max(56px, calc(env(safe-area-inset-top) + 56px)) 16px 40px;
+}
+
+.tetris-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.eyebrow {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tetris-ink-muted);
+}
+
+.tetris-header h1 {
+    margin: 2px 0 0;
+    font-size: 24px;
+}
+
+.status-pills {
+    display: flex;
+    gap: 8px;
+}
+
+.status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: var(--tetris-panel);
+    border: 1px solid var(--tetris-panel-border);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--tetris-ink);
+}
+
+.pill-btn {
+    border: 1px solid var(--tetris-panel-border);
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 120ms, background 120ms;
+}
+
+.pill-btn:active {
+    transform: scale(0.94);
+}
+
+/* ===== 三栏布局 ===== */
+
+.tetris-layout {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.side-panel {
+    width: 108px;
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--tetris-panel);
+    border: 1px solid var(--tetris-panel-border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.side-label {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--tetris-ink-muted);
+}
+
+.key-hint {
+    display: inline-block;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: rgba(41, 87, 200, 0.1);
+    font-size: 11px;
+    color: #2957c8;
+}
+
+.side-panel canvas {
+    width: 88px;
+    height: 88px;
+    border-radius: 8px;
+    background: var(--tetris-board-bg);
+    align-self: center;
+}
+
+#next-canvas {
+    height: 264px;
+}
+
+.stat-block .stat-value {
+    margin: 2px 0 0;
+    font-size: 18px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== 棋盘 ===== */
+
+.board-wrap {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+#board-canvas {
+    display: block;
+    width: min(300px, calc(100vw - 260px));
+    height: auto;
+    aspect-ratio: 1 / 2;
+    border-radius: 12px;
+    background: var(--tetris-board-bg);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.28);
+}
+
+.board-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.78);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    padding: 18px;
+}
+
+.board-overlay.hidden {
+    display: none;
+}
+
+.board-overlay h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.board-overlay p {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(226, 232, 240, 0.85);
+    line-height: 1.6;
+}
+
+.overlay-btn {
+    margin-top: 6px;
+    padding: 10px 26px;
+    border: 0;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: #452003;
+    font-size: 15px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 120ms;
+}
+
+.overlay-btn:active {
+    transform: scale(0.95);
+}
+
+/* ===== 触屏按键 ===== */
+
+.touch-pad {
+    display: none;
+    margin: 16px auto 0;
+    width: fit-content;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.touch-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.touch-row button {
+    width: 64px;
+    height: 56px;
+    border: 1px solid var(--tetris-panel-border);
+    border-radius: 14px;
+    background: var(--tetris-panel);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--tetris-ink);
+    font-family: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 100ms;
+}
+
+.touch-row button:active {
+    background: rgba(41, 87, 200, 0.18);
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .touch-pad {
+        display: flex;
+    }
+
+    #board-canvas {
+        width: min(300px, calc(100vw - 48px));
+    }
+
+    .tetris-layout {
+        flex-wrap: wrap;
+    }
+
+    /* 窄屏：侧栏压到棋盘两侧下方一行，避免棋盘被挤得过小 */
+    .side-panel {
+        width: auto;
+        flex: 1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+    }
+
+    .side-panel canvas {
+        width: 56px;
+        height: 56px;
+    }
+
+    #next-canvas {
+        width: 56px;
+        height: 168px;
+    }
+}
+
+.tetris-hint {
+    margin: 14px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--tetris-ink-muted);
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .tetris-hint {
+        display: none;
+    }
+}

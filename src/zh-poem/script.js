@@ -80,6 +80,18 @@ const ZH_POEMS = [
   ['江南可采莲', '莲叶何田田', '鱼戏莲叶间'],                        // 江南
   ['横看成岭侧成峰', '远近高低各不同', '不识庐山真面目', '只缘身在此山中'] // 题西林壁
 ];
+/* 扩充题库：poems.js 由 chinese-poetry 唐诗三百首子集生成（繁转简、5/7 言短诗），
+ * 数据缺失（直接打开文件等）时降级只用内置 14 首 */
+const ZH_POEM_BANK = Array.isArray(window.ZH_POEM_BANK) ? window.ZH_POEM_BANK : [];
+for (const p of ZH_POEM_BANK) ZH_POEMS.push(p.lines);
+/* 诗名出处（与 ZH_POEMS 同序），答对后展示 */
+const ZH_POEM_META = [
+  '静夜思 · 李白', '春晓 · 孟浩然', '悯农 · 李绅', '咏鹅 · 骆宾王',
+  '画 · 王维', '古朗月行 · 李白', '风 · 李峤', '登鹳雀楼 · 王之涣',
+  '咏柳 · 贺知章', '望庐山瀑布 · 李白', '梅花 · 王安石', '山村咏怀 · 邵雍',
+  '江南 · 汉乐府', '题西林壁 · 苏轼'
+];
+for (const p of ZH_POEM_BANK) ZH_POEM_META.push(p.title + ' · ' + p.author);
 const ZH_ALL = [...new Set((ZH_WORDS.join('') + ZH_POEMS.flat().join('')).split(''))];
 
 /* ---- 语文存档 ---- */
@@ -114,14 +126,17 @@ for (let i = 0; i < 7; i++) ZH.clouds.push({ x: Math.random() * 2000, y: 30 + Ma
 /* ---- 出题 ---- */
 function zhNewQuestion() {
   const isWord = Math.random() < 0.5;
-  let phrase = '', blank = 0, group = null;
+  let phrase = '', blank = 0, group = null, groupMeta = '';
   for (let t = 0; t < 8; t++) {
     if (isWord) {
       phrase = zpick(ZH_WORDS);
       // 词语随机空首字或末字，避免"永远猜末字"的固定套路
       blank = Math.random() < 0.5 ? 0 : phrase.length - 1;
+      groupMeta = '';
     } else {
-      group = zpick(ZH_POEMS);
+      const gi = zrnd(0, ZH_POEMS.length - 1);
+      group = ZH_POEMS[gi];
+      groupMeta = ZH_POEM_META[gi] || '';
       phrase = zpick(group);
       const seen = new Set(), singles = [];
       for (let i = 0; i < phrase.length; i++) {
@@ -145,7 +160,7 @@ function zhNewQuestion() {
     const c = zpick(ZH_ALL);
     if (c !== answer && !cands.includes(c) && (group || !phrase.includes(c))) cands.push(c);
   }
-  ZH.q = { phrase, blank, answer, chars: zshuffle([answer, ...cands]) };
+  ZH.q = { phrase, blank, answer, chars: zshuffle([answer, ...cands]), meta: groupMeta };
   ZH.opts = []; ZH.spawnT = .7;
 }
 
@@ -441,11 +456,15 @@ function zhDraw() {
         c.fillText(ZH.q.phrase[i], x, yc + 2);
       }
     }
-    // 缺字提示
+    // 缺字提示 / 答对后的诗名出处
     if (ZH.stage === 0) {
       c.font = '13px "Microsoft YaHei",sans-serif';
       c.fillStyle = '#b08a5a';
       c.fillText('这里缺一个字，天上掉下来的字里点出它！', W / 2, H - 116);
+    } else if (ZH.stage === 2 && ZH.q.meta) {
+      c.font = 'bold 15px "Microsoft YaHei",sans-serif';
+      c.fillStyle = '#9a6a35';
+      c.fillText('——《' + ZH.q.meta + '》', W / 2, H - 118);
     }
   } else {
     c.font = '15px "Microsoft YaHei",sans-serif';

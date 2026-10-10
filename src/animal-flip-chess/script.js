@@ -69,6 +69,123 @@
     const turnIndicator = document.getElementById('turn-indicator');
     const confettiEl = document.getElementById('confetti');
     const resultCard = document.getElementById('result-card');
+    const statsTextEl = document.getElementById('stats-text');
+
+    // ===== 本地存档（localStorage，长期保存）=====
+    const SAVE_KEY = 'flip_chess_save_v1';
+    const save = {
+        version: 1,
+        stats: { wins: 0, losses: 0, draws: 0 },
+        game: null   // 进行中对局快照，结束时置 null
+    };
+
+    function loadSave() {
+        try {
+            const raw = window.localStorage.getItem(SAVE_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (!parsed || parsed.version !== 1 || typeof parsed !== 'object') return;
+            if (parsed.stats && typeof parsed.stats === 'object') {
+                save.stats.wins = Number(parsed.stats.wins) || 0;
+                save.stats.losses = Number(parsed.stats.losses) || 0;
+                save.stats.draws = Number(parsed.stats.draws) || 0;
+            }
+            save.game = isValidSavedGame(parsed.game) ? parsed.game : null;
+        } catch (error) {
+            // 隐私模式等存储不可用场景：静默降级为无存档
+        }
+    }
+
+    function persistSave() {
+        try {
+            window.localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+        } catch (error) {
+            // 存储不可用时对局照常进行，只是不落盘
+        }
+    }
+
+    function isValidSavedGame(snapshot) {
+        if (!snapshot || typeof snapshot !== 'object') return false;
+        if (snapshot.phase !== 'play') return false;
+        if (snapshot.currentPlayer !== 'a' && snapshot.currentPlayer !== 'b') return false;
+        const cells = snapshot.board;
+        if (!Array.isArray(cells) || cells.length !== BOARD_SIZE) return false;
+
+        // 逐格校验：动物/阵营/翻转/被吃字段齐全且取值合法，
+        // 被吃格必须是空格（owner 为 null 且已翻开）
+        let liveCards = 0;
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            if (!Array.isArray(cells[r]) || cells[r].length !== BOARD_SIZE) return false;
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const card = cells[r][c];
+                if (!card || typeof card !== 'object') return false;
+                if (!ANIMALS[card.animal]) return false;
+                if (typeof card.id !== 'string' || card.id === '') return false;
+                if (typeof card.flipped !== 'boolean') return false;
+                if (typeof card.captured !== 'boolean') return false;
+                if (card.captured) {
+                    if (card.owner !== null || !card.flipped) return false;
+                } else {
+                    if (card.owner !== 'a' && card.owner !== 'b') return false;
+                    liveCards++;
+                }
+            }
+        }
+        // 双方至少各剩一子才可能仍在进行中
+        return liveCards >= 2;
+    }
+
+    function snapshotGame() {
+        if (phase !== 'play') return null;
+        return {
+            board: board.map((row) => row.map((card) => ({ ...card }))),
+            currentPlayer,
+            phase: 'play'
+        };
+    }
+
+    function persistGameState() {
+        save.game = snapshotGame();
+        persistSave();
+    }
+
+    function updateStatsText() {
+        if (!statsTextEl) return;
+        statsTextEl.textContent = `战绩 ${save.stats.wins}胜 ${save.stats.losses}负 ${save.stats.draws}平`;
+    }
+
+    // 恢复进行中的对局；返回是否恢复了
+    function tryRestoreSavedGame() {
+        if (!save.game) return false;
+        const restored = save.game;
+        board = restored.board;
+        currentPlayer = restored.currentPlayer;
+        phase = 'play';
+        selectedCard = null;
+        openingTurn = false;  // 恢复的对局不再属于开局首翻
+        shownFlippedIds = new Set();
+        syncShownFlippedCards();
+        // 抬高空格 id 计数起点，避免新空格 id 与恢复进来的旧 id 撞车
+        emptyIdCounter = 1000;
+        clearHintMessage();
+        clearHeaderTip();
+        clearRestartArm();
+        renderBoard();
+        updateUI();
+        persistGameState();
+        if (currentPlayer === 'b') {
+            scheduleAITurn();
+        }
+        return true;
+    }
+
+    function recordResult(winner) {
+        if (winner === 'a') save.stats.wins++;
+        else if (winner === 'b') save.stats.losses++;
+        else save.stats.draws++;
+        save.game = null;
+        persistSave();
+        updateStatsText();
+    }
 
     // Initialize game
     function initGame() {
@@ -118,6 +235,7 @@
         renderBoard();
         updateUI();
         playDealAnimation();
+        persistGameState();
 
         if (currentPlayer === 'b') {
             scheduleAITurn();
@@ -770,6 +888,9 @@
         if (currentPlayer === 'b' && phase === 'play') {
             scheduleAITurn();
         }
+
+        // 回合切换后棋盘数据已定（动画仅是视觉层），此时落盘
+        persistGameState();
     }
 
     // AI turn logic.
@@ -1203,6 +1324,7 @@
         clearTransientAnimationClasses();
         clearHeaderTip();
         updateUI();
+        recordResult(winner);
 
         resultTitle.textContent = winner ? `${getPlayerName(winner)}获胜！` : '平局';
         resultDesc.textContent = reason;
@@ -1320,8 +1442,12 @@
         initGame();
     });
 
-    // Start game
-    initGame();
+    // Start game: 优先恢复上次未完成的对局，没有存档或校验失败时新开一局
+    loadSave();
+    updateStatsText();
+    if (!tryRestoreSavedGame()) {
+        initGame();
+    }
 
     window.AnimalFlipChess = {
         ANIMALS,

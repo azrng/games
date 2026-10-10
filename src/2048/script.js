@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ) || 0;
             this.gameHistory = [];
             this.mergedFlags = [];
+            this.pendingRender = null; // 滑动动画结束后再重建终态的定时器
 
             this.bestScoreDisplay.textContent = this.bestScore;
             
@@ -120,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 开始新游戏
         startGame() {
+            this.cancelPendingRender();
             this.grid = this.createGrid();
             this.score = 0;
             this.over = false;
@@ -156,21 +158,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        // 添加随机方块
-        addRandomTile() {
+        // 添加随机方块（appendToDom 为 false 时只改棋盘数据，DOM 由动画结束后的重建统一呈现）
+        addRandomTile(appendToDom = true) {
             if (this.hasEmptyCell()) {
                 const value = Math.random() < 0.9 ? 2 : 4;
                 let cell;
-                
+
                 do {
                     cell = {
                         x: Math.floor(Math.random() * this.gridSize),
                         y: Math.floor(Math.random() * this.gridSize)
                     };
                 } while (!this.isCellEmpty(cell));
-                
+
                 this.grid[cell.y][cell.x] = value;
-                this.addTile({ x: cell.x, y: cell.y, value: value });
+                if (appendToDom) {
+                    this.addTile({ x: cell.x, y: cell.y, value: value });
+                }
             }
         }
         
@@ -207,7 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             element.textContent = value;
-            
+
+            // 记录逻辑坐标：滑动动画按它匹配需要位移的 DOM 元素
+            element.dataset.x = String(tile.x);
+            element.dataset.y = String(tile.y);
+
             this.positionTile(element, { x: tile.x, y: tile.y });
             this.tileContainer.appendChild(element);
         }
@@ -241,52 +249,58 @@ document.addEventListener('DOMContentLoaded', () => {
             this.saveGameState();
             
             let moved = false;
-            
+            const traces = []; // 每个方块的运动轨迹，供滑动动画使用
+
             // 确定遍历方向
             const traversals = this.buildTraversals(dx, dy);
-            
+
             // 清除之前的合并标记
             this.clearMergedFlags();
-            
+
             // 遍历所有格子
             traversals.y.forEach(y => {
                 traversals.x.forEach(x => {
                     const cell = { x, y };
                     const tile = this.grid[y][x];
-                    
+
                     if (tile) {
                         const positions = this.findFarthestPosition(cell, dx, dy);
                         const next = this.getCell(positions.next);
-                        
+
                         // 合并逻辑
                         if (next && this.grid[next.y][next.x] === tile && !this.getMergedFlag(next)) {
                             const mergedValue = tile * 2;
                             this.grid[next.y][next.x] = mergedValue;
                             this.grid[y][x] = null;
-                            
+
                             // 标记为已合并，防止连续合并
                             this.setMergedFlag(next);
-                            
+
                             // 更新分数
                             this.score += mergedValue;
-                            
+
                             // 显示分数增加效果
                             this.showScoreAddition(mergedValue);
-                            
+
                             // 检查是否达到2048
                             if (mergedValue === 2048 && !this.keepPlayingAfterWin) {
                                 this.won = true;
                             }
-                            
+
                             moved = true;
+                            traces.push({ fromX: x, fromY: y, toX: next.x, toY: next.y });
                         } else {
                             // 移动到最远位置
                             this.grid[positions.farthest.y][positions.farthest.x] = tile;
-                            
+
                             // 只有当位置发生变化时才标记为移动
                             if (x !== positions.farthest.x || y !== positions.farthest.y) {
                                 this.grid[y][x] = null;
                                 moved = true;
+                                traces.push({
+                                    fromX: x, fromY: y,
+                                    toX: positions.farthest.x, toY: positions.farthest.y
+                                });
                             }
                         }
                     }
@@ -294,16 +308,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if (moved) {
-                // 添加新方块
-                this.addRandomTile();
+                // 添加新方块（只改棋盘数据，DOM 延迟到滑动结束再出现）
+                this.addRandomTile(false);
 
                 // 检查游戏状态
                 if (!this.movesAvailable()) {
                     this.over = true;
                 }
 
-                // 重新渲染
-                this.renderGrid();
+                // 滑动动画：现有元素先位移，结束后重建出合并弹出与新方块
+                this.animateMove(traces);
                 this.updateScore();
 
                 // 更新游戏状态
@@ -315,6 +329,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     this.persistState();
                 }
+            }
+        }
+
+        // 滑动动画：按轨迹更新现有 DOM 元素位置（.tile 的 transition 自动产生滑动），
+        // 120ms 后重建终态（合并值弹出 + 新方块弹出）
+        animateMove(traces) {
+            // 快速连按时上一步动画还没结束：立即落定为上一格终态，避免位置错乱
+            this.cancelPendingRender();
+            if (traces.length) {
+                const byOrigin = {};
+                for (const t of traces) {
+                    byOrigin[t.fromX + ',' + t.fromY] = t;
+                }
+                for (const el of Array.from(this.tileContainer.children)) {
+                    const t = byOrigin[el.dataset.x + ',' + el.dataset.y];
+                    if (!t) continue;
+                    el.dataset.x = String(t.toX);
+                    el.dataset.y = String(t.toY);
+                    this.positionTile(el, { x: t.toX, y: t.toY });
+                }
+            }
+            this.pendingRender = setTimeout(() => {
+                this.pendingRender = null;
+                this.renderGrid();
+            }, 150); // 与 .tile 的 0.15s 过渡对齐，滑动结束后再重建
+        }
+
+        // 取消进行中的滑动动画并立即呈现当前棋盘终态
+        cancelPendingRender() {
+            if (this.pendingRender) {
+                clearTimeout(this.pendingRender);
+                this.pendingRender = null;
+                this.renderGrid();
             }
         }
         
@@ -485,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 撤销操作
         undo() {
             if (this.gameHistory.length > 0) {
+                this.cancelPendingRender();
                 const previousState = this.gameHistory.pop();
                 
                 this.grid = previousState.grid;

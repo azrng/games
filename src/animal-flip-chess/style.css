@@ -748,6 +748,16 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+/* 战绩行：与提示行同风格，放在提示行下方 */
+.record-line {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    opacity: 0.85;
+    margin-top: 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 /* Modal */
 .modal {
     position: fixed;

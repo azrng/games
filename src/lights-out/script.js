@@ -13,8 +13,6 @@
         level: 1,
         size: 3,
         board: [],
-        scrambleSet: [],
-        pressParity: [],
         cellButtons: [],
         steps: 0,
         minSteps: 0,
@@ -144,6 +142,131 @@
         return { board, scrambleSet };
     }
 
+    /* 统计位掩码中 1 的个数，用于比较按压方案所需步数 */
+    function popcount(mask) {
+        let count = 0;
+        while (mask) {
+            mask &= mask - 1;
+            count += 1;
+        }
+        return count;
+    }
+
+    const pressMatrixCache = new Map();
+
+    /* 构造 n×n 棋盘的按压影响矩阵：rows[k] 是按压格 k 时被翻转格子的位掩码，按尺寸缓存复用 */
+    function buildPressMatrix(size) {
+        const cached = pressMatrixCache.get(size);
+        if (cached) return cached;
+        const total = size * size;
+        const rows = new Array(total).fill(0);
+        for (let index = 0; index < total; index += 1) {
+            const cx = index % size;
+            const cy = Math.floor(index / size);
+            const flip = (x, y) => {
+                if (x < 0 || y < 0 || x >= size || y >= size) return;
+                rows[index] |= 1 << (y * size + x);
+            };
+            flip(cx, cy);
+            flip(cx, cy - 1);
+            flip(cx + 1, cy);
+            flip(cx, cy + 1);
+            flip(cx - 1, cy);
+        }
+        pressMatrixCache.set(size, rows);
+        return rows;
+    }
+
+    /* GF(2) 高斯消元：求 影响矩阵 · x = target 的特解与核空间基（均为位掩码）。
+       先化为行最简形：主元变量取所在行常数项、自由变量置 0 得特解；
+       每个自由列对应一个核基，主元变量按主元行内自由列系数回代；出现 0 = 1 矛盾行则无解返回 null */
+    function solveGf2(matrix, target) {
+        const total = matrix.length;
+        const rows = matrix.slice();
+        const rhs = new Array(total).fill(0);
+        for (let index = 0; index < total; index += 1) {
+            rhs[index] = (target >>> index) & 1;
+        }
+        const pivotCols = [];
+        let rank = 0;
+        for (let col = 0; col < total; col += 1) {
+            let pivot = -1;
+            for (let r = rank; r < total; r += 1) {
+                if ((rows[r] >>> col) & 1) {
+                    pivot = r;
+                    break;
+                }
+            }
+            if (pivot < 0) continue;
+            const tmpRow = rows[rank];
+            rows[rank] = rows[pivot];
+            rows[pivot] = tmpRow;
+            const tmpRhs = rhs[rank];
+            rhs[rank] = rhs[pivot];
+            rhs[pivot] = tmpRhs;
+            for (let r = 0; r < total; r += 1) {
+                if (r !== rank && ((rows[r] >>> col) & 1)) {
+                    rows[r] ^= rows[rank];
+                    rhs[r] ^= rhs[rank];
+                }
+            }
+            pivotCols.push(col);
+            rank += 1;
+        }
+        for (let r = rank; r < total; r += 1) {
+            if (rhs[r] === 1) return null;
+        }
+        let solution = 0;
+        for (let r = 0; r < rank; r += 1) {
+            if (rhs[r] === 1) solution |= 1 << pivotCols[r];
+        }
+        const kernel = [];
+        let pivotCursor = 0;
+        for (let col = 0; col < total; col += 1) {
+            if (pivotCursor < rank && pivotCols[pivotCursor] === col) {
+                pivotCursor += 1;
+                continue;
+            }
+            let basis = 1 << col;
+            for (let r = 0; r < rank; r += 1) {
+                if ((rows[r] >>> col) & 1) basis |= 1 << pivotCols[r];
+            }
+            kernel.push(basis);
+        }
+        return { solution, kernel };
+    }
+
+    /* 纯函数求解：返回把 board 变为全亮的最小按按压集合（下标数组）。
+       先解 A·x = 暗格掩码得特解，再枚举核空间 2^k 个组合，取汉明重量最小的解 */
+    function solveBoard(board, size) {
+        const total = size * size;
+        let target = 0;
+        for (let index = 0; index < total; index += 1) {
+            if (!board[index]) target |= 1 << index;
+        }
+        const solved = solveGf2(buildPressMatrix(size), target);
+        if (!solved) return [];
+        let bestMask = solved.solution;
+        let bestWeight = popcount(bestMask);
+        const combos = 1 << solved.kernel.length;
+        for (let combo = 1; combo < combos; combo += 1) {
+            let candidate = solved.solution;
+            for (let k = 0; k < solved.kernel.length; k += 1) {
+                if ((combo >>> k) & 1) candidate ^= solved.kernel[k];
+            }
+            const weight = popcount(candidate);
+            if (weight < bestWeight) {
+                bestWeight = weight;
+                bestMask = candidate;
+            }
+        }
+        const presses = [];
+        for (let index = 0; index < total; index += 1) {
+            if ((bestMask >>> index) & 1) presses.push(index);
+        }
+        return presses;
+    }
+
     function starRating(steps, minSteps) {
         if (steps <= minSteps) return 3;
         if (steps <= Math.ceil(minSteps * 1.6)) return 2;
@@ -214,15 +337,9 @@
         state.hintIndex = -1;
     }
 
-    /* 仍需按下的格子 = 生成按压集合 与 玩家按压奇偶 的对称差 */
+    /* 提示所需按压 = 对当前亮灯局面直接求最小解，玩家偏离打乱路线后提示依然正确且最优 */
     function neededPresses() {
-        const needed = [];
-        const inScramble = new Set(state.scrambleSet);
-        for (let index = 0; index < state.pressParity.length; index += 1) {
-            const shouldPress = inScramble.has(index) !== (state.pressParity[index] === 1);
-            if (shouldPress) needed.push(index);
-        }
-        return needed;
+        return solveBoard(state.board, state.size);
     }
 
     function renderStars(container, stars) {
@@ -255,7 +372,6 @@
         if (state.locked) return;
         clearHintHighlight();
         state.board = toggleAt(state.board, state.size, index);
-        state.pressParity[index] = (state.pressParity[index] + 1) % 2;
         state.steps += 1;
         updateBoardView();
         updateHeader();
@@ -316,10 +432,9 @@
         state.level = level;
         state.size = config.size;
         state.board = generated.board;
-        state.scrambleSet = generated.scrambleSet;
-        state.pressParity = new Array(config.size * config.size).fill(0);
         state.steps = 0;
-        state.minSteps = generated.scrambleSet.length;
+        /* 最少步数按初始局面真实求最优，而非生成时的打乱按压数 */
+        state.minSteps = solveBoard(generated.board, config.size).length;
         state.hintsLeft = HINTS_PER_LEVEL;
         state.locked = false;
 
@@ -370,6 +485,9 @@
         toggleAt,
         isAllLit,
         generateLevel,
+        buildPressMatrix,
+        solveGf2,
+        solveBoard,
         starRating,
         loadBest,
         saveBest,

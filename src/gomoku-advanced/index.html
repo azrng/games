@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>五子棋</title>
     <link rel="stylesheet" href="../css/custom.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20261010-2">
 </head>
 <body>
     <div class="container">
@@ -13,7 +13,6 @@
             <div class="page-copy">
                 <p class="page-eyebrow">智能对局</p>
                 <h1>五子棋</h1>
-                <p class="page-description">保留高阶 AI、提示与主题切换能力，移除调试信息，针对移动端重新整理布局。</p>
             </div>
             <div class="game-info">
                 <div class="info-card">
@@ -23,6 +22,10 @@
                 <div class="info-card">
                     <span class="info-label">步数</span>
                     <span id="step-count" class="info-value">0</span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">战绩</span>
+                    <span id="stats-text" class="info-value">0胜 0负</span>
                 </div>
             </div>
         </header>
@@ -101,7 +104,7 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=20261010-2"></script>
     <script src="../js/game-back.js"></script>
 </body>
 </html>

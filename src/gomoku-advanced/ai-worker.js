@@ -1170,6 +1170,9 @@ self.onmessage = function(event) {
     case 'undo':
       res = undoFn();
       break;
+    case 'restore':
+      res = restoreFn(payload.size, payload.history);
+      break;
     case 'end':
       res = endFn();
       break;
@@ -1225,6 +1228,24 @@ function moveFn(position, depth) {
 function undoFn() {
   board.undo();
   board.undo();
+  return getBoardData();
+}
+
+// 从主线程存档恢复对局：重放全部落子历史，
+// zobrist 哈希与评估器缓存随 put() 一并重建。
+function restoreFn(size, history) {
+  board = new Board(size);
+  aiScore = 0;
+  bestPath = [];
+  currentDepth = 0;
+  try {
+    for (var i = 0; i < history.length; i++) {
+      var entry = history[i];
+      board.put(entry.i, entry.j, entry.role);
+    }
+  } catch (e) {
+    console.log(e);
+  }
   return getBoardData();
 }
 

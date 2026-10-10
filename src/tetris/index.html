@@ -1,39 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
-    <meta name="renderer" content="webkit">
-    <meta name="description" content="使用React、Redux、Immutable制作的俄罗斯方块" />
-    <meta name="keywords" content="俄罗斯方块,Tetris,React,Redux,Immuatble,JavaScript">
-    <meta name="format-detection" content="telephone=no" />
-    <script>; (function () { var w = parseInt(window.screen.width), s = w / 640, u = navigator.userAgent.toLowerCase(), m = '<meta name="viewport" content="width=640,'; if (/android (\d+\.\d+)/.test(u)) { if (parseFloat(RegExp.$1) > 2.3) m += 'minimum-scale=' + s + ',maximum-scale=' + s + ','; } else { m += 'user-scalable=no,'; } m += 'target-densitydpi=device-dpi">'; document.write(m); }());</script>
     <meta charset="UTF-8">
-    <title>俄罗斯方块</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="description" content="原生 JavaScript 实现的俄罗斯方块：SRS 旋转、7-bag、暂存、落点投影与 T-spin 计分" />
+    <title>俄罗斯方块 - 游戏平台</title>
     <link rel="stylesheet" href="../css/custom.css">
-    <link href="./loader.css" rel="stylesheet" />
-    <link href="css-1.0.1.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <link href="./mobile-gate.css" rel="stylesheet">
 </head>
 
 <body>
-    <div id="root">
-        <div class="load">
-            <div class="loader">加载中...</div>
-        </div>
-    </div>
+    <main class="tetris-shell" aria-label="俄罗斯方块">
+        <header class="tetris-header">
+            <div>
+                <p class="eyebrow">Tetris</p>
+                <h1>俄罗斯方块</h1>
+            </div>
+            <div class="status-pills">
+                <div class="status-pill" aria-label="最高分">
+                    <span aria-hidden="true">🏆</span>
+                    <span id="best-text">0</span>
+                </div>
+                <button type="button" id="music-btn" class="status-pill pill-btn" aria-label="背景音乐开关" aria-pressed="false">
+                    <span aria-hidden="true">🎵</span>
+                    <span id="music-text">音乐关</span>
+                </button>
+            </div>
+        </header>
+
+        <section class="tetris-layout">
+            <aside class="side-panel" aria-label="暂存区">
+                <p class="side-label">暂存 <span class="key-hint">C</span></p>
+                <canvas id="hold-canvas" width="96" height="96" aria-label="暂存的方块"></canvas>
+                <div class="stat-block">
+                    <p class="side-label">分数</p>
+                    <p class="stat-value" id="score-text">0</p>
+                </div>
+                <div class="stat-block">
+                    <p class="side-label">等级 / 行数</p>
+                    <p class="stat-value"><span id="level-text">1</span> · <span id="lines-text">0</span></p>
+                </div>
+            </aside>
+
+            <div class="board-wrap">
+                <canvas id="board-canvas" aria-label="俄罗斯方块棋盘"></canvas>
+                <div id="overlay" class="board-overlay">
+                    <h2 id="overlay-title">俄罗斯方块</h2>
+                    <p id="overlay-desc">方向键移动，↑ 旋转，空格硬降</p>
+                    <button type="button" id="overlay-btn" class="overlay-btn">开始游戏</button>
+                </div>
+            </div>
+
+            <aside class="side-panel" aria-label="预告区">
+                <p class="side-label">预告</p>
+                <canvas id="next-canvas" width="96" height="264" aria-label="接下来的方块"></canvas>
+            </aside>
+        </section>
+
+        <!-- 触屏按键：仅 coarse 指针设备显示，与键盘操作等价 -->
+        <section class="touch-pad" aria-label="触屏操作">
+            <div class="touch-row">
+                <button type="button" data-act="left" aria-label="左移">◀</button>
+                <button type="button" data-act="rotate-cw" aria-label="顺时针旋转">⟳</button>
+                <button type="button" data-act="right" aria-label="右移">▶</button>
+            </div>
+            <div class="touch-row">
+                <button type="button" data-act="hold" aria-label="暂存">换</button>
+                <button type="button" data-act="soft" aria-label="软降">▼</button>
+                <button type="button" data-act="hard" aria-label="硬降">⤓</button>
+            </div>
+        </section>
+
+        <p class="tetris-hint">← → 移动 · ↑/X 旋转 · Z 反旋 · ↓ 软降 · 空格硬降 · C 暂存 · P 暂停</p>
+    </main>
+
     <div id="mobile-gate">
         <div class="mobile-gate-card">
             <span class="mobile-gate-emoji">🕹️</span>
-            <p class="mobile-gate-tag">桌面端专用</p>
-            <h3>俄罗斯方块暂不支持手机</h3>
-            <p class="mobile-gate-desc">这个游戏需要实体键盘操作，手机上画面会被过度缩小。建议在电脑浏览器中打开，获得完整键位体验。</p>
+            <p class="mobile-gate-tag">键盘体验最佳</p>
+            <h3>俄罗斯方块推荐用电脑玩</h3>
+            <p class="mobile-gate-desc">实体键盘的手感最好。手机上也能玩——继续后会显示触屏按键，但棋盘会小一些。</p>
             <div class="mobile-gate-actions">
                 <a class="mobile-gate-primary" href="../../index.html">返回选择游戏</a>
-                <button type="button" id="mobile-gate-continue">仍要在手机上试试</button>
+                <button type="button" id="mobile-gate-continue">用手机继续玩</button>
             </div>
         </div>
     </div>
-    <script type="text/javascript" src="app-1.0.1.js"></script>
+
+    <script src="script.js"></script>
     <script src="../js/game-back.js"></script>
     <script>
         (function () {
@@ -58,4 +114,5 @@
         })();
     </script>
 </body>
+
 </html>

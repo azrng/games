@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>迷宫冒险</title>
     <link rel="stylesheet" href="../css/custom.css">
     <style>
@@ -102,9 +102,9 @@
 
         #game-sidebar {
             position: fixed;
-            top: 64px;
-            left: 18px;
-            bottom: 18px;
+            top: max(64px, calc(env(safe-area-inset-top) + 46px));
+            left: max(18px, env(safe-area-inset-left));
+            bottom: max(18px, env(safe-area-inset-bottom));
             z-index: 120;
             width: 318px;
             display: flex;
@@ -424,9 +424,55 @@
             outline-offset: 2px;
         }
 
+        /* 触屏虚拟方向键：固定右下角半透明悬浮，避开安全区与左上角返回按钮 */
+        #dpad {
+            position: fixed;
+            right: calc(max(14px, env(safe-area-inset-right)) + 2px);
+            bottom: calc(max(14px, env(safe-area-inset-bottom)) + 2px);
+            z-index: 130;
+            display: none;
+            grid-template-columns: repeat(3, 54px);
+            grid-template-rows: repeat(3, 54px);
+            gap: 5px;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        .dpad-btn[data-direction="up"] { grid-area: 1 / 2; }
+        .dpad-btn[data-direction="left"] { grid-area: 2 / 1; }
+        .dpad-btn[data-direction="right"] { grid-area: 2 / 3; }
+        .dpad-btn[data-direction="down"] { grid-area: 3 / 2; }
+
+        .dpad-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.66);
+            border: 1px solid rgba(184, 196, 216, 0.85);
+            color: var(--maze-ink);
+            font-size: 17px;
+            line-height: 1;
+            box-shadow: var(--shadow-soft);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+
+        .dpad-btn.pressed {
+            background: rgba(41, 87, 200, 0.28);
+            border-color: rgba(41, 87, 200, 0.5);
+            color: var(--maze-primary);
+        }
+
+        /* 仅粗指针（触屏）且进入游戏后显示虚拟方向键 */
+        @media (hover: none) and (pointer: coarse) {
+            body.maze-playing #dpad { display: grid; }
+        }
+
         #level-select,
-        #message-overlay,
-        #unsupported-overlay {
+        #message-overlay {
             position: fixed;
             inset: 0;
             z-index: 200;
@@ -441,7 +487,6 @@
         }
 
         #message-overlay.hidden { display: none; }
-        #unsupported-overlay.hidden { display: none; }
 
         .overlay-card {
             position: relative;
@@ -820,9 +865,9 @@
 
         @media (max-width: 900px) {
             #game-sidebar {
-                left: 14px;
-                right: 14px;
-                top: 58px;
+                top: max(58px, calc(env(safe-area-inset-top) + 46px));
+                left: max(14px, env(safe-area-inset-left));
+                right: max(14px, env(safe-area-inset-right));
                 bottom: auto;
                 width: auto;
             }
@@ -936,7 +981,7 @@
                 <span class="key-group"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>
                 <span class="hint-sep">或</span>
                 <span class="key-group"><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span>
-                <span class="hint-sep">移动</span>
+                <span class="hint-sep">移动，触屏设备可按住右下角虚拟方向键</span>
             </div>
         </section>
     </aside>
@@ -992,14 +1037,13 @@
         </div>
     </section>
 
-    <section id="unsupported-overlay" class="hidden">
-        <div class="overlay-card message-card">
-            <span class="message-emoji">🖥️</span>
-            <p class="difficulty-tag">桌面端专用</p>
-            <h3>迷宫冒险暂不支持移动端</h3>
-            <p>这个游戏已经切换为桌面端游玩模式。请在电脑浏览器中打开，以获得完整迷宫视野和稳定操作体验。</p>
-        </div>
-    </section>
+    <!-- 触屏虚拟方向键：按住等价于键盘按住，复用长按连走节奏；仅触屏且游戏中显示 -->
+    <div id="dpad">
+        <button type="button" class="dpad-btn" data-direction="up" aria-label="向上移动">▲</button>
+        <button type="button" class="dpad-btn" data-direction="left" aria-label="向左移动">◀</button>
+        <button type="button" class="dpad-btn" data-direction="right" aria-label="向右移动">▶</button>
+        <button type="button" class="dpad-btn" data-direction="down" aria-label="向下移动">▼</button>
+    </div>
 
     <script>
         const config = {
@@ -1033,7 +1077,6 @@
         const gameSidebar = document.getElementById('game-sidebar');
         const mazeContainer = document.getElementById('maze-container');
         const hud = document.getElementById('hud');
-        const statsPanel = document.getElementById('hud-stats-panel');
         const levelSelect = document.getElementById('level-select');
         const levelDisplay = document.getElementById('level');
         const stepsDisplay = document.getElementById('steps');
@@ -1042,7 +1085,6 @@
         const difficultyDisplay = document.getElementById('difficulty-name');
         const goalText = document.getElementById('goal-text');
         const messageOverlay = document.getElementById('message-overlay');
-        const unsupportedOverlay = document.getElementById('unsupported-overlay');
         const messageTitle = document.getElementById('message-title');
         const messageText = document.getElementById('message-text');
         const nextLevelButton = document.getElementById('next-level-btn');
@@ -1053,20 +1095,7 @@
         const resultOptimalDisplay = document.getElementById('result-optimal');
         const resultRatingDisplay = document.getElementById('result-rating');
         const messageRecord = document.getElementById('message-record');
-
-        function isMobileDevice() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
-
-        function showUnsupportedState() {
-            gameContainer.style.display = 'none';
-            gameSidebar.style.display = 'none';
-            hud.style.display = 'none';
-            statsPanel.style.display = 'none';
-            levelSelect.style.display = 'none';
-            messageOverlay.classList.add('hidden');
-            unsupportedOverlay.classList.remove('hidden');
-        }
+        const dpad = document.getElementById('dpad');
 
         function keyOf(x, y) {
             return `${x},${y}`;
@@ -1170,12 +1199,6 @@
             messageText.textContent = text;
             nextLevelButton.textContent = buttonText;
             messageOverlay.classList.remove('hidden');
-        }
-
-        const mazeSupported = !isMobileDevice();
-
-        if (!mazeSupported) {
-            showUnsupportedState();
         }
 
         function clamp(value, min, max) {
@@ -1291,10 +1314,6 @@
         });
 
         function startGame(difficulty) {
-            if (!mazeSupported) {
-                return;
-            }
-
             gameState.difficulty = difficulty;
             gameState.level = 1;
             gameState.steps = 0;
@@ -1307,6 +1326,7 @@
             setMissionText('找到终点处的伙伴后进入下一关。随着关卡提升，迷宫会持续扩大。');
             startTimer();
             levelSelect.style.display = 'none';
+            document.body.classList.add('maze-playing');
             refreshViewportMetrics();
             generateMaze();
         }
@@ -1359,47 +1379,41 @@
             gameState.playerPosition = { x: startX, y: startY };
             gameState.visitedCells = new Set([keyOf(startX, startY)]);
 
+            // 从起点 BFS 全图，取路径距离最远的格子作终点（并列时任取其一）
+            const distances = computeDistanceField(maze, startX, startY);
             let endX = startX;
             let endY = startY;
             let maxDistance = 0;
 
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
-                    if (maze[y][x] === 0) {
-                        const distance = Math.abs(x - startX) + Math.abs(y - startY);
-                        if (distance > maxDistance) {
-                            maxDistance = distance;
-                            endX = x;
-                            endY = y;
-                        }
+                    if (maze[y][x] === 0 && distances[y][x] > maxDistance) {
+                        maxDistance = distances[y][x];
+                        endX = x;
+                        endY = y;
                     }
                 }
             }
 
             gameState.partnerPosition = { x: endX, y: endY };
             gameState.maze = maze;
-            gameState.optimalSteps = computeOptimalSteps();
+            // 终点即 BFS 最远格，到终点的最短步数直接复用距离场
+            gameState.optimalSteps = distances[endY][endX];
             updateHud();
             renderMaze();
         }
 
-        // BFS 求起点到伙伴的最短步数，用于结算时的路线评级
-        function computeOptimalSteps() {
-            const maze = gameState.maze;
+        // 从起点对全图 BFS，返回每个可达格子的最短步数距离场（不可达为 -1）
+        // 终点选取（真实路径最远）与结算评级（最短步数）共用这一份距离场
+        function computeDistanceField(maze, startX, startY) {
             const height = maze.length;
             const width = maze[0].length;
-            const start = gameState.playerPosition;
-            const target = gameState.partnerPosition;
             const distances = Array(height).fill(null).map(() => Array(width).fill(-1));
-            const queue = [[start.x, start.y]];
-            distances[start.y][start.x] = 0;
+            const queue = [[startX, startY]];
+            distances[startY][startX] = 0;
 
             for (let head = 0; head < queue.length; head++) {
                 const [x, y] = queue[head];
-
-                if (x === target.x && y === target.y) {
-                    return distances[y][x];
-                }
 
                 for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]]) {
                     const nx = x + dx;
@@ -1412,7 +1426,7 @@
                 }
             }
 
-            return -1;
+            return distances;
         }
 
         function getRouteRating(steps, optimalSteps) {
@@ -1531,10 +1545,6 @@
         }
 
         function movePlayer(dx, dy) {
-            if (!mazeSupported) {
-                return;
-            }
-
             const current = getCurrentConfig();
             const newX = gameState.playerPosition.x + dx;
             const newY = gameState.playerPosition.y + dy;
@@ -1608,10 +1618,6 @@
         }
 
         function nextLevel() {
-            if (!mazeSupported) {
-                return;
-            }
-
             gameState.level++;
             gameState.steps = 0;
             gameState.partnerFound = false;
@@ -1643,7 +1649,7 @@
         }
 
         function isPlayLocked() {
-            return !mazeSupported || levelSelect.style.display !== 'none' || !messageOverlay.classList.contains('hidden');
+            return levelSelect.style.display !== 'none' || !messageOverlay.classList.contains('hidden');
         }
 
         function stopHeldMovement() {
@@ -1665,17 +1671,11 @@
             movePlayer(dx, dy);
         }
 
-        document.addEventListener('keydown', (event) => {
-            const key = normalizeDirectionKey(event.key);
+        // 按下方向：登记按键、立即走一格并启动连走计时（键盘按下与虚拟方向键按住共用）
+        function pressDirectionKey(key) {
             const direction = DIRECTION_KEYS[key];
 
             if (!direction) {
-                return;
-            }
-
-            event.preventDefault();
-
-            if (event.repeat || isPlayLocked()) {
                 return;
             }
 
@@ -1688,10 +1688,10 @@
             if (!heldMoveTimer) {
                 heldMoveTimer = setInterval(stepHeldMovement, HELD_MOVE_INTERVAL);
             }
-        });
+        }
 
-        document.addEventListener('keyup', (event) => {
-            const key = normalizeDirectionKey(event.key);
+        // 松开方向：移出登记列表，全部松开时停掉连走计时
+        function releaseDirectionKey(key) {
             const index = heldKeys.indexOf(key);
 
             if (index !== -1) {
@@ -1702,9 +1702,65 @@
                 clearInterval(heldMoveTimer);
                 heldMoveTimer = null;
             }
+        }
+
+        document.addEventListener('keydown', (event) => {
+            const key = normalizeDirectionKey(event.key);
+
+            if (!DIRECTION_KEYS[key]) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (event.repeat || isPlayLocked()) {
+                return;
+            }
+
+            pressDirectionKey(key);
+        });
+
+        document.addEventListener('keyup', (event) => {
+            releaseDirectionKey(normalizeDirectionKey(event.key));
         });
 
         window.addEventListener('blur', stopHeldMovement);
+
+        // 虚拟方向键映射到与键盘同名的方向键，保证按住节奏完全一致
+        const DPAD_KEY_BY_DIRECTION = {
+            up: 'ArrowUp',
+            down: 'ArrowDown',
+            left: 'ArrowLeft',
+            right: 'ArrowRight'
+        };
+
+        document.querySelectorAll('.dpad-btn').forEach((button) => {
+            const key = DPAD_KEY_BY_DIRECTION[button.dataset.direction];
+
+            button.addEventListener('pointerdown', (event) => {
+                // 阻止触摸滚动/双击缩放等默认行为，并捕获指针保证手指滑出按钮也能收到抬起
+                event.preventDefault();
+                button.setPointerCapture(event.pointerId);
+
+                if (isPlayLocked()) {
+                    return;
+                }
+
+                button.classList.add('pressed');
+                pressDirectionKey(key);
+            });
+
+            const releaseVirtualKey = () => {
+                button.classList.remove('pressed');
+                releaseDirectionKey(key);
+            };
+
+            button.addEventListener('pointerup', releaseVirtualKey);
+            button.addEventListener('pointercancel', releaseVirtualKey);
+        });
+
+        // 长按虚拟方向键时不弹出系统右键菜单
+        dpad.addEventListener('contextmenu', (event) => event.preventDefault());
 
         // 游戏中重开：二次点击确认，避免误触丢掉当前进度
         let restartArmedTimer = null;
@@ -1735,6 +1791,7 @@
             gameState.partnerFound = false;
             updateHud();
             refreshDifficultyRecords();
+            document.body.classList.remove('maze-playing');
             levelSelect.style.display = '';
         }
 
