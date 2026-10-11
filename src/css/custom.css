@@ -19,7 +19,7 @@ body {
 /* ===== 主页布局 ===== */
 
 .hub {
-    max-width: 960px;
+    max-width: 1320px;
     margin: 0 auto;
     padding: 40px 24px 60px;
 }
@@ -69,16 +69,24 @@ body {
 
 /* ===== 年龄 / 设备筛选 Tab ===== */
 
+/* 两组 Tab 合并展示为一行：组间用大间距区分「年龄」「设备」两个维度，窄屏整组换行 */
+.hub-filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 28px;
+    margin-bottom: 12px;
+}
+
 .hub-tabs {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
-    margin-bottom: 12px;
 }
 
-/* 设备 Tab 行紧随年龄行，用相邻选择器与卡片区拉开距离 */
-.hub-tabs + .hub-grid {
+/* 筛选区紧邻卡片区，用相邻选择器与卡片区拉开距离 */
+.hub-filters + .hub-grid {
     margin-top: 16px;
 }
 
@@ -131,8 +139,9 @@ body {
 
 .hub-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
+    /* 卡片最小宽度 215px：1320px 容器下桌面端一行 5 张，窄屏自动回落 4/3/2 张 */
+    grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+    gap: 14px;
 }
 
 .game-card {
@@ -162,18 +171,18 @@ body {
 }
 
 .game-card-banner {
-    height: 120px;
+    height: 92px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
+    font-size: 40px;
     line-height: 1;
     position: relative;
     overflow: hidden;
 }
 
 .game-card-body {
-    padding: 16px;
+    padding: 12px 14px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -182,14 +191,14 @@ body {
 
 .game-card-title {
     margin: 0;
-    font-size: 17px;
+    font-size: 15px;
     font-weight: 700;
 }
 
 .game-card-desc {
     margin: 0;
     color: var(--app-text-muted);
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.5;
     flex: 1;
 }
@@ -282,12 +291,16 @@ body {
         margin-bottom: 24px;
     }
 
-    .hub-tabs {
-        gap: 6px;
+    .hub-filters {
+        gap: 6px 16px;
         margin-bottom: 10px;
     }
 
-    .hub-tabs + .hub-grid {
+    .hub-tabs {
+        gap: 6px;
+    }
+
+    .hub-filters + .hub-grid {
         margin-top: 12px;
     }
 

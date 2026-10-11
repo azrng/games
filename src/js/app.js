@@ -118,7 +118,7 @@
         "tetris":          { icon: "🧩", tag: "经典" },
         "maze":            { icon: "🌊", tag: "冒险" },
         "color-challenge": { icon: "🎨", tag: "休闲" },
-        "sliding-puzzle":  { icon: "🯰", tag: "益智" },
+        "sliding-puzzle":  { icon: "8️⃣", tag: "益智" },
         "hidden-cats":     { icon: "🐱", tag: "休闲" },
         "yibihua":         { icon: "✏️", tag: "益智" },
         "animal-flip-chess": { icon: "🐘", tag: "策略" },
