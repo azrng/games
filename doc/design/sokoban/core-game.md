@@ -3,7 +3,7 @@ doc_id: DES-SK001
 doc_type: design
 module: sokoban
 status: approved
-last_updated: 2026-10-10
+last_updated: 2026-10-11
 related:
   - doc/requirements/sokoban/core-game.md
 ---
@@ -32,7 +32,9 @@ related:
   - `tryMove(level, player, dir)`：返回 `{ moved, pushed, player, boxes }` 新状态（不可变风格）——目标格为墙或"箱后是墙/箱"则 `moved: false`；推动时同步改箱坐标。
   - `isSolved(boxes, goals)`：boxes 全部位于 goals。
   - `applyMove / undoMove`：主状态持历史栈（存 player 与被推箱坐标差量），undo 精确还原。
-- 渲染：CSS Grid，格子五态 class（墙/地板/目标/箱/人 + 箱在目标合体态）；墙用深色块、目标点用标记环、箱子圆角方块、人用圆头图标形。
+  - `findDeadBoxes(game)`：静态死角检测——对不在目标点上的箱子，若垂直方向有一侧是墙且水平方向也有一侧是墙（即贴角，四向推动的玩家站位或落点必被墙占）则判死，返回死箱 key 数组；只做墙角判定，不做多箱互冻分析。
+- 渲染：CSS Grid，格子五态 class（墙/地板/目标/箱/人 + 箱在目标合体态）；墙用深色块、目标点用标记环、箱子圆角方块、人用圆头图标形；死箱追加 `is-dead` class（暗红渐变 + 一次性轻抖动画）。
+- 死角提示条 `#deadlock-hint`：`refreshCells` 统一驱动——存在死箱且未通关时显示，随撤销/重开的棋盘刷新自动隐藏；非阻断、不锁输入。
 - 输入：`keydown`（Arrow/WASD）+ 棋盘滑动手势（阈值 24px，`touchstart/touchend` 判定）+ 操作栏十字方向按钮（`pointerdown` 触发一步，长按连走非必须）。
 
 **关卡三档**：1-20 入门 / 21-40 进阶 / 41-60 挑战，仅影响选关分组与胶囊文案。
@@ -51,6 +53,8 @@ related:
 │  │ █  $     .  █        │            │
 │  │ ██████████           │            │
 │  └──────────────────────┘            │
+│  ⚠ 有个箱子卡在角落推不动啦，         │
+│    点「撤销」退一步，或「重开」再来    │  ← 死角提示条（仅死箱时）
 │         [↑]                          │
 │      [←][↓][→]   ← 屏幕方向键        │
 │  [撤销] [重开] [选关]                │
@@ -65,4 +69,5 @@ related:
 - 无效移动（撞墙/推不动）轻微晃动反馈，不计数。
 - 撤销栈无上限（关卡移动数有限）；重开清栈清计数。
 - 滑动手势与方向键共用同一 `move(dir)` 入口；`touch-action: none` 仅作用于棋盘。
+- 推箱入死角：不阻止、不锁输入；死箱 `is-dead` 暗红高亮 + 提示条引导撤销/重开，撤销后随 `refreshCells` 自动消失（REQ 温和提示语义）。
 - 存储读写 try/catch 静默降级。

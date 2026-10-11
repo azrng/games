@@ -147,6 +147,26 @@
         return true;
     }
 
+    /**
+     * 静态死角检测：不在目标点上的箱子，若上下有一侧是墙、左右也有一侧是墙
+     * （两个正交方向都被堵），就永远推不动了。返回死箱 key 数组，空数组表示局面还活着。
+     * 只做墙角判定，不覆盖多箱互相冻结的复杂死锁（易误报且少见）。
+     */
+    function findDeadBoxes(game) {
+        const walls = game.level.walls;
+        const goals = game.level.goals;
+        const dead = [];
+        for (const key of game.boxes) {
+            if (goals.has(key)) continue;
+            const x = key % 100;
+            const y = Math.floor(key / 100);
+            const blockedV = walls.has(keyOf(x, y - 1)) || walls.has(keyOf(x, y + 1));
+            const blockedH = walls.has(keyOf(x - 1, y)) || walls.has(keyOf(x + 1, y));
+            if (blockedV && blockedH) dead.push(key);
+        }
+        return dead;
+    }
+
     function tierOfLevel(level) {
         const group = TIER_GROUPS.find((item) => level >= item.from && level <= item.to);
         return group ? group.name : '挑战';
@@ -206,6 +226,7 @@
         pushesText: documentObject.getElementById('pushes-text'),
         bestText: documentObject.getElementById('best-text'),
         board: documentObject.getElementById('board'),
+        deadlockHint: documentObject.getElementById('deadlock-hint'),
         undoBtn: documentObject.getElementById('undo-btn'),
         restartBtn: documentObject.getElementById('restart-btn'),
         levelsBtn: documentObject.getElementById('levels-btn'),
@@ -241,6 +262,8 @@
     function refreshCells() {
         const level = state.game.level;
         const boxOnGoal = [];
+        /* 死角检测随每次棋盘刷新（移动/撤销/重开）统一驱动，死箱标红、提示条自动显隐 */
+        const deadBoxes = new Set(findDeadBoxes(state.game));
         state.cellButtons.forEach((cell, index) => {
             const x = index % level.width;
             const y = Math.floor(index / level.width);
@@ -251,10 +274,12 @@
             if (state.game.boxes.has(key)) {
                 classes.push('is-box');
                 if (level.goals.has(key)) boxOnGoal.push(true);
+                if (deadBoxes.has(key)) classes.push('is-dead');
             }
             if (state.game.player.x === x && state.game.player.y === y) classes.push('is-player');
             cell.className = classes.join(' ');
         });
+        elements.deadlockHint.hidden = deadBoxes.size === 0 || isSolved(state.game);
     }
 
     function refreshScore() {
@@ -400,6 +425,7 @@
         applyMove,
         undoMove,
         isSolved,
+        findDeadBoxes,
         tierOfLevel,
         readUnlocked,
         readBestMoves,

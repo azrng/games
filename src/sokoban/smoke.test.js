@@ -108,6 +108,11 @@ function testFilesAndCatalogExist() {
     assert.ok(app.includes('"sokoban"'), 'app.js gameMeta 应含 sokoban');
     const css = read('style.css');
     assert.ok(css.includes('touch-action'), 'style.css 应含触控优化样式');
+    // 死角提示：提示条元素与样式必须存在
+    assert.ok(html.includes('id="deadlock-hint"'), 'index.html 应含死角提示条');
+    assert.ok(css.includes('.deadlock-hint'), 'style.css 应含死角提示条样式');
+    assert.ok(css.includes('.is-dead'), 'style.css 应含死箱警示样式');
+    assert.ok(read('script.js').includes('findDeadBoxes'), 'script.js 应导出死角检测函数');
 }
 
 function testAllLevelsParseValid() {
@@ -193,6 +198,31 @@ function testSolvedDetection() {
     assert.ok(SK.isSolved(done), '箱子到位应判胜');
 }
 
+function testDeadBoxDetection() {
+    const { window } = buildContext();
+    const SK = window.Sokoban;
+    /* vm 沙箱数组原型与宿主不同，先 JSON 落回再比较 */
+    const host = (arr) => JSON.parse(JSON.stringify(arr));
+    // 死角关：箱在(2,1)，右(3,1)与下(2,2)均为墙，推右即入死角；目标点在(4,1)远处
+    const level = SK.parseLevel('######\n#@$ ##\n##  .#\n######');
+    let game = SK.createState(level);
+    assert.deepStrictEqual(host(SK.findDeadBoxes(game)), [], '开局无死箱');
+
+    // 向右推：箱子进入 (3,1)，右侧(4,1)是墙、下方(3,2)是墙 → 死角
+    game = SK.applyMove(game, 'right').game;
+    const dead = host(SK.findDeadBoxes(game));
+    assert.strictEqual(dead.length, 1, '入角后应检出 1 个死箱');
+    assert.strictEqual(dead[0], 103, '死箱应在 (3,1) 即 key 103');
+
+    // 贴墙但可沿墙推动的箱子不算死：箱在(2,1)上方是墙，但左右通畅仍可推
+    const wallSlide = SK.createState(SK.parseLevel('#####\n#@$ #\n##.##\n#####'));
+    assert.deepStrictEqual(host(SK.findDeadBoxes(wallSlide)), [], '贴墙仍可左右推的箱子不算死箱');
+
+    // 箱子停在目标点上即使被围也不算死（已归位）
+    const onGoal = SK.createState(SK.parseLevel('#####\n#@ *#\n#####'));
+    assert.deepStrictEqual(host(SK.findDeadBoxes(onGoal)), [], '目标点上的箱子不算死箱');
+}
+
 function testTierGrouping() {
     const { window } = buildContext();
     const SK = window.Sokoban;
@@ -221,6 +251,7 @@ testAllLevelsParseValid();
 testApplyMoveRules();
 testUndoRoundtrip();
 testSolvedDetection();
+testDeadBoxDetection();
 testTierGrouping();
 testPersistence();
 
