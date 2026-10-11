@@ -571,7 +571,7 @@
         elements.feedbackText.classList.remove('is-success');
         elements.modeChip.textContent = TIER_LABELS[levelConfig(state.level).tier];
         renderScales(question);
-        elements.questionPrompt.textContent = questionText(question);
+        elements.questionPrompt.textContent = questionText(question.question);
         renderOptions(generateOptions(question.answer, seed));
         updateHeader();
     }
@@ -642,6 +642,7 @@
         generateEquation,
         solveEquation,
         generateOptions,
+        questionText,
         starRating,
         formatEquation,
         loadUnlockedLevel,

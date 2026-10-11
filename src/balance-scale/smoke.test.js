@@ -130,6 +130,10 @@ function testFilesAndCatalogExist() {
     assert(script.includes('generateEquation'), 'script should expose puzzle generation');
     assert(script.includes('solveEquation'), 'script should expose the substitution solver');
     assert(script.includes('windowObject.BalanceApi'), 'script should expose window.BalanceApi');
+    assert(
+        script.includes('questionText(question.question)'),
+        'question prompt should receive the inner question object, not the generated wrapper'
+    );
 
     const catalog = fs.readFileSync(path.join(root, '..', 'data', 'games.js'), 'utf8');
     assert(catalog.includes('slug: "balance-scale"'), 'catalog should register balance-scale');
@@ -149,6 +153,10 @@ function testGenerateEquationAcrossLevels() {
             const question = api.generateEquation(level, seed);
             const replay = api.generateEquation(level, seed);
             assert.deepStrictEqual(question, replay, `level ${level} seed ${index}: same seed should reproduce the same puzzle`);
+
+            /* 题面文案回归：内层 question 的水果键必须可渲染，杜绝“1 个undefined” */
+            const prompt = api.questionText(question.question);
+            assert(!prompt.includes('undefined'), `level ${level} seed ${index}: prompt should render fruit emoji, got ${prompt}`);
 
             assert.strictEqual(
                 question.equations.length,
