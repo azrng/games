@@ -32,10 +32,11 @@
                 <span id="goods-emoji" class="goods-emoji" aria-hidden="true">🍭</span>
                 <div class="goods-info">
                     <span id="goods-name" class="goods-name">棒棒糖</span>
+                    <span id="goods-unit" class="goods-unit" hidden>单价 0 元 × 0 个</span>
                     <span id="goods-price" class="goods-price">3元</span>
                 </div>
             </div>
-            <p id="change-line" class="change-line" hidden>应收 0 元，顾客付了 0 元</p>
+            <p id="change-line" class="change-line" hidden>价签 0 元；付多了商家会找零</p>
         </section>
 
         <section class="pay-section" aria-label="收银台">
@@ -48,6 +49,12 @@
             </div>
             <p id="feedback-text" class="feedback">点面额把钱凑到和价签一样</p>
             <div id="money-grid" class="money-grid"></div>
+            <div id="change-panel" class="change-panel" hidden>
+                <label for="change-input" class="label">商家应退</label>
+                <input id="change-input" class="change-input" type="number" inputmode="numeric" min="0" step="1" placeholder="?" aria-label="输入商家应退的零钱金额">
+                <span class="change-unit">元</span>
+                <button id="change-btn" class="primary-btn" type="button">确认找零</button>
+            </div>
             <div class="action-bar">
                 <button id="pay-btn" class="primary-btn" type="button">付账</button>
                 <button id="clear-btn" class="ghost-btn" type="button">清空</button>
@@ -83,6 +90,6 @@
 
     <script src="script.js"></script>
     <script src="../js/game-back.js"></script>
-    <script src="../js/game-tip.js" data-slug="shopping-cashier" data-text="点纸币硬币凑齐价签的钱；顾客付整钱时，点面额凑出找零给顾客。"></script>
+    <script src="../js/game-tip.js" data-slug="shopping-cashier" data-text="点纸币硬币凑齐价签的钱；付多了别慌，算算商家该退你多少再输入。"></script>
 </body>
 </html>

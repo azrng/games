@@ -224,7 +224,7 @@ h2 {
     box-shadow: var(--sc-shadow-soft);
 }
 
-/* 找零模式题面：应收与顾客支付，目标找零不展示 */
+/* 找零模式题面：价签提示，找零金额由玩家心算后输入 */
 .change-line {
     margin: 12px 0 0;
     padding: 10px 12px;
@@ -234,6 +234,13 @@ h2 {
     font-size: 14px;
     font-weight: 800;
     text-align: center;
+}
+
+/* 单价 × 数量行：数量为 1 时隐藏 */
+.goods-unit {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sc-muted);
 }
 
 .pay-section {
@@ -318,6 +325,11 @@ h2 {
     gap: 10px;
 }
 
+/* display:grid 会压过 hidden 的 UA 样式，找零阶段需显式隐藏 */
+.money-grid[hidden] {
+    display: none;
+}
+
 .money-btn {
     min-height: 64px;
     border-radius: 14px;
@@ -376,6 +388,71 @@ h2 {
 
 .money-btn.note-100 {
     background: linear-gradient(155deg, var(--sc-note-100), var(--sc-note-100-deep));
+}
+
+/* 找零输入面板：多付后面额区切换为此面板 */
+.change-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
+    border: 2px dashed var(--sc-gold);
+    border-radius: var(--sc-radius-md);
+    background: var(--sc-panel);
+}
+
+/* display:flex 会压过 hidden 的 UA 样式，需显式声明隐藏 */
+.change-panel[hidden] {
+    display: none;
+}
+
+.change-panel .label {
+    font-size: 14px;
+    color: var(--sc-primary-deep);
+}
+
+.change-input {
+    width: 120px;
+    min-height: 56px;
+    padding: 0 12px;
+    border: 2px solid var(--sc-primary);
+    border-radius: var(--sc-radius-md);
+    background: #fff;
+    color: var(--sc-text);
+    font-size: 26px;
+    font-weight: 800;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.change-input:focus {
+    outline: 2px solid var(--sc-primary-deep);
+    outline-offset: 2px;
+}
+
+.change-input:disabled {
+    background: var(--sc-panel-warm);
+    color: var(--sc-primary-deep);
+}
+
+.change-input::-webkit-outer-spin-button,
+.change-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.change-unit {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--sc-primary-deep);
+}
+
+.change-panel .primary-btn {
+    min-height: 56px;
+    padding: 0 22px;
 }
 
 /* 动作区：付账独占一行，下方清空/重开/关卡 */

@@ -183,7 +183,7 @@
             path: "src/shopping-cashier/index.html",
             mobilePath: "src/shopping-cashier/index.html",
             icon: "src/img/game.svg",
-            desc: "看价签凑钱付账、算找零，认识人民币面额的购物数学启蒙。",
+            desc: "点面额凑钱付款、多付了算算商家该退多少，从零食到家电的购物数学启蒙。",
             readme: null,
             meta: { age: "kids", device: "all" }
         },

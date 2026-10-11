@@ -19,12 +19,16 @@ const ELEMENT_IDS = [
     'order-line',
     'goods-emoji',
     'goods-name',
+    'goods-unit',
     'goods-price',
     'change-line',
     'paid-text',
     'tray-chips',
     'feedback-text',
     'money-grid',
+    'change-panel',
+    'change-input',
+    'change-btn',
     'clear-btn',
     'pay-btn',
     'restart-btn',
@@ -53,6 +57,7 @@ function runScriptWithContext() {
         const element = {
             id,
             textContent: '',
+            value: '',
             hidden: false,
             disabled: false,
             dataset: {},
@@ -65,6 +70,7 @@ function runScriptWithContext() {
                 toggle() {}
             },
             addEventListener() {},
+            focus() {},
             appendChild(child) {
                 this.children.push(child);
             },
@@ -137,8 +143,13 @@ function testFilesAndCatalogExist() {
         html.indexOf('<script src="script.js"></script>') < html.indexOf('../js/game-back.js'),
         'back button script should load after the game script'
     );
+    assert(html.includes('../js/game-tip.js'), 'page should mount the shared first-time tip script');
+    assert(html.includes('id="change-input"'), 'change step should provide a numeric input');
+    assert(html.includes('inputmode="numeric"'), 'change input should trigger the numeric keyboard');
+    assert(html.includes('id="change-btn"'), 'change step should provide a confirm button');
 
     assert(css.includes('--sc-'), 'css should use self-contained --sc- variables');
+    assert(css.includes('.change-panel'), 'css should style the change input panel');
     assert(
         css.includes('padding-top: calc(max(16px, env(safe-area-inset-top)) + 44px)'),
         'header area should avoid the floating back button (>= 56px)'
@@ -160,10 +171,12 @@ function testApiSurface() {
         'levelConfig',
         'denominations',
         'levelCount',
+        'unitPriceCombos',
         'generateOrder',
         'orderDue',
         'computeChange',
         'evaluatePayment',
+        'checkChangeInput',
         'coinCountSummary',
         'greedyBreakdown',
         'starRating',
@@ -178,7 +191,14 @@ function testApiSurface() {
     assert.strictEqual(api.SLUG, 'shopping-cashier', 'api slug should match the registered game');
     assert.strictEqual(api.levelCount(), 12, 'game should have 12 levels');
     assert.strictEqual(api.ORDERS_PER_LEVEL, 5, 'each level should have 5 orders');
+    assert.strictEqual(api.RUN_RESET_MISTAKES, 4, 'the 4th mistake should send the run back to level 1');
+    assert.strictEqual(api.MAX_CHANGE_ATTEMPTS, 2, 'change answers should reveal the solution after two mistakes');
     assert(Array.isArray(api.ITEM_POOL) && api.ITEM_POOL.length >= 24, 'item pool should have at least 24 goods');
+    assert(
+        api.ITEM_POOL.filter((item) => item.tier === 'big').length >= 6,
+        'big-ticket pool should have at least 6 appliance goods'
+    );
+    assert(api.ITEM_POOL.every((item) => item.unit), 'every good should carry a measure word');
     assert.deepStrictEqual(toHost(api.ALL_DENOMINATIONS), [1, 5, 10, 20, 50, 100], 'all six RMB denominations should exist');
 }
 
@@ -187,7 +207,7 @@ function testGenerateOrder() {
 
     for (let level = 1; level <= 12; level += 1) {
         const config = api.levelConfig(level);
-        assert.deepStrictEqual(toHost(api.denominations(level)), toHost(config.denominations), 'denominations should mirror levelConfig');
+        assert.deepStrictEqual(toHost(api.denominations(level)), [1, 5, 10, 20, 50, 100], 'all denominations should stay open at every level');
 
         for (const seed of [1, 20261010, 987654321]) {
             const order = api.generateOrder(level, seed);
@@ -195,26 +215,45 @@ function testGenerateOrder() {
 
             assert.deepStrictEqual(order, replay, `level ${level} seed ${seed} should reproduce the same order`);
             assert(order.item && typeof order.item.emoji === 'string' && order.item.name, 'order should carry an emoji item');
-            assert(Number.isInteger(order.price), `level ${level} price should be an integer`);
+            assert(order.item.unit, 'order item should carry a measure word');
+            assert(Number.isInteger(order.unitPrice) && order.unitPrice > 0, `level ${level} unit price should be a positive integer`);
             assert(
-                order.price >= config.priceMin && order.price <= config.priceMax,
-                `level ${level} price ${order.price} should stay inside [${config.priceMin}, ${config.priceMax}]`
+                Number.isInteger(order.qty) && order.qty >= config.qtyMin && order.qty <= config.qtyMax,
+                `level ${level} qty ${order.qty} should stay inside [${config.qtyMin}, ${config.qtyMax}]`
             );
+            assert.strictEqual(order.price, order.unitPrice * order.qty, 'tag price should equal unit price times qty');
+            assert(
+                order.price >= config.totalMin && order.price <= config.totalMax,
+                `level ${level} total ${order.price} should stay inside [${config.totalMin}, ${config.totalMax}]`
+            );
+            assert.strictEqual(order.paid, undefined, 'orders should not predefine the paid amount');
 
-            if (config.mode === 'change') {
-                assert.strictEqual(order.paid, config.paid, `level ${level} customer should pay the fixed round note`);
-                assert(order.paid > order.price, `level ${level} customer should overpay so the change is positive`);
-                const change = api.computeChange(order.paid, order.price);
-                assert(change >= 1, `level ${level} change should be at least 1 yuan`);
-                const breakdown = api.greedyBreakdown(change, api.denominations(level));
-                assert(breakdown !== null, `level ${level} change ${change} should be payable with open denominations`);
-                const reassembled = breakdown.reduce((sum, part) => sum + part.value * part.count, 0);
-                assert.strictEqual(reassembled, change, `level ${level} greedy breakdown should reassemble the change`);
-            } else {
-                assert.strictEqual(order.paid, undefined, `level ${level} exact mode should not carry a paid note`);
+            const poolItem = api.ITEM_POOL.find((entry) => entry.name === order.item.name);
+            assert(poolItem && poolItem.tier === config.tier, `level ${level} should pick goods from the ${config.tier} tier`);
+
+            if (config.tier === 'big') {
+                assert(
+                    order.unitPrice % 10 === 0 || poolItem.minPrice === poolItem.maxPrice,
+                    `level ${level} big-ticket unit prices should prefer multiples of ten`
+                );
             }
         }
     }
+
+    const combos = toHost(api.unitPriceCombos(
+        { minPrice: 3, maxPrice: 6 },
+        { totalMin: 10, totalMax: 30, qtyMin: 1, qtyMax: 5 }
+    ));
+    assert.deepStrictEqual(
+        combos,
+        [
+            { qty: 2, low: 5, high: 6 },
+            { qty: 3, low: 4, high: 6 },
+            { qty: 4, low: 3, high: 6 },
+            { qty: 5, low: 3, high: 6 }
+        ],
+        'combos should only keep quantities that can land inside the total range'
+    );
 }
 
 function testEvaluateAndChange() {
@@ -235,15 +274,23 @@ function testEvaluateAndChange() {
     assert.strictEqual(api.computeChange(50, 32), 18, 'change of 50 for 32 should be 18');
     assert.strictEqual(api.computeChange(100, 100), 0, 'change of 100 for 100 should be 0');
 
+    assert.strictEqual(api.orderDue({ price: 12 }), 12, 'payment due should always be the tag price');
+    assert.strictEqual(api.orderDue({ price: 48, unitPrice: 6, qty: 8 }), 48, 'payment due should ignore qty breakdown');
+
+    assert.strictEqual(api.checkChangeInput('14', 14), 'correct', 'the exact change should pass');
+    assert.strictEqual(api.checkChangeInput('20', 14), 'more', 'over-refunding should hint more');
+    assert.strictEqual(api.checkChangeInput('7', 14), 'less', 'under-refunding should hint less');
+    assert.strictEqual(api.checkChangeInput('', 14), 'invalid', 'empty input should be invalid without a mistake');
+    assert.strictEqual(api.checkChangeInput('abc', 14), 'invalid', 'non-numeric input should be invalid');
+    assert.strictEqual(api.checkChangeInput('-3', 14), 'invalid', 'negative input should be invalid');
+    assert.strictEqual(api.checkChangeInput('1.5', 14), 'invalid', 'decimal input should be invalid');
+
     assert.deepStrictEqual(
         toHost(api.coinCountSummary([1, 5, 5, 1])),
         [{ value: 5, count: 2 }, { value: 1, count: 2 }],
         'coin summary should count by denomination in descending order'
     );
     assert.deepStrictEqual(toHost(api.coinCountSummary([])), [], 'empty tray should summarize to an empty list');
-
-    assert.strictEqual(api.orderDue({ price: 12 }), 12, 'exact order due should be the price');
-    assert.strictEqual(api.orderDue({ price: 12, paid: 50 }), 38, 'change order due should be the change amount');
 
     const parts = toHost(api.greedyBreakdown(38, [1, 5, 10, 20]));
     assert.deepStrictEqual(
@@ -259,35 +306,38 @@ function testStarRatingAndLevelConfig() {
 
     assert.strictEqual(api.starRating(0), 3, 'zero mistakes should earn three stars');
     assert.strictEqual(api.starRating(1), 2, 'one mistake should earn two stars');
-    assert.strictEqual(api.starRating(2), 2, 'two mistakes should earn two stars');
-    assert.strictEqual(api.starRating(3), 1, 'three mistakes should earn one star');
-    assert.strictEqual(api.starRating(9), 1, 'many mistakes should still earn one star');
+    assert.strictEqual(api.starRating(2), 1, 'two mistakes should earn one star');
+    assert.strictEqual(api.starRating(3), 0, 'three mistakes should earn zero stars but still pass');
+    assert.strictEqual(api.starRating(9), 0, 'more mistakes should never go below zero stars');
 
     assert.strictEqual(api.levelConfig(1).mode, 'exact', 'level 1 should be exact payment');
-    assert.strictEqual(api.levelConfig(4).priceMax, 10, 'levels 1-4 should cap prices at 10');
-    assert.deepStrictEqual(toHost(api.denominations(1)), [1, 5], 'levels 1-4 should only open 1 and 5');
+    assert.strictEqual(api.levelConfig(6).mode, 'exact', 'level 6 should still be exact payment');
+    assert.strictEqual(api.levelConfig(1).totalMax, 10, 'levels 1-3 should cap totals at 10');
+    assert.strictEqual(api.levelConfig(4).totalMax, 30, 'levels 4-6 should cap totals at 30');
+    assert.strictEqual(api.levelConfig(6).tier, 'small', 'levels 1-6 should use small goods');
 
-    assert.strictEqual(api.levelConfig(5).priceMax, 50, 'levels 5-8 should cap prices at 50');
-    assert.deepStrictEqual(toHost(api.denominations(5)), [1, 5, 10, 20, 50], 'levels 5-8 should open notes up to 50');
-    assert.strictEqual(api.levelConfig(8).mode, 'exact', 'level 8 should still be exact payment');
+    assert.strictEqual(api.levelConfig(7).mode, 'change', 'level 7 should start change mode');
+    assert.strictEqual(api.levelConfig(8).totalMax, 50, 'levels 7-8 should cap totals at 50');
+    assert.strictEqual(api.levelConfig(9).qtyMax, 10, 'levels 9-10 should allow buying up to ten pieces');
+    assert.strictEqual(api.levelConfig(10).totalMax, 99, 'levels 9-10 should cap totals at 99');
 
-    assert.strictEqual(api.levelConfig(9).mode, 'change', 'level 9 should start change mode');
-    assert.strictEqual(api.levelConfig(9).paid, 50, 'levels 9-10 customer should pay 50');
-    assert.strictEqual(api.levelConfig(10).priceMax, 20, 'levels 9-10 should cap prices at 20');
-    assert.deepStrictEqual(toHost(api.denominations(9)), [1, 5, 10, 20], 'levels 9-10 should open notes up to 20');
-
-    assert.strictEqual(api.levelConfig(11).paid, 100, 'levels 11-12 customer should pay 100');
-    assert.strictEqual(api.levelConfig(12).mode, 'change', 'level 12 should be change mode');
-    assert.strictEqual(api.levelConfig(12).priceMax, 99, 'levels 11-12 should cap prices at 99 to keep change positive');
-    assert.deepStrictEqual(toHost(api.denominations(11)), [1, 5, 10, 20, 50], 'levels 11-12 should open notes up to 50');
+    assert.strictEqual(api.levelConfig(11).mode, 'change', 'level 11 should be change mode');
+    assert.strictEqual(api.levelConfig(11).tier, 'big', 'level 11 should use appliance goods');
+    assert.strictEqual(api.levelConfig(11).totalMin, 100, 'level 11 totals should start at 100');
+    assert.strictEqual(api.levelConfig(12).tier, 'big', 'level 12 should use appliance goods');
+    assert.strictEqual(api.levelConfig(12).totalMax, 500, 'level 12 should cap totals at 500');
 
     assert(
-        api.levelConfig(2).priceMin > api.levelConfig(1).priceMin,
-        'exact tier prices should ramp up inside levels 1-4'
+        api.levelConfig(2).totalMin > api.levelConfig(1).totalMin,
+        'exact tier total floors should ramp up inside levels 1-3'
     );
     assert(
-        api.levelConfig(6).priceMin > api.levelConfig(5).priceMin,
-        'exact tier prices should ramp up inside levels 5-8'
+        api.levelConfig(6).totalMin > api.levelConfig(5).totalMin,
+        'exact tier total floors should ramp up inside levels 4-6'
+    );
+    assert(
+        api.levelConfig(10).totalMin > api.levelConfig(9).totalMin,
+        'change tier total floors should ramp up inside levels 9-10'
     );
 }
 
