@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>图案找规律 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="图案找规律">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Pattern Quest</p>
+                <h1>图案找规律</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <section class="progress-strip" aria-label="本关进度">
+            <span id="question-text" class="question-text">第 1 / 6 题</span>
+            <div id="progress-track" class="progress-track" role="progressbar" aria-label="关卡进度">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <span id="hit-text" class="hit-text">首答答对 0</span>
+        </section>
+
+        <section class="board-section" aria-label="图案序列">
+            <div id="pattern-row" class="pattern-row" aria-live="polite"></div>
+            <p id="pattern-desc" class="pattern-desc"></p>
+            <p id="feedback-text" class="feedback-text" aria-live="assertive"></p>
+        </section>
+
+        <section class="options-section" aria-label="备选卡片">
+            <div id="options-grid" class="options-grid"></div>
+        </section>
+
+        <footer class="action-bar">
+            <button id="restart-btn" class="ghost-btn" type="button">重开本关</button>
+            <button id="levels-btn" class="ghost-btn" type="button">关卡选择</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">规律小达人！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
+            <p id="result-text" class="result-text">首次答对 6 / 6 题</p>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

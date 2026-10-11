@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>儿童数独 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="儿童数独">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Mini Sudoku</p>
+                <h1>儿童数独</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">填错</span>
+                <strong id="mistakes-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">剩余空格</span>
+                <strong id="empty-text">0</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="数独棋盘">
+            <div id="grid" class="sudoku-grid" aria-live="polite"></div>
+            <p class="feedback-text" id="feedback-text" aria-live="polite"></p>
+        </section>
+
+        <section class="palette-section" aria-label="图案盘">
+            <div id="palette" class="palette"></div>
+        </section>
+
+        <p class="hint-text">每行、每列、每个虚线宫里的图案都不能重复。先点空格，再点下面的图案填进去。</p>
+
+        <footer class="action-bar">
+            <button id="clear-btn" class="ghost-btn" type="button">清空重来</button>
+            <button id="restart-btn" class="ghost-btn" type="button">重开本关</button>
+            <button id="levels-btn" class="ghost-btn" type="button">关卡选择</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">拼好啦！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
+            <div class="result-row">
+                <div>
+                    <span class="label">填错次数</span>
+                    <strong id="result-mistakes">0 次</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

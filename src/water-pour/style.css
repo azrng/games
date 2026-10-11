@@ -1,0 +1,527 @@
+:root {
+    --wp-bg-top: #d7f0fd;
+    --wp-bg-mid: #eef9ff;
+    --wp-bg-bottom: #e0f7ee;
+    --wp-panel: #ffffff;
+    --wp-panel-soft: #f1fbff;
+    --wp-border: #cfe7f5;
+    --wp-border-strong: #a5d3ec;
+    --wp-text: #123f5c;
+    --wp-muted: #5d8299;
+    --wp-primary: #189ad3;
+    --wp-primary-deep: #0f7cae;
+    --wp-on-primary: #ffffff;
+    --wp-teal: #2ec4b6;
+    --wp-teal-deep: #1ba99b;
+    --wp-on-teal: #00332e;
+    --wp-gold: #ffb703;
+    --wp-water-top: #56c9f2;
+    --wp-water-bottom: #0f86c0;
+    --wp-shadow: 0 16px 34px rgba(18, 74, 112, 0.14);
+    --wp-shadow-soft: 0 8px 18px rgba(18, 74, 112, 0.1);
+    --wp-radius-lg: 24px;
+    --wp-radius-md: 16px;
+    --wp-radius-sm: 12px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background:
+        radial-gradient(circle at 16% 6%, rgba(46, 196, 182, 0.14), transparent 40%),
+        radial-gradient(circle at 86% 92%, rgba(24, 154, 211, 0.16), transparent 44%),
+        linear-gradient(180deg, var(--wp-bg-top) 0%, var(--wp-bg-mid) 48%, var(--wp-bg-bottom) 100%);
+    color: var(--wp-text);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+/* 顶部整体下移 64px（16 + 48），给左上角悬浮返回按钮留出安全区（≥56px） */
+.game-shell {
+    width: min(100%, 520px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: calc(max(16px, env(safe-area-inset-top)) + 48px) 16px max(18px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.game-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.eyebrow,
+.label {
+    margin: 0;
+    color: var(--wp-muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+h1,
+h2 {
+    margin: 4px 0 0;
+    line-height: 1.1;
+    color: var(--wp-text);
+}
+
+h1 {
+    font-size: 28px;
+}
+
+h2 {
+    font-size: 25px;
+}
+
+.level-pill {
+    min-width: 84px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--wp-panel);
+    border: 2px solid var(--wp-border-strong);
+    color: var(--wp-primary-deep);
+    font-weight: 800;
+    box-shadow: var(--wp-shadow-soft);
+}
+
+.scoreboard {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.score-card {
+    min-width: 0;
+    min-height: 64px;
+    padding: 10px 9px;
+    border: 1px solid var(--wp-border);
+    border-radius: var(--wp-radius-md);
+    background: var(--wp-panel);
+    box-shadow: var(--wp-shadow-soft);
+}
+
+.score-card strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 19px;
+    line-height: 1.1;
+}
+
+/* 目标横幅：亮色渐变胶囊，始终提醒本关要量出的升数 */
+.goal-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(24, 154, 211, 0.14), rgba(46, 196, 182, 0.16));
+    border: 1px solid var(--wp-border-strong);
+    font-weight: 800;
+}
+
+.goal-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.goal-label {
+    color: var(--wp-muted);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+}
+
+#goal-text {
+    color: var(--wp-primary-deep);
+    font-size: 19px;
+}
+
+/* 杯子区：横排对齐杯底，水越接满杯身越亮 */
+.board-section {
+    display: flex;
+    justify-content: center;
+}
+
+.cups {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(14px, 6vw, 36px);
+    width: min(100%, 460px);
+    padding: 20px 12px 16px;
+    border: 1px solid var(--wp-border);
+    border-radius: var(--wp-radius-lg);
+    background: linear-gradient(180deg, var(--wp-panel) 0%, var(--wp-panel-soft) 100%);
+    box-shadow: var(--wp-shadow);
+}
+
+.cup {
+    width: clamp(84px, 26vw, 128px);
+    min-height: 44px;
+    padding: 0;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.cup-cap {
+    text-align: center;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--wp-muted);
+    transition: color 160ms ease;
+}
+
+.cup-body {
+    position: relative;
+    display: block;
+    height: clamp(170px, 34vh, 250px);
+    border: 3px solid var(--wp-border-strong);
+    border-radius: 8px 8px 26px 26px;
+    background: rgba(255, 255, 255, 0.72);
+    overflow: hidden;
+    box-shadow: inset 0 4px 12px rgba(24, 154, 211, 0.08);
+    transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+/* 蓝色水位条：高度按 水量/容量 百分比过渡 */
+.cup-water {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0%;
+    background: linear-gradient(180deg, var(--wp-water-top) 0%, var(--wp-water-bottom) 100%);
+    transition: height 440ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* 水面高光线 */
+.cup-water::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 6%;
+    right: 6%;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.42);
+}
+
+.cup-amount {
+    text-align: center;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--wp-text);
+    transition: color 160ms ease;
+}
+
+.cup:active .cup-body {
+    transform: scale(0.97);
+}
+
+.cup.is-selected .cup-cap {
+    color: var(--wp-primary);
+}
+
+.cup.is-selected .cup-body {
+    border-color: var(--wp-primary);
+    transform: translateY(-4px);
+    box-shadow:
+        0 0 0 4px rgba(24, 154, 211, 0.2),
+        inset 0 4px 12px rgba(24, 154, 211, 0.12);
+}
+
+/* 恰好量出目标的杯子：金色描边 + 底部升数变金 */
+.cup.is-goal .cup-body {
+    border-color: var(--wp-gold);
+    box-shadow:
+        0 0 0 4px rgba(255, 183, 3, 0.24),
+        inset 0 4px 12px rgba(24, 154, 211, 0.08);
+}
+
+.cup.is-goal .cup-amount {
+    color: var(--wp-gold);
+}
+
+/* 提示脉冲：杯子与按钮共用金色呼吸圈 */
+.cup.is-hint .cup-body,
+.cmd-btn.is-hint,
+.ghost-btn.is-hint {
+    animation: wpHintPulse 1s ease-in-out infinite;
+}
+
+.status-text {
+    margin: 0;
+    min-height: 22px;
+    color: var(--wp-muted);
+    font-size: 13px;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.cmd-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.cmd-btn {
+    min-height: 64px;
+    border-radius: var(--wp-radius-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-weight: 800;
+    transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.cmd-btn:active {
+    transform: scale(0.95);
+}
+
+.cmd-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.cmd-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.cmd-name {
+    font-size: 14px;
+}
+
+.cmd-fill {
+    background: var(--wp-primary);
+    color: var(--wp-on-primary);
+    box-shadow: 0 10px 20px rgba(24, 154, 211, 0.3);
+}
+
+.cmd-empty {
+    background: var(--wp-teal);
+    color: var(--wp-on-teal);
+    box-shadow: 0 10px 20px rgba(46, 196, 182, 0.3);
+}
+
+.action-bar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.action-bar-single {
+    grid-template-columns: 1fr;
+}
+
+.ghost-btn {
+    min-height: 48px;
+    border-radius: var(--wp-radius-md);
+    border: 1px solid var(--wp-border-strong);
+    background: var(--wp-panel);
+    color: var(--wp-text);
+    font-weight: 700;
+    box-shadow: var(--wp-shadow-soft);
+    transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.ghost-btn:active {
+    transform: scale(0.97);
+}
+
+.ghost-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ghost-btn span {
+    color: var(--wp-muted);
+    font-size: 12px;
+    margin-left: 2px;
+}
+
+.primary-btn {
+    min-height: 52px;
+    border-radius: var(--wp-radius-md);
+    background: var(--wp-primary);
+    color: var(--wp-on-primary);
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 12px 24px rgba(24, 154, 211, 0.32);
+    transition: transform 120ms ease;
+}
+
+.primary-btn:active {
+    transform: scale(0.97);
+}
+
+.overlay-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+    background: rgba(12, 46, 66, 0.55);
+    backdrop-filter: blur(8px);
+}
+
+.overlay-modal[hidden] {
+    display: none;
+}
+
+.modal-card {
+    width: min(100%, 460px);
+    padding: 24px;
+    border-radius: 28px;
+    background: var(--wp-panel);
+    border: 1px solid var(--wp-border);
+    box-shadow: 0 30px 70px rgba(12, 46, 66, 0.4);
+}
+
+.stars {
+    margin: 10px 0 0;
+    color: var(--wp-gold);
+    font-size: 30px;
+    letter-spacing: 0.2em;
+    line-height: 1;
+}
+
+.stars .star-off {
+    color: rgba(93, 130, 153, 0.28);
+}
+
+/* 拿到的星星逐颗弹出 */
+.stars span:not(.star-off) {
+    display: inline-block;
+    animation: wpStarPop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.result-grid div {
+    padding: 12px;
+    border-radius: var(--wp-radius-md);
+    background: var(--wp-panel-soft);
+    border: 1px solid var(--wp-border);
+}
+
+.result-grid strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 20px;
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.modal-actions .primary-btn:only-child {
+    grid-column: 1 / -1;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+    max-height: 46vh;
+    overflow-y: auto;
+}
+
+.level-item {
+    min-height: 52px;
+    border-radius: var(--wp-radius-md);
+    border: 1px solid var(--wp-border-strong);
+    background: var(--wp-panel-soft);
+    color: var(--wp-text);
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.level-item:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.level-item.is-current {
+    background: var(--wp-primary);
+    color: var(--wp-on-primary);
+    border-color: var(--wp-primary);
+}
+
+@keyframes wpHintPulse {
+    0%,
+    100% {
+        box-shadow: 0 0 0 4px rgba(255, 183, 3, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(255, 183, 3, 0.14);
+    }
+}
+
+@keyframes wpStarPop {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 360px) {
+    .game-shell {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .cups {
+        gap: 10px;
+    }
+}

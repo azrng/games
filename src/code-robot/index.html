@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>编程小机器人 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="编程小机器人">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Code Robot</p>
+                <h1>编程小机器人</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本关状态">
+            <article class="score-card">
+                <span class="label">指令数</span>
+                <strong id="program-count">0/8</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">Par 步数</span>
+                <strong id="par-text">4</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">最佳星级</span>
+                <strong id="best-text">--</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="机器人棋盘">
+            <div class="board-frame">
+                <div id="grid" class="robot-grid" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <p id="status-text" class="status-text" aria-live="polite">点击下方指令块编排程序，然后点「运行」看机器人执行。</p>
+
+        <section class="program-section" aria-label="程序序列">
+            <div class="program-head">
+                <span class="label">程序序列</span>
+                <span class="program-tip">点小卡可删除该条指令</span>
+            </div>
+            <div id="program-strip" class="program-strip"></div>
+            <p id="program-hint" class="program-hint">程序还是空的，点下面的指令块添加吧。</p>
+        </section>
+
+        <section class="cmd-bar" aria-label="指令块">
+            <button id="btn-forward" class="cmd-btn cmd-forward" type="button">
+                <span class="cmd-icon">⬆️</span>
+                <span class="cmd-name">前进</span>
+            </button>
+            <button id="btn-left" class="cmd-btn cmd-turn" type="button">
+                <span class="cmd-icon">↰</span>
+                <span class="cmd-name">左转</span>
+            </button>
+            <button id="btn-right" class="cmd-btn cmd-turn" type="button">
+                <span class="cmd-icon">↱</span>
+                <span class="cmd-name">右转</span>
+            </button>
+        </section>
+
+        <footer class="action-bar">
+            <button id="run-btn" class="primary-btn" type="button">▶ 运行</button>
+            <button id="stop-btn" class="stop-btn" type="button" hidden>■ 停止</button>
+            <button id="clear-btn" class="ghost-btn" type="button">清空程序</button>
+        </footer>
+        <footer class="action-bar">
+            <button id="demo-btn" class="ghost-btn" type="button">演示</button>
+            <button id="restart-btn" class="ghost-btn" type="button">重开本关</button>
+            <button id="levels-btn" class="ghost-btn" type="button">关卡选择</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">任务完成！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
+            <div class="result-grid">
+                <div>
+                    <span class="label">使用指令</span>
+                    <strong id="result-steps">0</strong>
+                </div>
+                <div>
+                    <span class="label">Par 步数</span>
+                    <strong id="result-par">0</strong>
+                </div>
+                <div>
+                    <span class="label">收集宝石</span>
+                    <strong id="result-gems">0</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

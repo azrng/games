@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>汉字拼字 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="汉字拼字">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Hanzi Parts</p>
+                <h1>汉字拼字</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">目标进度</span>
+                <strong id="progress-text">0/0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">失误</span>
+                <strong id="mistakes-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">当前星级</span>
+                <strong id="stars-text" class="stars-mini">★★★</strong>
+            </article>
+        </section>
+
+        <section class="target-section" aria-label="目标清单">
+            <p class="section-title">本关目标</p>
+            <div id="target-list" class="target-list"></div>
+        </section>
+
+        <section class="bench-section" aria-label="合成台">
+            <p class="section-title">合成台</p>
+            <div id="bench-stage" class="bench-stage"></div>
+            <p id="bench-message" class="bench-message">点两个部件，拼出目标清单里的字</p>
+        </section>
+
+        <section class="pool-section" aria-label="部件池">
+            <p class="section-title">部件池</p>
+            <div id="pool" class="part-grid"></div>
+        </section>
+
+        <p class="hint-text">点两个部件试一试：拼出目标清单里的字就能点亮它，顺序无所谓。</p>
+
+        <footer class="action-bar">
+            <button id="restart-btn" class="ghost-btn" type="button">重开本关</button>
+            <button id="levels-btn" class="ghost-btn" type="button">关卡选择</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">合字成功！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
+            <p class="result-note">失误 <strong id="result-mistakes">0</strong> 次</p>
+            <div id="result-chars" class="learned-list"></div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="hanndata.js"></script>
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+:root {
+    --sc-bg: #fff3dd;
+    --sc-panel: #fffdf6;
+    --sc-panel-warm: #ffedd0;
+    --sc-border: #f3ddba;
+    --sc-text: #4a3728;
+    --sc-muted: #a5907a;
+    --sc-primary: #ff8a3d;
+    --sc-primary-deep: #ef6c1a;
+    --sc-primary-soft: rgba(255, 138, 61, 0.16);
+    --sc-good: #2fa566;
+    --sc-warn: #e5533d;
+    --sc-gold: #f7b733;
+    --sc-shadow: 0 16px 36px rgba(146, 92, 38, 0.18);
+    --sc-shadow-soft: 0 8px 18px rgba(146, 92, 38, 0.12);
+    --sc-radius-lg: 24px;
+    --sc-radius-md: 16px;
+    --sc-radius-sm: 12px;
+    --sc-coin-light: #f4f6fa;
+    --sc-coin-deep: #b6bfd0;
+    --sc-coin-text: #5d6675;
+    --sc-note-5: #8a5fc0;
+    --sc-note-5-deep: #64409a;
+    --sc-note-10: #4f7ecb;
+    --sc-note-10-deep: #35589e;
+    --sc-note-20: #b06a3b;
+    --sc-note-20-deep: #8a4a22;
+    --sc-note-50: #3f9d63;
+    --sc-note-50-deep: #237246;
+    --sc-note-100: #d4574e;
+    --sc-note-100-deep: #a83228;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background:
+        radial-gradient(circle at 18% 6%, rgba(247, 183, 51, 0.22), transparent 40%),
+        radial-gradient(circle at 85% 92%, rgba(63, 157, 99, 0.16), transparent 44%),
+        linear-gradient(180deg, #ffe9c4 0%, var(--sc-bg) 100%);
+    color: var(--sc-text);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.game-shell {
+    width: min(100%, 520px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.game-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.eyebrow,
+.label {
+    margin: 0;
+    color: var(--sc-muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+h1,
+h2 {
+    margin: 4px 0 0;
+    line-height: 1.08;
+    color: var(--sc-text);
+}
+
+h1 {
+    font-size: 28px;
+}
+
+h2 {
+    font-size: 24px;
+}
+
+.level-pill {
+    min-width: 84px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sc-primary-soft);
+    color: var(--sc-primary-deep);
+    font-weight: 800;
+}
+
+/* 本关进度：5 个订单圆点 + 失误计数 */
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.progress-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.progress-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(165, 144, 122, 0.35);
+}
+
+.progress-dot.is-done {
+    background: var(--sc-gold);
+    box-shadow: 0 0 0 3px rgba(247, 183, 51, 0.25);
+}
+
+.mistake-text {
+    color: var(--sc-muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* 顾客与商品卡片 */
+.counter-card {
+    padding: 14px;
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-lg);
+    background: var(--sc-panel);
+    box-shadow: var(--sc-shadow-soft);
+}
+
+.counter-card.is-success {
+    border-color: var(--sc-good);
+    animation: cheer 700ms ease;
+}
+
+.customer-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.customer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--sc-panel-warm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+}
+
+.order-line {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.goods-card {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px dashed var(--sc-border);
+    border-radius: var(--sc-radius-md);
+    background: linear-gradient(150deg, #ffffff 0%, var(--sc-panel-warm) 100%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.goods-emoji {
+    font-size: 56px;
+    line-height: 1;
+}
+
+.goods-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.goods-name {
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.goods-price {
+    align-self: flex-start;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: var(--sc-gold);
+    color: #5c3d00;
+    font-size: 18px;
+    font-weight: 800;
+    box-shadow: var(--sc-shadow-soft);
+}
+
+/* 找零模式题面：应收与顾客支付，目标找零不展示 */
+.change-line {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    border-radius: var(--sc-radius-sm);
+    background: var(--sc-primary-soft);
+    color: var(--sc-primary-deep);
+    font-size: 14px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.pay-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 付款台：累计金额与面额张数标签 */
+.tray {
+    padding: 12px;
+    border: 2px dashed var(--sc-primary);
+    border-radius: var(--sc-radius-md);
+    background: var(--sc-panel);
+}
+
+.tray-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.tray-head strong {
+    font-size: 20px;
+    color: var(--sc-primary-deep);
+}
+
+.tray-chips {
+    margin-top: 10px;
+    min-height: 44px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.tray-chip {
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 2px solid var(--sc-primary);
+    background: var(--sc-primary-soft);
+    color: var(--sc-primary-deep);
+    font-weight: 800;
+    transition: transform 120ms ease;
+}
+
+.tray-chip:active {
+    transform: scale(0.94);
+}
+
+.tray-empty {
+    color: var(--sc-muted);
+    font-size: 13px;
+}
+
+/* 反馈区三态：默认引导 / 付错警告 / 付对表扬 */
+.feedback {
+    min-height: 22px;
+    margin: 0;
+    text-align: center;
+    font-weight: 800;
+    color: var(--sc-muted);
+}
+
+.feedback.is-warn {
+    color: var(--sc-warn);
+    animation: shake 360ms ease;
+}
+
+.feedback.is-good {
+    color: var(--sc-good);
+    animation: pop 360ms ease;
+}
+
+/* 面额按钮：1 元银色硬币，其余纸币色块 */
+.money-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.money-btn {
+    min-height: 64px;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.4),
+        var(--sc-shadow-soft);
+    transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.money-btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.money-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.money-btn.coin {
+    justify-self: center;
+    align-self: center;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, var(--sc-coin-light) 0%, var(--sc-coin-deep) 80%);
+    color: var(--sc-coin-text);
+    font-size: 17px;
+    text-shadow: none;
+    box-shadow:
+        inset 0 0 0 3px rgba(255, 255, 255, 0.75),
+        inset 0 -4px 8px rgba(93, 102, 117, 0.4),
+        var(--sc-shadow-soft);
+}
+
+.money-btn.note-5 {
+    background: linear-gradient(155deg, var(--sc-note-5), var(--sc-note-5-deep));
+}
+
+.money-btn.note-10 {
+    background: linear-gradient(155deg, var(--sc-note-10), var(--sc-note-10-deep));
+}
+
+.money-btn.note-20 {
+    background: linear-gradient(155deg, var(--sc-note-20), var(--sc-note-20-deep));
+}
+
+.money-btn.note-50 {
+    background: linear-gradient(155deg, var(--sc-note-50), var(--sc-note-50-deep));
+}
+
+.money-btn.note-100 {
+    background: linear-gradient(155deg, var(--sc-note-100), var(--sc-note-100-deep));
+}
+
+/* 动作区：付账独占一行，下方清空/重开/关卡 */
+.action-bar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.action-bar .primary-btn {
+    grid-column: 1 / -1;
+}
+
+.ghost-btn {
+    min-height: 48px;
+    border-radius: var(--sc-radius-md);
+    border: 1px solid var(--sc-border);
+    background: var(--sc-panel);
+    color: var(--sc-text);
+    font-weight: 700;
+    box-shadow: var(--sc-shadow-soft);
+    transition: transform 120ms ease;
+}
+
+.ghost-btn:active {
+    transform: scale(0.97);
+}
+
+.primary-btn {
+    min-height: 56px;
+    border-radius: var(--sc-radius-md);
+    background: linear-gradient(160deg, var(--sc-primary), var(--sc-primary-deep));
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    box-shadow: 0 12px 24px rgba(239, 108, 26, 0.32);
+    transition: transform 120ms ease;
+}
+
+.primary-btn:active {
+    transform: scale(0.97);
+}
+
+/* 弹窗：结算与关卡选择 */
+.overlay-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+    background: rgba(74, 55, 40, 0.45);
+    backdrop-filter: blur(8px);
+}
+
+.overlay-modal[hidden] {
+    display: none;
+}
+
+.modal-card {
+    width: min(100%, 460px);
+    padding: 24px;
+    border-radius: 28px;
+    background: var(--sc-panel);
+    border: 1px solid var(--sc-border);
+    box-shadow: var(--sc-shadow);
+    text-align: center;
+}
+
+.modal-card h2 {
+    margin-top: 6px;
+}
+
+.stars {
+    margin: 10px 0 0;
+    color: var(--sc-gold);
+    font-size: 32px;
+    letter-spacing: 0.2em;
+    line-height: 1;
+}
+
+.stars .star-off {
+    color: rgba(165, 144, 122, 0.3);
+}
+
+.result-detail {
+    margin: 10px 0 0;
+    color: var(--sc-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* 弹窗按钮用 flex 布局：隐藏其中一个时其余按钮自动居中铺满 */
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.modal-actions button {
+    flex: 1;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+    max-height: 46vh;
+    overflow-y: auto;
+}
+
+.level-item {
+    min-height: 52px;
+    border-radius: var(--sc-radius-md);
+    border: 1px solid var(--sc-border);
+    background: var(--sc-panel-warm);
+    color: var(--sc-text);
+    font-weight: 800;
+    font-size: 18px;
+}
+
+.level-item.is-cleared {
+    border-color: var(--sc-gold);
+    background: #fff6df;
+    color: #a06e00;
+}
+
+.level-item.is-current {
+    background: var(--sc-primary);
+    border-color: var(--sc-primary-deep);
+    color: #fff;
+}
+
+@keyframes cheer {
+    0% {
+        transform: scale(1);
+    }
+    35% {
+        transform: scale(1.04);
+    }
+    70% {
+        transform: scale(0.99);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes shake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(0.85);
+    }
+    60% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 360px) {
+    .game-shell {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .goods-emoji {
+        font-size: 46px;
+    }
+}
+
+/* 移动端顶部为悬浮返回按钮预留安全区，避免页头标题被遮挡 */
+@media (max-width: 680px) {
+    .game-shell {
+        padding-top: calc(max(16px, env(safe-area-inset-top)) + 44px);
+    }
+}

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>时钟认知 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="时钟认知">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Clock Learning</p>
+                <h1>时钟认知</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <section class="scoreboard" aria-label="本关进度">
+            <article class="score-card">
+                <span class="label">题目</span>
+                <strong id="progress-text">1 / 8</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">首答正确</span>
+                <strong id="correct-text">0 题</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="答题区">
+            <p class="mode-chip" id="mode-chip">认时间</p>
+            <p class="question-prompt" id="question-prompt">仔细看钟面，现在是几点？</p>
+            <div class="clock-wrap">
+                <svg id="clock-svg" viewBox="0 0 200 200" role="img" aria-label="钟面">
+                    <circle cx="100" cy="100" r="97" class="clock-face"></circle>
+                    <g id="clock-ticks"></g>
+                    <g id="clock-numbers"></g>
+                    <g id="hour-hand" class="hand-hour"><line x1="100" y1="110" x2="100" y2="50"></line></g>
+                    <g id="minute-hand" class="hand-minute"><line x1="100" y1="112" x2="100" y2="26"></line></g>
+                    <circle cx="100" cy="100" r="6.5" class="clock-center"></circle>
+                </svg>
+                <div id="answer-burst" class="answer-burst" aria-hidden="true">
+                    <span class="burst-check">✅</span>
+                    <span class="burst-star burst-star-a">⭐</span>
+                    <span class="burst-star burst-star-b">⭐</span>
+                </div>
+            </div>
+            <p class="feedback-text" id="feedback-text" aria-live="polite"></p>
+            <div id="options-grid" class="options-grid"></div>
+            <div id="dial-panel" class="dial-panel" hidden>
+                <div class="adjust-grid">
+                    <div class="adjust-group">
+                        <span class="adjust-label adjust-label-hour">时针</span>
+                        <button id="hour-minus" class="adjust-btn" type="button" aria-label="时针回拨 1 小时">−1</button>
+                        <button id="hour-plus" class="adjust-btn" type="button" aria-label="时针前拨 1 小时">＋1</button>
+                    </div>
+                    <div class="adjust-group">
+                        <span class="adjust-label adjust-label-minute">分针</span>
+                        <button id="minute-minus" class="adjust-btn" type="button" aria-label="分针回拨 5 分钟">−5</button>
+                        <button id="minute-plus" class="adjust-btn" type="button" aria-label="分针前拨 5 分钟">＋5</button>
+                    </div>
+                </div>
+                <button id="confirm-btn" class="primary-btn" type="button">确定</button>
+                <p class="dial-tip">拖动指针或用按钮微调，拨好了点「确定」。</p>
+            </div>
+        </section>
+
+        <footer class="action-bar">
+            <button id="restart-btn" class="ghost-btn" type="button">重开本关</button>
+            <button id="levels-btn" class="ghost-btn" type="button">关卡选择</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">闯关成功！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
+            <div class="result-row">
+                <div>
+                    <span class="label">首答正确</span>
+                    <strong id="result-correct">0 / 8</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

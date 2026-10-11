@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>记忆翻牌 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="记忆翻牌">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Memory Match</p>
+                <h1>记忆翻牌</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <!-- 首次进入的玩法说明提示条：关闭状态记入存档，之后不再出现 -->
+        <section id="tip-bar" class="tip-bar" aria-label="玩法说明" hidden>
+            <p class="tip-text">每次翻开两张卡，图案相同就配对成功；把卡阵全部配对即过关，翻牌次数越少星级越高。</p>
+            <button id="tip-close-btn" class="tip-close" type="button">知道了</button>
+        </section>
+
+        <section class="scoreboard" aria-label="本局状态">
+            <article class="score-card">
+                <span class="label">翻牌次数</span>
+                <strong id="flips-text">0</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">已配对</span>
+                <strong id="pairs-text">0 / 6</strong>
+            </article>
+            <article class="score-card">
+                <span class="label">本关最佳</span>
+                <strong id="best-text">--</strong>
+            </article>
+        </section>
+
+        <section class="board-section" aria-label="卡阵">
+            <div id="grid" class="memory-grid" data-cols="3" aria-live="polite"></div>
+        </section>
+
+        <footer class="action-bar">
+            <button id="restart-btn" class="ghost-btn" type="button">重开本关</button>
+            <button id="levels-btn" class="ghost-btn" type="button">关卡选择</button>
+        </footer>
+    </main>
+
+    <section id="win-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="win-title">
+            <p class="eyebrow">Level Clear</p>
+            <h2 id="win-title">全部配对成功！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价">★★★</p>
+            <div class="result-grid">
+                <div>
+                    <span class="label">翻牌次数</span>
+                    <strong id="result-flips">0</strong>
+                </div>
+                <div>
+                    <span class="label">历史最佳</span>
+                    <strong id="result-best">--</strong>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一关</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

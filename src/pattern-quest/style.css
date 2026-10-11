@@ -1,0 +1,576 @@
+:root {
+    --pq-bg: #fef4e3;
+    --pq-bg-deep: #fde8c8;
+    --pq-panel: #ffffff;
+    --pq-panel-soft: #fff8ec;
+    --pq-border: #ffd9a8;
+    --pq-ink: #5b4636;
+    --pq-muted: #b08e6e;
+    --pq-primary: #ff9f43;
+    --pq-primary-deep: #ef7d1a;
+    --pq-primary-soft: rgba(255, 159, 67, 0.16);
+    --pq-accent: #3d8bd4;
+    --pq-accent-soft: rgba(84, 160, 255, 0.14);
+    --pq-success: #2ed573;
+    --pq-success-soft: rgba(46, 213, 115, 0.16);
+    --pq-danger: #ff6b6b;
+    --pq-tint-red: #ff6b6b;
+    --pq-tint-blue: #54a0ff;
+    --pq-tint-green: #2ed573;
+    --pq-tint-amber: #ffa502;
+    --pq-tint-purple: #a55eea;
+    --pq-shadow: 0 16px 32px rgba(214, 158, 96, 0.24);
+    --pq-shadow-soft: 0 8px 18px rgba(214, 158, 96, 0.18);
+    --pq-radius-lg: 24px;
+    --pq-radius-md: 16px;
+    --pq-radius-sm: 12px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background:
+        radial-gradient(circle at 18% 6%, rgba(255, 159, 67, 0.18), transparent 42%),
+        radial-gradient(circle at 84% 90%, rgba(84, 160, 255, 0.16), transparent 46%),
+        linear-gradient(180deg, var(--pq-bg-deep) 0%, var(--pq-bg) 100%);
+    color: var(--pq-ink);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+    color: inherit;
+}
+
+button:focus-visible {
+    outline: 3px solid var(--pq-accent);
+    outline-offset: 2px;
+}
+
+.game-shell {
+    width: min(100%, 520px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.game-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.eyebrow {
+    margin: 0;
+    color: var(--pq-muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+h1,
+h2 {
+    margin: 4px 0 0;
+    line-height: 1.1;
+    color: var(--pq-ink);
+}
+
+h1 {
+    font-size: 28px;
+}
+
+h2 {
+    font-size: 24px;
+}
+
+.level-pill {
+    min-width: 84px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pq-panel);
+    border: 2px solid var(--pq-border);
+    color: var(--pq-primary-deep);
+    font-weight: 800;
+    box-shadow: var(--pq-shadow-soft);
+}
+
+.progress-strip {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.question-text,
+.hit-text {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--pq-muted);
+    white-space: nowrap;
+}
+
+.progress-track {
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 217, 168, 0.55);
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--pq-primary), #ffc46b);
+    transition: width 240ms ease;
+}
+
+.board-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.pattern-row {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 2.4vw, 12px);
+    padding: clamp(14px, 4vw, 22px);
+    border: 1px solid var(--pq-border);
+    border-radius: var(--pq-radius-lg);
+    background: var(--pq-panel);
+    box-shadow: var(--pq-shadow);
+}
+
+/* 序列卡与备选卡共用的图案卡片外观 */
+.tile-card {
+    width: clamp(48px, 13vw, 64px);
+    min-height: clamp(48px, 13vw, 64px);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--pq-radius-md);
+    border: 2px solid var(--pq-border);
+    background: var(--pq-panel-soft);
+    box-shadow: var(--pq-shadow-soft);
+    animation: pqFadeIn 240ms ease;
+}
+
+.tile-card.is-question {
+    border: 2px dashed var(--pq-primary);
+    background: var(--pq-primary-soft);
+}
+
+.tile-card.is-revealed {
+    border-color: var(--pq-success);
+    background: var(--pq-success-soft);
+    animation: pqReveal 420ms ease;
+}
+
+.question-mark {
+    font-size: clamp(26px, 8vw, 34px);
+    font-weight: 800;
+    color: var(--pq-primary-deep);
+}
+
+/* emoji 数量渲染：数量越多字号越小，避免撑破卡片 */
+.emoji-cluster {
+    font-size: clamp(26px, 8vw, 34px);
+    line-height: 1.15;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.emoji-cluster.emoji-sm {
+    font-size: clamp(19px, 6vw, 25px);
+}
+
+.emoji-cluster.emoji-xs {
+    font-size: clamp(15px, 5vw, 20px);
+}
+
+/* 纯 CSS 图形（用于同形状变色关卡），颜色由 tint-* 类提供 */
+.css-shape {
+    display: block;
+    width: 62%;
+    max-width: 44px;
+    aspect-ratio: 1 / 1;
+}
+
+.shape-circle {
+    border-radius: 50%;
+}
+
+.shape-square {
+    border-radius: 22%;
+}
+
+.shape-triangle {
+    clip-path: polygon(50% 8%, 96% 92%, 4% 92%);
+}
+
+.shape-diamond {
+    clip-path: polygon(50% 2%, 98% 50%, 50% 98%, 2% 50%);
+}
+
+.tint-red {
+    background: var(--pq-tint-red);
+}
+
+.tint-blue {
+    background: var(--pq-tint-blue);
+}
+
+.tint-green {
+    background: var(--pq-tint-green);
+}
+
+.tint-amber {
+    background: var(--pq-tint-amber);
+}
+
+.tint-purple {
+    background: var(--pq-tint-purple);
+}
+
+.pattern-desc {
+    margin: 0;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: var(--pq-accent-soft);
+    color: var(--pq-accent);
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.feedback-text {
+    margin: 0;
+    min-height: 22px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--pq-muted);
+}
+
+.feedback-text.tone-good {
+    color: #1f9d55;
+}
+
+.feedback-text.tone-bad {
+    color: var(--pq-danger);
+}
+
+.options-section {
+    display: flex;
+    justify-content: center;
+}
+
+.options-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.option-card {
+    position: relative;
+    min-height: 88px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--pq-radius-lg);
+    border: 2px solid var(--pq-border);
+    background: var(--pq-panel);
+    box-shadow: var(--pq-shadow-soft);
+    transition: transform 120ms ease, border-color 160ms ease, background-color 160ms ease, opacity 160ms ease;
+}
+
+.option-card:active {
+    transform: scale(0.95);
+}
+
+.option-card:disabled {
+    cursor: default;
+}
+
+.option-card .css-shape {
+    width: 46%;
+    max-width: 52px;
+}
+
+.option-card.is-correct {
+    border-color: var(--pq-success);
+    background: var(--pq-success-soft);
+    animation: pqPop 520ms ease;
+}
+
+.option-card.is-correct::after {
+    content: '✅';
+    position: absolute;
+    top: -10px;
+    right: -8px;
+    font-size: 22px;
+}
+
+.option-card.is-wrong {
+    border-color: var(--pq-danger);
+    background: rgba(255, 107, 107, 0.1);
+    opacity: 0.55;
+    animation: pqShake 420ms ease;
+}
+
+.action-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ghost-btn {
+    min-height: 48px;
+    border-radius: var(--pq-radius-md);
+    border: 2px solid var(--pq-border);
+    background: var(--pq-panel);
+    color: var(--pq-ink);
+    font-weight: 800;
+    box-shadow: var(--pq-shadow-soft);
+    transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.ghost-btn:active {
+    transform: scale(0.97);
+}
+
+.ghost-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.overlay-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+    background: rgba(91, 70, 54, 0.42);
+    backdrop-filter: blur(6px);
+}
+
+.overlay-modal[hidden] {
+    display: none;
+}
+
+.modal-card {
+    width: min(100%, 440px);
+    padding: 24px;
+    border-radius: 28px;
+    background: var(--pq-panel);
+    border: 2px solid var(--pq-border);
+    box-shadow: 0 30px 70px rgba(91, 70, 54, 0.35);
+    text-align: center;
+}
+
+.stars {
+    margin: 10px 0 0;
+    color: var(--pq-primary);
+    font-size: 32px;
+    letter-spacing: 0.2em;
+    line-height: 1;
+}
+
+.stars .star-off {
+    color: rgba(176, 142, 110, 0.35);
+}
+
+.result-text {
+    margin: 10px 0 0;
+    color: var(--pq-muted);
+    font-weight: 700;
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.modal-actions .primary-btn:only-child {
+    grid-column: 1 / -1;
+}
+
+.primary-btn {
+    min-height: 52px;
+    border-radius: var(--pq-radius-md);
+    background: var(--pq-primary);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 14px 28px rgba(255, 159, 67, 0.35);
+    transition: transform 120ms ease;
+}
+
+.primary-btn:active {
+    transform: scale(0.97);
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+    max-height: 46vh;
+    overflow-y: auto;
+}
+
+.level-item {
+    min-height: 64px;
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border-radius: var(--pq-radius-md);
+    border: 2px solid var(--pq-border);
+    background: var(--pq-panel-soft);
+    font-weight: 800;
+}
+
+.level-item .level-num {
+    font-size: 18px;
+}
+
+.level-item .level-stars {
+    font-size: 11px;
+    color: var(--pq-primary-deep);
+    letter-spacing: 0.08em;
+}
+
+.level-item.is-current {
+    border-color: var(--pq-primary);
+    background: var(--pq-primary-soft);
+}
+
+.level-item:disabled,
+.level-item.is-locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+@keyframes pqFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pqPop {
+    0% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.14);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes pqShake {
+    10%,
+    90% {
+        transform: translateX(-2px);
+    }
+    20%,
+    80% {
+        transform: translateX(3px);
+    }
+    30%,
+    50%,
+    70% {
+        transform: translateX(-5px);
+    }
+    40%,
+    60% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes pqReveal {
+    from {
+        opacity: 0;
+        transform: scale(0.4) rotate(-10deg);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tile-card,
+    .tile-card.is-revealed,
+    .option-card.is-correct,
+    .option-card.is-wrong {
+        animation: none;
+    }
+}
+
+@media (max-width: 360px) {
+    .game-shell {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .options-grid {
+        gap: 8px;
+    }
+}
+
+/* 移动端顶部为悬浮返回按钮预留安全区，避免页头标题被遮挡 */
+@media (max-width: 680px) {
+    .game-shell {
+        padding-top: calc(max(16px, env(safe-area-inset-top)) + 44px);
+    }
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>购物小掌柜 - 游戏平台</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="game-shell" aria-label="购物小掌柜">
+        <header class="game-header">
+            <div>
+                <p class="eyebrow">Shopping Cashier</p>
+                <h1>购物小掌柜</h1>
+            </div>
+            <div class="level-pill" aria-label="当前关卡">
+                <span id="level-text">第 1 关</span>
+            </div>
+        </header>
+
+        <section class="progress-bar" aria-label="本关进度">
+            <div id="progress-dots" class="progress-dots"></div>
+            <span id="mistake-text" class="mistake-text">失误 0 次</span>
+        </section>
+
+        <section id="counter-card" class="counter-card" aria-label="顾客订单">
+            <div class="customer-row">
+                <span id="customer-avatar" class="customer-avatar" aria-hidden="true">🧒</span>
+                <p id="order-line" class="order-line">我想买棒棒糖</p>
+            </div>
+            <div class="goods-card">
+                <span id="goods-emoji" class="goods-emoji" aria-hidden="true">🍭</span>
+                <div class="goods-info">
+                    <span id="goods-name" class="goods-name">棒棒糖</span>
+                    <span id="goods-price" class="goods-price">3元</span>
+                </div>
+            </div>
+            <p id="change-line" class="change-line" hidden>应收 0 元，顾客付了 0 元</p>
+        </section>
+
+        <section class="pay-section" aria-label="收银台">
+            <div class="tray">
+                <div class="tray-head">
+                    <span class="label">付款台</span>
+                    <strong id="paid-text">已付 0 元</strong>
+                </div>
+                <div id="tray-chips" class="tray-chips" aria-live="polite"></div>
+            </div>
+            <p id="feedback-text" class="feedback">点面额把钱凑到和价签一样</p>
+            <div id="money-grid" class="money-grid"></div>
+            <div class="action-bar">
+                <button id="pay-btn" class="primary-btn" type="button">付账</button>
+                <button id="clear-btn" class="ghost-btn" type="button">清空</button>
+                <button id="restart-btn" class="ghost-btn" type="button">重开</button>
+                <button id="levels-btn" class="ghost-btn" type="button">关卡</button>
+            </div>
+        </section>
+    </main>
+
+    <section id="result-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <p class="eyebrow">Good Job</p>
+            <h2 id="result-title">算对了！</h2>
+            <p id="result-stars" class="stars" aria-label="星级评价"></p>
+            <p id="result-detail" class="result-detail"></p>
+            <div class="modal-actions">
+                <button id="replay-btn" class="ghost-btn" type="button">再玩一次</button>
+                <button id="next-btn" class="primary-btn" type="button">下一单</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="level-modal" class="overlay-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="level-title">
+            <p class="eyebrow">Levels</p>
+            <h2 id="level-title">选择关卡</h2>
+            <div id="level-grid" class="level-grid"></div>
+            <div class="modal-actions">
+                <button id="close-levels-btn" class="primary-btn" type="button">返回游戏</button>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+    <script src="../js/game-back.js"></script>
+</body>
+</html>

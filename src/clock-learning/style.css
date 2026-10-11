@@ -1,0 +1,633 @@
+:root {
+    --ck-bg: #fff7e6;
+    --ck-bg-deep: #ffedd0;
+    --ck-sky: #d8f1ff;
+    --ck-panel: #ffffff;
+    --ck-panel-soft: #fffdf7;
+    --ck-border: #ffd591;
+    --ck-text: #5b4636;
+    --ck-muted: #a3866b;
+    --ck-primary: #ff9f43;
+    --ck-primary-deep: #f57c00;
+    --ck-primary-soft: rgba(255, 159, 67, 0.16);
+    --ck-hour: #ff6b6b;
+    --ck-minute: #4d96ff;
+    --ck-success: #2fbf71;
+    --ck-wrong: #e85d5d;
+    --ck-star: #ffb020;
+    --ck-face: #fffdf7;
+    --ck-shadow: 0 16px 32px rgba(214, 158, 84, 0.22);
+    --ck-shadow-soft: 0 8px 18px rgba(214, 158, 84, 0.16);
+    --ck-radius-lg: 24px;
+    --ck-radius-md: 16px;
+    --ck-radius-sm: 12px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background: linear-gradient(180deg, var(--ck-sky) 0%, var(--ck-bg) 42%, var(--ck-bg-deep) 100%);
+    color: var(--ck-text);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.game-shell {
+    width: min(100%, 520px);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.game-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.eyebrow,
+.label {
+    margin: 0;
+    color: var(--ck-muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+h1,
+h2 {
+    margin: 4px 0 0;
+    line-height: 1.08;
+    color: var(--ck-text);
+}
+
+h1 {
+    font-size: 30px;
+}
+
+h2 {
+    font-size: 26px;
+}
+
+.level-pill {
+    min-width: 84px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ck-primary-soft);
+    color: var(--ck-primary-deep);
+    font-weight: 800;
+}
+
+.scoreboard {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.score-card {
+    min-width: 0;
+    min-height: 66px;
+    padding: 10px 12px;
+    border: 2px solid var(--ck-border);
+    border-radius: var(--ck-radius-md);
+    background: var(--ck-panel);
+    box-shadow: var(--ck-shadow-soft);
+}
+
+.score-card strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 20px;
+    line-height: 1;
+}
+
+/* ---------- 答题区 ---------- */
+
+.board-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.mode-chip {
+    margin: 0;
+    min-height: 30px;
+    padding: 3px 16px;
+    border-radius: 999px;
+    background: var(--ck-primary-soft);
+    color: var(--ck-primary-deep);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.mode-chip.is-dial {
+    background: rgba(77, 150, 255, 0.14);
+    color: #2f6fd6;
+}
+
+.question-prompt {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    text-align: center;
+}
+
+.clock-wrap {
+    position: relative;
+    width: min(100%, 292px);
+}
+
+/* 钟面禁用触摸滚动，避免拖拽指针时页面跟着滚动 */
+#clock-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: none;
+}
+
+#clock-svg.is-dial {
+    cursor: grab;
+}
+
+#clock-svg:active {
+    cursor: grabbing;
+}
+
+.clock-face {
+    fill: var(--ck-face);
+    stroke: var(--ck-border);
+    stroke-width: 4;
+}
+
+.tick-major {
+    stroke: #e8b56a;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+}
+
+.tick-minor {
+    stroke: #f0d9b0;
+    stroke-width: 1.6;
+}
+
+.clock-number {
+    fill: var(--ck-text);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.hand-hour line {
+    stroke: var(--ck-hour);
+    stroke-width: 10;
+    stroke-linecap: round;
+}
+
+.hand-minute line {
+    stroke: var(--ck-minute);
+    stroke-width: 6.5;
+    stroke-linecap: round;
+}
+
+.clock-center {
+    fill: var(--ck-text);
+    stroke: var(--ck-panel);
+    stroke-width: 2.5;
+}
+
+.feedback-text {
+    margin: 0;
+    min-height: 24px;
+    color: var(--ck-muted);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.feedback-text.is-success {
+    color: var(--ck-success);
+}
+
+/* ---------- 认时间选项 ---------- */
+
+.options-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.options-grid[hidden] {
+    display: none;
+}
+
+.option-btn {
+    min-height: 56px;
+    padding: 8px 12px;
+    border: 2px solid var(--ck-border);
+    border-radius: var(--ck-radius-md);
+    background: var(--ck-panel);
+    color: var(--ck-text);
+    font-size: 22px;
+    font-weight: 800;
+    box-shadow: var(--ck-shadow-soft);
+    transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.option-btn:active {
+    transform: scale(0.96);
+}
+
+.option-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.option-btn.is-wrong {
+    border-color: var(--ck-wrong);
+    background: rgba(232, 93, 93, 0.12);
+    animation: ckShake 420ms ease;
+}
+
+/* ---------- 拨时间面板 ---------- */
+
+.dial-panel {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dial-panel[hidden] {
+    display: none;
+}
+
+.dial-panel.is-wrong {
+    animation: ckShake 420ms ease;
+}
+
+.adjust-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.adjust-group {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border: 2px solid var(--ck-border);
+    border-radius: var(--ck-radius-md);
+    background: var(--ck-panel);
+}
+
+.adjust-label {
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.adjust-label-hour {
+    color: var(--ck-hour);
+}
+
+.adjust-label-minute {
+    color: var(--ck-minute);
+}
+
+.adjust-btn {
+    min-width: 52px;
+    min-height: 48px;
+    border-radius: var(--ck-radius-sm);
+    border: 2px solid var(--ck-border);
+    background: var(--ck-panel-soft);
+    color: var(--ck-text);
+    font-size: 17px;
+    font-weight: 800;
+    transition: transform 120ms ease;
+}
+
+.adjust-btn:active {
+    transform: scale(0.94);
+}
+
+.dial-tip {
+    margin: 0;
+    color: var(--ck-muted);
+    font-size: 13px;
+    line-height: 1.55;
+    text-align: center;
+}
+
+/* ---------- 答对动效 ---------- */
+
+.answer-burst {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    font-size: 62px;
+    line-height: 1;
+}
+
+.answer-burst .burst-star {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    font-size: 30px;
+}
+
+.answer-burst.is-show {
+    animation: ckBurstPop 900ms ease forwards;
+}
+
+.answer-burst.is-show .burst-star-a {
+    animation: ckStarFloatA 900ms ease forwards;
+}
+
+.answer-burst.is-show .burst-star-b {
+    animation: ckStarFloatB 900ms ease forwards;
+}
+
+/* ---------- 底部操作 ---------- */
+
+.action-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ghost-btn {
+    min-height: 48px;
+    border-radius: var(--ck-radius-md);
+    border: 2px solid var(--ck-border);
+    background: var(--ck-panel);
+    color: var(--ck-text);
+    font-weight: 800;
+    box-shadow: var(--ck-shadow-soft);
+    transition: transform 120ms ease;
+}
+
+.ghost-btn:active {
+    transform: scale(0.97);
+}
+
+.primary-btn {
+    min-height: 52px;
+    border-radius: var(--ck-radius-md);
+    background: var(--ck-primary);
+    color: #6b3a00;
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 12px 24px rgba(245, 124, 0, 0.28);
+    transition: transform 120ms ease;
+}
+
+.primary-btn:active {
+    transform: scale(0.97);
+}
+
+.primary-btn[hidden] {
+    display: none;
+}
+
+/* ---------- 弹窗 ---------- */
+
+.overlay-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+    background: rgba(91, 70, 54, 0.45);
+    backdrop-filter: blur(6px);
+}
+
+.overlay-modal[hidden] {
+    display: none;
+}
+
+.modal-card {
+    width: min(100%, 460px);
+    padding: 24px;
+    border-radius: 28px;
+    background: var(--ck-panel);
+    border: 2px solid var(--ck-border);
+    box-shadow: var(--ck-shadow);
+}
+
+.stars {
+    margin: 10px 0 0;
+    color: var(--ck-star);
+    font-size: 32px;
+    letter-spacing: 0.2em;
+    line-height: 1;
+}
+
+.stars .star-off {
+    color: rgba(163, 134, 107, 0.28);
+}
+
+.result-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.result-row div {
+    padding: 12px;
+    border-radius: var(--ck-radius-md);
+    background: var(--ck-panel-soft);
+    border: 2px solid var(--ck-border);
+    text-align: center;
+}
+
+.result-row strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 20px;
+}
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.modal-actions .primary-btn:only-child {
+    grid-column: 1 / -1;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 16px;
+    max-height: 46vh;
+    overflow-y: auto;
+}
+
+.level-item {
+    min-height: 56px;
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border-radius: var(--ck-radius-md);
+    border: 2px solid var(--ck-border);
+    background: var(--ck-panel-soft);
+    color: var(--ck-text);
+    font-weight: 800;
+}
+
+.level-item strong {
+    font-size: 18px;
+}
+
+.level-item span {
+    font-size: 11px;
+    color: var(--ck-star);
+}
+
+.level-item.is-current {
+    background: var(--ck-primary-soft);
+    border-color: var(--ck-primary);
+}
+
+.level-item.is-locked {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.level-item.is-locked span {
+    color: var(--ck-muted);
+}
+
+/* ---------- 动画 ---------- */
+
+@keyframes ckShake {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    20% {
+        transform: translateX(-7px);
+    }
+    40% {
+        transform: translateX(7px);
+    }
+    60% {
+        transform: translateX(-5px);
+    }
+    80% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes ckBurstPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+    22% {
+        opacity: 1;
+        transform: scale(1.12);
+    }
+    65% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.02);
+    }
+}
+
+@keyframes ckStarFloatA {
+    0% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0.5) rotate(0deg);
+    }
+    25% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-54px, -66px) scale(1.15) rotate(-26deg);
+    }
+}
+
+@keyframes ckStarFloatB {
+    0% {
+        opacity: 0;
+        transform: translate(0, 0) scale(0.5) rotate(0deg);
+    }
+    25% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(50px, -72px) scale(1.15) rotate(24deg);
+    }
+}
+
+@media (max-width: 360px) {
+    .game-shell {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .option-btn {
+        font-size: 20px;
+    }
+}
+
+/* 移动端顶部为悬浮返回按钮预留安全区，避免页头标题被遮挡 */
+@media (max-width: 680px) {
+    .game-shell {
+        padding-top: calc(max(16px, env(safe-area-inset-top)) + 44px);
+    }
+}
