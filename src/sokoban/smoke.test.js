@@ -45,8 +45,8 @@ function createElement(tag) {
     return element;
 }
 
-function buildContext() {
-    const storage = new Map();
+function buildContext(storagePreset) {
+    const storage = new Map(storagePreset ? Object.entries(storagePreset) : []);
     const elements = new Map();
 
     function getElementById(id) {
@@ -113,6 +113,9 @@ function testFilesAndCatalogExist() {
     assert.ok(css.includes('.deadlock-hint'), 'style.css 应含死角提示条样式');
     assert.ok(css.includes('.is-dead'), 'style.css 应含死箱警示样式');
     assert.ok(read('script.js').includes('findDeadBoxes'), 'script.js 应导出死角检测函数');
+    // 末关契约：通关结算时应隐藏"下一关"按钮（否则点击越界早退、胜利弹窗卡死）
+    assert.ok(read('script.js').includes('elements.nextBtn.hidden'), '末关通关应隐藏下一关按钮');
+    assert.ok(read('script.js').includes('levelCount()'), '应提供按关卡总数封顶的钳制');
 }
 
 function testAllLevelsParseValid() {
@@ -246,6 +249,35 @@ function testPersistence() {
     assert.strictEqual(storage.get('sokoban-best-1'), '30', '存储键应为 sokoban-best-1');
 }
 
+/** 缺陷回归：current/unlocked 存档越界（篡改或通关末关后的 61）应钳制到末关，不得落到空白盘 */
+function testCorruptSaveClampedToLevelRange() {
+    const run = (preset) => buildContext(preset);
+    const doc = (ctx) => ctx.context.document;
+
+    /* 双双越界：回落到第 60 关而非空白盘 */
+    const corrupt = run({ 'sokoban-current-level': '999', 'sokoban-unlocked-level': '999' });
+    assert.ok(
+        doc(corrupt).getElementById('level-text').textContent.includes('第 60 关'),
+        '越界存档应钳制到末关（第 60 关）'
+    );
+    assert.doesNotThrow(() => doc(corrupt).getElementById('dpad-up').handlers.click(), '钳制后移动不应抛错');
+    assert.doesNotThrow(() => doc(corrupt).getElementById('undo-btn').handlers.click(), '钳制后撤销不应抛错');
+
+    /* 通关末关后的合法 61 + 越界 current：同样回落末关 */
+    const afterAll = run({ 'sokoban-current-level': '61', 'sokoban-unlocked-level': '61' });
+    assert.ok(
+        doc(afterAll).getElementById('level-text').textContent.includes('第 60 关'),
+        '通关末关后重进应停在第 60 关'
+    );
+
+    /* 正常存档不受影响 */
+    const normal = run({ 'sokoban-current-level': '3', 'sokoban-unlocked-level': '5' });
+    assert.ok(
+        doc(normal).getElementById('level-text').textContent.includes('第 3 关'),
+        '正常存档应加载第 3 关'
+    );
+}
+
 testFilesAndCatalogExist();
 testAllLevelsParseValid();
 testApplyMoveRules();
@@ -254,5 +286,6 @@ testSolvedDetection();
 testDeadBoxDetection();
 testTierGrouping();
 testPersistence();
+testCorruptSaveClampedToLevelRange();
 
 console.log('sokoban smoke test passed');

@@ -341,7 +341,8 @@
         timerId: 0,
         elapsed: 0,
         finished: false,
-        longPressDone: false
+        longPressDone: false,
+        cellTouchActive: false
     };
 
     const elements = {
@@ -412,6 +413,13 @@
 
         state.rowClueEls = [];
         state.cellButtons = [];
+        /** 取消尚未触发的长按定时器（touchend / touchmove / touchcancel 共用） */
+        const clearPressTimer = () => {
+            if (state.pressTimer) {
+                windowObject.clearTimeout(state.pressTimer);
+                state.pressTimer = 0;
+            }
+        };
         for (let r = 0; r < state.size; r += 1) {
             const rowClue = documentObject.createElement('div');
             rowClue.className = 'row-clue';
@@ -427,23 +435,41 @@
                 const cell = documentObject.createElement('button');
                 cell.type = 'button';
                 cell.className = 'nono-cell';
-                cell.addEventListener('click', () => onCellActivate(r, c, false));
+                // 点击：长按定时器已标叉时，吞掉长按后的合成 click（消费并复位标志），避免二次翻转
+                cell.addEventListener('click', () => {
+                    if (state.longPressDone) {
+                        state.longPressDone = false;
+                        return;
+                    }
+                    onCellActivate(r, c, false);
+                });
                 cell.addEventListener('contextmenu', (event) => {
                     event.preventDefault();
+                    // 触摸长按路径：定时器已标叉，这里不再翻转；也不复位标志，
+                    // 留给其后的合成 click 消费（否则两种事件都发的浏览器会再翻转一次）。
+                    // cellTouchActive 区分触摸手势与桌面鼠标右键，右键路径清掉残留标志，
+                    // 保证混合设备上右键及其后的左键不受上次触摸长按影响。
+                    if (state.cellTouchActive && state.longPressDone) return;
+                    state.longPressDone = false;
                     onCellActivate(r, c, true);
                 });
                 cell.addEventListener('touchstart', () => {
                     state.longPressDone = false;
+                    state.cellTouchActive = true;
                     state.pressTimer = windowObject.setTimeout(() => {
                         state.longPressDone = true;
                         onCellActivate(r, c, true);
                     }, 350);
                 });
                 cell.addEventListener('touchend', () => {
-                    if (state.pressTimer) {
-                        windowObject.clearTimeout(state.pressTimer);
-                        state.pressTimer = 0;
-                    }
+                    clearPressTimer();
+                    state.cellTouchActive = false;
+                });
+                // 手指移走（滚动）或手势被系统打断（如来电）时取消长按，避免在起点凭空落叉
+                cell.addEventListener('touchmove', clearPressTimer);
+                cell.addEventListener('touchcancel', () => {
+                    clearPressTimer();
+                    state.cellTouchActive = false;
                 });
                 elements.board.appendChild(cell);
                 state.cellButtons.push(cell);
@@ -478,9 +504,10 @@
         }
     }
 
-    /** 三态切换：空→填→叉→空；markOnly（右键/长按）直接标叉 */
+    /** 三态切换：空→填→叉→空；markOnly（右键/长按）直接标叉；提示锁定格（3）不可改写 */
     function onCellActivate(r, c, markOnly) {
         if (state.finished) return;
+        if (state.cells[r][c] === 3) return;
         startTimer();
         const current = state.cells[r][c];
         const next = markOnly ? (current === 2 ? 0 : 2) : (current + 1) % 3;
@@ -560,7 +587,13 @@
         state.undoStack = [];
         state.elapsed = 0;
         state.finished = false;
+        /* 换关时清掉旧盘面挂起的长按定时器与触摸标志，防止回调在新盘面凭空落叉或吞点击 */
+        if (state.pressTimer) {
+            windowObject.clearTimeout(state.pressTimer);
+        }
         state.pressTimer = 0;
+        state.longPressDone = false;
+        state.cellTouchActive = false;
         stopTimer();
         writeCurrentLevel(level);
         elements.levelText.textContent = data.size + '×' + data.size + ' · 第 ' + level + ' 关';

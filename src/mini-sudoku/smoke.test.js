@@ -12,6 +12,8 @@ function read(file) {
 function runScriptWithContext() {
     const storage = new Map();
     const elements = new Map();
+    const timers = new Map();
+    let timerSerial = 0;
 
     function createElement(id) {
         const element = {
@@ -23,12 +25,15 @@ function runScriptWithContext() {
             style: {},
             className: '',
             children: [],
+            handlers: {},
             classList: {
                 add() {},
                 remove() {},
                 toggle() {}
             },
-            addEventListener() {},
+            addEventListener(name, handler) {
+                this.handlers[name] = handler;
+            },
             appendChild(child) {
                 this.children.push(child);
             },
@@ -92,16 +97,20 @@ function runScriptWithContext() {
         },
         document,
         Math,
-        setTimeout() {
-            return 1;
+        setTimeout(callback) {
+            timerSerial += 1;
+            timers.set(timerSerial, callback);
+            return timerSerial;
         },
-        clearTimeout() {}
+        clearTimeout(id) {
+            timers.delete(id);
+        }
     };
     context.window.window = context.window;
     context.window.document = document;
 
     vm.runInNewContext(read('script.js'), context);
-    return { api: context.window.SudokuApi, storage };
+    return { api: context.window.SudokuApi, storage, elements, timers };
 }
 
 /* (a) 文件与目录约定：页面元信息、脚本顺序、自包含样式、目录注册 */
@@ -357,11 +366,48 @@ function testStorageNeverRegresses() {
     assert.strictEqual(storage.get('mini-sudoku-stars-5'), '1', 'stars of other levels should save independently');
 }
 
+/* (e) 缺陷回归：胜利弹窗 620ms 延迟期内点"重新开始"，旧定时器不得再弹窗或写星级 */
+function testWinModalTimerClearedOnRestart() {
+    const { api, elements, timers } = runScriptWithContext();
+    const gridCells = () => elements.get('grid').children[0].children;
+    const paletteButtons = () => elements.get('palette').children[0].children;
+
+    function solveCurrentBoard() {
+        const puzzle = api.generatePuzzle(1, api.levelSeed(1));
+        const given = new Set(puzzle.givens.map((entry) => entry.index));
+        puzzle.solution.forEach((value, index) => {
+            if (given.has(index)) return;
+            gridCells()[index].handlers.click();
+            paletteButtons()[value - 1].handlers.click();
+        });
+    }
+
+    solveCurrentBoard();
+    assert(timers.size > 0, '通关后应挂起胜利弹窗定时器');
+    assert.strictEqual(elements.get('win-modal').hidden, true, '弹窗延迟期内不应显示');
+
+    /* 延迟期内点头部"重新开始"：定时器应被清掉 */
+    elements.get('restart-btn').handlers.click();
+    assert.strictEqual(timers.size, 0, '重开应清掉挂起的胜利弹窗定时器');
+
+    /* 放行残留定时器：不应弹窗、不应写星级 */
+    [...timers.values()].forEach((callback) => callback());
+    assert.strictEqual(elements.get('win-modal').hidden, true, '重开后旧胜利弹窗不得再弹出');
+    assert.strictEqual(api.loadStars(1), 0, '被打断的胜利不得写星级存档');
+
+    /* 对照组：不被打断时正常弹窗并写满星 */
+    solveCurrentBoard();
+    [...timers.values()].forEach((callback) => callback());
+    assert.strictEqual(elements.get('win-modal').hidden, false, '正常通关应弹出胜利弹窗');
+    assert.strictEqual(api.loadStars(1), 3, '正常通关应写 3 星');
+}
+
 testFilesAndCatalogExist();
 testGeneratedPuzzles();
 testSolverBasics();
 testConflictCells();
 testLevelProgressionAndStars();
 testStorageNeverRegresses();
+testWinModalTimerClearedOnRestart();
 
 console.log('mini sudoku smoke test passed');

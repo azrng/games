@@ -54,7 +54,7 @@ function createElement(tag) {
     return element;
 }
 
-function buildContext() {
+function buildContext(seed) {
     const storage = new Map();
     const elements = new Map();
     const registered = {};
@@ -106,7 +106,8 @@ function buildContext() {
         window: windowStub,
         document: documentStub,
         console,
-        Math,
+        // 传入 seed 时用固定随机源（派生对象继承原生 Math），保证发牌可复现
+        Math: seed === undefined ? Math : Object.assign(Object.create(Math), { random: mulberry32(seed) }),
         Date,
         Number,
         String,
@@ -302,11 +303,192 @@ function testPersistence() {
     assert.strictEqual(M.readBestTime('normal'), null, '坏最快时间应兜底为 null');
 }
 
+/* ---------- 卡牌交互：经 DOM 桩上的 click 处理器驱动 onCardClick/onOpClick ---------- */
+
+function buildCardHarness(contextObject) {
+    const cardRow = contextObject.document.getElementById('card-row');
+    const opRow = contextObject.document.getElementById('op-row');
+    return {
+        cardValues() {
+            return cardRow.children.map((button) => button.children[0].textContent);
+        },
+        clickCard(index) {
+            cardRow.children[index].handlers.click();
+        },
+        clickOp(name) {
+            const button = opRow.children.find((item) => item.getAttribute('data-op') === name);
+            assert.ok(button, '运算符按钮应存在: ' + name);
+            button.handlers.click();
+        },
+        cardIsSelected(index) {
+            return cardRow.children[index].className.includes('is-selected');
+        },
+        opIsActive(name) {
+            const button = opRow.children.find((item) => item.getAttribute('data-op') === name);
+            return Boolean(button) && button.className.includes('is-selected');
+        },
+        assertNoSelection() {
+            cardRow.children.forEach((button) => {
+                assert.ok(!button.className.includes('is-selected'), '不应有卡牌处于选中态');
+            });
+            opRow.children.forEach((button) => {
+                assert.ok(!button.className.includes('is-selected'), '不应有运算符处于待合并态');
+            });
+        }
+    };
+}
+
+/** 缺陷回归：已选运算符后再点同一张卡应取消选中，而不是自我合并导致牌面少一张 */
+function testCardSelfClickCancel() {
+    const harness = buildCardHarness(buildContext(20261011).context);
+    const before = harness.cardValues();
+    assert.strictEqual(before.length, 4, '初始应发 4 张牌');
+
+    harness.clickCard(0);
+    assert.ok(harness.cardIsSelected(0), '点卡 0 后卡 0 应处于选中态');
+    harness.clickOp('add');
+    assert.ok(harness.opIsActive('add'), '点 + 后加号应处于待合并态');
+
+    harness.clickCard(0);
+    assert.strictEqual(harness.cardValues().length, 4, '已选运算符时再点自己应取消选中，牌面仍应 4 张');
+    assert.deepStrictEqual(harness.cardValues(), before, '取消选中不应改动任何牌面数值');
+    harness.assertNoSelection();
+}
+
+/** 正向回归：选卡 0 → 选 + → 点卡 1 应正常合并为 3 张，结果落在先点的卡上 */
+function testCardMergeRegression() {
+    const harness = buildCardHarness(buildContext(20261011).context);
+    const before = harness.cardValues();
+
+    harness.clickCard(0);
+    harness.clickOp('add');
+    harness.clickCard(1);
+
+    const after = harness.cardValues();
+    assert.strictEqual(after.length, 3, '卡 0 + 卡 1 合并后应剩 3 张');
+    assert.strictEqual(after[0], String(Number(before[0]) + Number(before[1])), '合并结果应落在先点的卡 0 上');
+    assert.deepStrictEqual(after.slice(1), before.slice(2), '其余卡牌应保持原序');
+    harness.assertNoSelection();
+}
+
+/** 缺陷回归：解集去重契约——旧实现按"下标合并串"去重会键坍缩，既重复展示同一解法又漏掉本质解 */
+function testSolverDedupContract() {
+    const M = buildContext().context.window.Math24;
+    const toFracs = (nums) => nums.map((n) => M.frac(n, 1));
+
+    // 重复牌：3 3 8 8 的唯一解不应因下标来源不同被重复返回
+    const dup = Array.from(M.solve24(toFracs([3, 3, 8, 8])));
+    assert.strictEqual(dup.length, 1, '3 3 8 8 应恰返回 1 条本质解，实测: ' + dup.map((s) => s.expr).join(' | '));
+
+    // 每组解内表达式两两互异
+    [[3, 3, 8, 8], [1, 5, 5, 5], [1, 2, 3, 4], [2, 3, 5, 12]].forEach((nums) => {
+        const solutions = Array.from(M.solve24(toFracs(nums)));
+        const exprs = solutions.map((s) => s.expr);
+        assert.strictEqual(new Set(exprs).size, exprs.length, nums.join(' ') + ' 的解法串不应重复');
+    });
+
+    // 旧实现漏解回归：1 2 3 4 应包含除法技巧解 4÷((1÷2)÷3)
+    const easy = Array.from(M.solve24(toFracs([1, 2, 3, 4])));
+    assert.ok(
+        easy.some((s) => s.expr === '(4÷((1÷2)÷3))'),
+        '1 2 3 4 应含除法技巧解 (4÷((1÷2)÷3))'
+    );
+
+    // 伪难题回归：13 8 4 3 存在纯整数路径解 ((8×(4−3))+3)+13，不得被当作全分数技巧题
+    const pseudo = Array.from(M.solve24(toFracs([13, 8, 4, 3])));
+    assert.ok(pseudo.some((s) => !s.usedFrac), '13 8 4 3 应含纯整数路径解');
+}
+
+/** 相邻两题不重复：连点“下一题”，新发牌组不应与上一题完全相同 */
+function testNextPuzzleNotRepeat() {
+    const { context } = buildContext(20261011);
+    const doc = context.document;
+    const harness = buildCardHarness(context);
+    const key = () => harness.cardValues().slice().sort().join(',');
+    let prev = key();
+    for (let i = 0; i < 40; i += 1) {
+        doc.getElementById('next-btn').handlers.click();
+        const current = key();
+        assert.notStrictEqual(current, prev, '相邻两题牌组不应完全相同（第 ' + (i + 1) + ' 次发牌）');
+        prev = current;
+    }
+}
+
+/** 胜利后误点“跳过”不应清连击、不应换题，只展示本题解法 */
+function testSkipAfterWinKeepsStreak() {
+    const { context } = buildContext(20261011);
+    const doc = context.document;
+    const harness = buildCardHarness(context);
+    const M = context.window.Math24;
+    const cardRow = doc.getElementById('card-row');
+
+    const toFracs = (texts) => texts.map((text) => {
+        const parts = String(text).split('/');
+        return parts.length === 2 ? M.frac(Number(parts[0]), Number(parts[1])) : M.frac(Number(text), 1);
+    });
+    const fracStr = (f) => (f.d === 1 ? String(f.n) : f.n + '/' + f.d);
+
+    const cards = toFracs(harness.cardValues());
+    const solutions = Array.from(M.solve24(cards));
+    assert.ok(solutions.length > 0, '种子题应有解');
+    const solution = solutions.find((s) => !s.usedFrac) || solutions[0];
+
+    /* 解析完全括号化表达式 '(A∆B)' 为二叉树 */
+    function parse(text) {
+        if (text[0] !== '(') return { leaf: text };
+        let depth = 0;
+        for (let i = 1; i < text.length - 1; i += 1) {
+            if (text[i] === '(') depth += 1;
+            else if (text[i] === ')') depth -= 1;
+            else if (depth === 0 && '+−×÷'.includes(text[i])) {
+                return { op: text[i], l: parse(text.slice(1, i)), r: parse(text.slice(i + 1, -1)) };
+            }
+        }
+        throw new Error('无法解析解法表达式: ' + text);
+    }
+
+    const OP_BUTTON = { '+': 'add', '−': 'sub', '×': 'mul', '÷': 'div' };
+    const APPLY = { '+': M.fAdd, '−': M.fSub, '×': M.fMul, '÷': M.fDiv };
+
+    /* 后序驱动：先造出左右两张牌，再点左牌 + 运算符 + 右牌完成合并 */
+    function drive(node) {
+        if (node.leaf) return toFracs([node.leaf])[0];
+        const lv = drive(node.l);
+        const rv = drive(node.r);
+        const li = cardRow.children.findIndex((b) => b.children[0].textContent === fracStr(lv));
+        const ri = cardRow.children.findIndex((b, i) => i !== li && b.children[0].textContent === fracStr(rv));
+        assert.ok(li >= 0 && ri >= 0, '驱动路径上应存在待合并牌: ' + fracStr(lv) + ' 与 ' + fracStr(rv));
+        harness.clickCard(li);
+        harness.clickOp(OP_BUTTON[node.op]);
+        harness.clickCard(ri);
+        return APPLY[node.op](lv, rv);
+    }
+
+    const tiers = ['easy', 'normal', 'hard'];
+    const beforeWin = tiers.map((tier) => M.readStreak(tier).last);
+    const result = drive(parse(solution.expr));
+    assert.ok(result.n === 24 && result.d === 1, '驱动完整解法后应算出 24');
+    assert.strictEqual(harness.cardValues().length, 1, '合并完成后应剩 1 张牌');
+    const afterWin = tiers.map((tier) => M.readStreak(tier).last);
+    assert.notDeepStrictEqual(afterWin, beforeWin, '胜利后当前档连击应 +1');
+
+    doc.getElementById('skip-btn').handlers.click();
+    assert.deepStrictEqual(tiers.map((tier) => M.readStreak(tier).last), afterWin, '胜利后点跳过不应清空连击');
+    assert.strictEqual(harness.cardValues().length, 1, '胜利后点跳过不应换题');
+    assert.strictEqual(doc.getElementById('solutions-modal').hidden, false, '胜利后点跳过应展示解法弹窗');
+    assert.strictEqual(doc.getElementById('solutions-title').textContent, '本题解法', '解法弹窗标题应为本题解法');
+}
+
 testFilesAndCatalogExist();
 testFractionMath();
 testSolverClassics();
 testGeneratePuzzle();
 testSolutionStringsOfGeneratedPuzzle();
 testPersistence();
+testCardSelfClickCancel();
+testCardMergeRegression();
+testSolverDedupContract();
+testNextPuzzleNotRepeat();
+testSkipAfterWinKeepsStreak();
 
 console.log('math-24 smoke test passed');

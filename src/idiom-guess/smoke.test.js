@@ -211,6 +211,19 @@ function testRevealHint() {
     }
     // 全绿返回 -1
     assert.strictEqual(IG.revealHint('兴高采烈', ['green', 'green', 'green', 'green']), -1, '全绿应无提示');
+    // 已揭示过的位置不再重复揭示（旧实现第二次提示可能重复同一位，白耗提示机会）
+    const revealed = new Set();
+    for (let i = 0; i < 3; i += 1) {
+        const idx3 = IG.revealHint('兴高采烈', ['gray', 'gray', 'gray', 'gray'], revealed);
+        assert.ok(idx3 >= 0 && idx3 <= 3 && !revealed.has(idx3), '提示不应重复揭示已提示过的位置');
+        revealed.add(idx3);
+    }
+    // 非 green 且未提示的位置耗尽时返回 -1
+    assert.strictEqual(
+        IG.revealHint('兴高采烈', ['green', 'gray', 'gray', 'gray'], new Set([1, 2, 3])),
+        -1,
+        '剩余位置全被提示/绿占据时应返回 -1'
+    );
 }
 
 function testPickAnswerAndFallbackBank() {

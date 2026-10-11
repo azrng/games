@@ -28,6 +28,7 @@
         selectedIndex: -1,
         mistakes: 0,
         locked: false,
+        winTimer: 0,
         cellButtons: []
     };
 
@@ -441,7 +442,8 @@
         elements.grid.classList.add('is-solved');
         elements.feedbackText.textContent = '';
         updateBoardView();
-        setTimeout(showWinModal, 620);
+        /* 延迟弹窗的定时器存入 state：换关/重开时由 startLevel 清掉，避免旧胜利弹窗盖新盘面 */
+        state.winTimer = setTimeout(showWinModal, 620);
     }
 
     function showWinModal() {
@@ -538,6 +540,10 @@
         state.selectedIndex = -1;
         state.mistakes = 0;
         state.locked = false;
+        if (state.winTimer) {
+            clearTimeout(state.winTimer);
+            state.winTimer = 0;
+        }
         elements.winModal.hidden = true;
         elements.levelModal.hidden = true;
         elements.grid.classList.remove('is-solved');

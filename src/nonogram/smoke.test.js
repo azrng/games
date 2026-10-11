@@ -211,6 +211,33 @@ function testPersistence() {
     assert.strictEqual(NG.readStars(1), 2, '星级只增不减');
 }
 
+/** 缺陷回归：提示揭示的锁定格（值 3）不可被点击改写——旧实现点击会把 3 清成 0，静默丢掉提示 */
+function testHintLockedCellNotEditable() {
+    const { context } = buildContext();
+    const NG = context.window.Nonogram;
+    const board = context.document.getElementById('board');
+    const size = NG.levelSize(1);
+    const solution = NG.generateLevel(1).solution;
+    /* renderBoard 子元素顺序：corner + size 个列提示，随后每行 [行提示 + size 个格子] */
+    const cellOf = (r, c) => board.children[1 + size + r * (size + 1) + 1 + c];
+
+    /* 用一次提示：随机揭示一个正解格为锁定填态 3 */
+    context.document.getElementById('hint-btn').handlers.click();
+
+    /* 整盘填成正确状态：正解格点 1 次（锁定格应保持 3 不受点击影响），空格点 2 次标叉 */
+    for (let r = 0; r < size; r += 1) {
+        for (let c = 0; c < size; c += 1) {
+            const clicks = solution[r][c] === 1 ? 1 : 2;
+            for (let i = 0; i < clicks; i += 1) cellOf(r, c).handlers.click();
+        }
+    }
+    assert.strictEqual(
+        context.document.getElementById('win-modal').hidden,
+        false,
+        '锁定格未被点击清掉时，整盘正确填涂应触发通关'
+    );
+}
+
 testFilesAndCatalogExist();
 testLevelSizeMapping();
 testComputeClues();
@@ -219,6 +246,126 @@ testGeneratedLevelsAreUniqueAndDeterministic();
 testCheckWin();
 testStarFor();
 testPersistence();
+testLongPressFullSequence();
+testTouchMoveAndCancelAbortLongPress();
+testTouchCancelAbortsLongPress();
+testSyntheticClickConsumesLongPressFlag();
+testStaleLongPressFlagDoesNotBlockMouseRightClick();
+testHintLockedCellNotEditable();
+
+/* ---------- 触摸长按时序用例（事件桩可驱动，见 element.handlers 收集监听器） ---------- */
+
+/** 从棋盘子元素中取出格子按钮桩（tag 为 button 的元素） */
+function getCellButtons(contextObject) {
+    const board = contextObject.document.getElementById('board');
+    return board.children.filter((el) => el.tag === 'button');
+}
+
+/**
+ * 构建可手动触发长按定时器的上下文：
+ * 默认桩的 setTimeout 会丢弃回调，这里覆写为捕获回调，用 fire() 模拟 350ms 到点。
+ */
+function buildLongPressContext() {
+    const built = buildContext();
+    let timerCallback = null;
+    let clearCount = 0;
+    built.context.window.setTimeout = (fn) => {
+        timerCallback = fn;
+        return 7;
+    };
+    built.context.window.clearTimeout = () => {
+        clearCount += 1;
+    };
+    built.longPress = {
+        fire() {
+            const callback = timerCallback;
+            timerCallback = null;
+            if (callback) callback();
+        },
+        pending() {
+            return timerCallback !== null;
+        },
+        clearCount() {
+            return clearCount;
+        }
+    };
+    return built;
+}
+
+/** Android Chrome 长按全序列：定时器标叉 → contextmenu → 合成 click，格子只翻转一次，撤销栈只多 1 条 */
+function testLongPressFullSequence() {
+    const { context, longPress } = buildLongPressContext();
+    const cell = getCellButtons(context)[0];
+    const prevented = [];
+    cell.handlers.touchstart();
+    assert.ok(longPress.pending(), 'touchstart 应登记 350ms 长按定时器');
+    longPress.fire();
+    assert.ok(cell.className.includes('is-mark'), '长按到点应直接标叉');
+    cell.handlers.contextmenu({ preventDefault: () => prevented.push(1) });
+    assert.strictEqual(prevented.length, 1, 'contextmenu 应阻止默认长按菜单');
+    assert.ok(cell.className.includes('is-mark'), 'contextmenu 不应再翻转已标叉的格子');
+    cell.handlers.click();
+    assert.ok(cell.className.includes('is-mark'), '合成 click 不应再翻转（净效果只标一次叉）');
+    // 撤销栈恰有 1 条快照：撤销一次回到初始空格，再撤销无快照可弹
+    context.document.getElementById('undo-btn').handlers.click();
+    assert.strictEqual(cell.className, 'nono-cell', '撤销一次应回到初始空格');
+    context.document.getElementById('undo-btn').handlers.click();
+    assert.strictEqual(cell.className, 'nono-cell', '再次撤销应无快照可弹（栈中仅 1 条）');
+}
+
+/** touchmove / touchcancel 应取消长按定时器，后续点击仍走正常三态切换 */
+function testTouchMoveAndCancelAbortLongPress() {
+    const { context, longPress } = buildLongPressContext();
+    const cell = getCellButtons(context)[0];
+    cell.handlers.touchstart();
+    cell.handlers.touchmove();
+    assert.strictEqual(longPress.clearCount(), 1, 'touchmove 应清除长按定时器');
+    assert.strictEqual(cell.className, 'nono-cell', '手指移动后不应在起点落叉');
+    cell.handlers.touchend();
+    cell.handlers.click();
+    assert.ok(cell.className.includes('is-fill'), '移动+抬起后的点击应正常三态切换为填');
+}
+
+/** touchcancel（如来电、系统手势打断）同样应取消长按 */
+function testTouchCancelAbortsLongPress() {
+    const { context, longPress } = buildLongPressContext();
+    const cell = getCellButtons(context)[0];
+    cell.handlers.touchstart();
+    cell.handlers.touchcancel();
+    assert.strictEqual(longPress.clearCount(), 1, 'touchcancel 应清除长按定时器');
+    cell.handlers.touchend();
+    cell.handlers.click();
+    assert.ok(cell.className.includes('is-fill'), '取消后抬起点击应正常三态切换为填');
+}
+
+/** 旧 WebView 流：长按后无 contextmenu，只有 touchend + 合成 click，click 应消费标志而不是再翻转 */
+function testSyntheticClickConsumesLongPressFlag() {
+    const { context, longPress } = buildLongPressContext();
+    const cells = getCellButtons(context);
+    const cell = cells[0];
+    cell.handlers.touchstart();
+    longPress.fire();
+    cell.handlers.touchend();
+    cell.handlers.click();
+    assert.ok(cell.className.includes('is-mark'), '合成 click 应消费长按标志，保持只标一次叉');
+}
+
+/** 触摸长按后的残留标志不得影响桌面鼠标右键（混合设备场景） */
+function testStaleLongPressFlagDoesNotBlockMouseRightClick() {
+    const { context, longPress } = buildLongPressContext();
+    const cells = getCellButtons(context);
+    // 长按既无 contextmenu 也无 click：标志残留为 true
+    cells[0].handlers.touchstart();
+    longPress.fire();
+    cells[0].handlers.touchend();
+    // 此时用鼠标右键点另一格：应正常标叉
+    const another = cells[1];
+    another.handlers.contextmenu({ preventDefault() {} });
+    assert.ok(another.className.includes('is-mark'), '残留长按标志不应吞掉桌面右键标叉');
+    // 桌面右键标叉后左键继续三态切换（叉→空），行为与修复前一致
+    another.handlers.click();
+    assert.strictEqual(another.className, 'nono-cell', '右键标叉后左键应按三态回到空');
+}
 
 /* 生成性能粗测：最大规格出题耗时应可忽略 */
 const started = Date.now();

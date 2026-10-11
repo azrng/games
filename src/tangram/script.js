@@ -213,9 +213,12 @@
                 /* 纯剪影：统一深色填充，内部边界不可见 */
                 fill = '#5b5044';
             }
-            const poly = svgPolygon(slot.pts, fill, stroke, Math.max(2, Math.min(data.w, data.h) / 40), 'tg-slot');
+            /* SVG stroke-width 以 viewBox 用户单位计（不是 px）：本系列关卡 min(w,h)=8，8/100=0.08 约为拼板宽度 1% */
+            const poly = svgPolygon(slot.pts, fill, stroke, Math.max(0.04, Math.min(data.w, data.h) / 100), 'tg-slot');
             poly.setAttribute('data-slot', String(index));
-            poly.addEventListener('click', () => {
+            poly.addEventListener('click', (event) => {
+                /* 阻断冒泡：避免纯剪影关事件再冒到拼板 svg 触发 handleBoardTap 二次放置、误闪红色警告 */
+                event.stopPropagation();
                 handleSlotClick(index);
             });
             board.appendChild(poly);
@@ -229,8 +232,9 @@
             filledLayer.appendChild(svgPolygon(
                 data.slots[entry.slot].pts,
                 TYPE_COLORS[data.slots[entry.slot].t],
+                /* 白色分隔描边同为 viewBox 用户单位：8/120≈0.067，保证拼块间白色分隔线细腻可见 */
                 '#ffffff',
-                Math.max(2, Math.min(data.w, data.h) / 60),
+                Math.max(0.04, Math.min(data.w, data.h) / 120),
                 'tg-piece-fill'
             ));
         });
@@ -312,9 +316,9 @@
         if (levelData(state.level).hint !== 2 || state.locked) return;
         const data = levelData(state.level);
         const rect = elements.board.getBoundingClientRect();
-        const scale = data.w / Math.max(rect.width, 1);
-        const x = (event.clientX - rect.left) * scale;
-        const nearest = placeAtNearest(state.level, state.filled.map((entry) => entry.slot), x, 0);
+        const x = (event.clientX - rect.left) * (data.w / Math.max(rect.width, 1));
+        const y = (event.clientY - rect.top) * (data.h / Math.max(rect.height, 1));
+        const nearest = placeAtNearest(state.level, state.filled.map((entry) => entry.slot), x, y);
         if (nearest >= 0) handleSlotClick(nearest);
     }
 
@@ -322,8 +326,8 @@
         const slotEl = elements.board.querySelector('[data-slot="' + slotIndex + '"]');
         if (!slotEl) return;
         slotEl.classList.remove('is-shake');
-        /* 强制重启动画 */
-        void slotEl.getBoundingClientRect;
+        /* 强制重启动画（需真正调用一次才触发 reflow） */
+        void slotEl.getBoundingClientRect();
         slotEl.classList.add('is-shake');
         windowObject.setTimeout(() => {
             slotEl.classList.remove('is-shake');

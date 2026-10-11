@@ -60,13 +60,15 @@
      * 求解 24 点。cards 为分数数组（长度 4）。
      * 返回 [{ expr, usedFrac }]：去重后的解法，usedFrac 表示该解法路径
      * 出现过非整数中间值（大师档难度依据）；排序为整数值路径优先、短表达式优先。
-     * 去重键 = 参与运算的原始数字下标多重集 + 最终值：交换律与括号等价只留一条。
+     * 去重键 = 按值规范化的表达式树串：叶子记牌值，交换律节点的两棵子树按字典序
+     * 排序后序列化。重复牌的不同下标来源会得到同一棵树（只留一条），而本质不同
+     * 的表达式树键必然不同（不会被误合并漏解）。
      */
     function solve24(cards) {
-        const items = cards.map((value, index) => ({
+        const items = cards.map((value) => ({
             value,
             expr: fracToStr(value),
-            key: String(index),
+            key: fracToStr(value),
             usedFrac: !fIsInt(value)
         }));
         const found = [];
@@ -76,9 +78,8 @@
             if (list.length === 1) {
                 const last = list[0];
                 if (!fEq(last.value, TARGET)) return;
-                const dedupeKey = last.key + '=' + last.value.n + '/' + last.value.d;
-                if (seen.has(dedupeKey)) return;
-                seen.add(dedupeKey);
+                if (seen.has(last.key)) return;
+                seen.add(last.key);
                 found.push({ expr: last.expr, usedFrac: last.usedFrac });
                 return;
             }
@@ -100,7 +101,7 @@
                             search(rest.concat([{
                                 value,
                                 expr,
-                                key: [pair[0].key, pair[1].key].sort().join('+'),
+                                key: treeKey(pair[0], pair[1], operation),
                                 usedFrac: pair[0].usedFrac || pair[1].usedFrac || !fIsInt(value)
                             }]));
                         }
@@ -115,6 +116,14 @@
             return a.expr.length - b.expr.length;
         });
         return found;
+    }
+
+    /** 规范化子树键：交换律节点两子树按字典序排序，保证 a+b 与 b+a 同键 */
+    function treeKey(a, b, operation) {
+        if (operation.commutative && a.key > b.key) {
+            return '(' + b.key + operation.symbol + a.key + ')';
+        }
+        return '(' + a.key + operation.symbol + b.key + ')';
     }
 
     /** 复合表达式一律加括号，保证字符串无歧义 */
@@ -311,12 +320,21 @@
         }
     }
 
-    /** 点卡：未选运算符时为选中/换选；已选运算符时作为第二个数触发合成 */
+    /** 点卡：未选运算符时为选中/换选；已选运算符时作为第二个数触发合成；再点自己一律视为取消选中 */
     function onCardClick(index) {
         if (state.finished) return;
         startTimer();
         if (state.selectedIndex === -1 || state.pendingOp === null) {
             state.selectedIndex = state.selectedIndex === index ? -1 : index;
+            state.pendingOp = null;
+            renderCards();
+            renderOps();
+            return;
+        }
+        // 已选运算符时再点同一张卡也视为取消选中：若放行到 mergeCards(A, A)，
+        // 合并结果会写入该下标后又被同下标 splice 删除，牌面凭空少一张
+        if (index === state.selectedIndex) {
+            state.selectedIndex = -1;
             state.pendingOp = null;
             renderCards();
             renderOps();
@@ -397,6 +415,11 @@
 
     /** 跳过：连击清零并展示被跳过题的解法；先载入下一题再把解法弹窗盖在上面 */
     function skip(showSolutions) {
+        /* 已算出 24 后误点跳过：不清连击也不换题，仅展示本题解法 */
+        if (state.finished) {
+            if (showSolutions) openSolutions(state.initialCards, '本题解法');
+            return;
+        }
         stopTimer();
         const streak = readStreak(state.tier);
         writeStreak(state.tier, { last: 0, best: streak.best });
@@ -424,8 +447,19 @@
         elements.solutionsModal.hidden = false;
     }
 
+    /** 两组牌是否为同一多重集（值与张数完全一致） */
+    function sameCards(a, b) {
+        if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+        const keyOf = (cards) => cards.map((value) => fracToStr(value)).sort().join(',');
+        return keyOf(a) === keyOf(b);
+    }
+
     function nextPuzzle() {
-        const puzzle = generatePuzzle(state.tier);
+        let puzzle = generatePuzzle(state.tier);
+        /* 相邻两题不重复：连续撞同牌组时重抽一次（概率极低，一次足够且不会死循环） */
+        if (sameCards(puzzle.cards, state.initialCards)) {
+            puzzle = generatePuzzle(state.tier);
+        }
         state.initialCards = puzzle.cards;
         state.cards = puzzle.cards.map((value) => ({ value, expr: fracToStr(value) }));
         state.selectedIndex = -1;

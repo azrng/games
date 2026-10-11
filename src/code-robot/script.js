@@ -26,7 +26,8 @@
 
     /* 12 个手工关卡（已全部用参考解法验证）：
        grid 字符画：# 墙 / . 空地 / S 起点 / G 终点 / * 宝石；
-       referenceProgram 是与 par 步数完全一致的参考解法，供 smoke 测试与「演示」按钮使用。
+       referenceProgram 是与 par 步数完全一致的 BFS 最优参考解法（三星门槛=最优步数），
+       供 smoke 测试与「演示」按钮使用。
        难度递进：1-3 直线与转弯（无墙无宝石）、4-6 加墙绕行、7-9 加宝石收集、10-12 大棋盘复杂路径 */
     const LEVELS = [
         {
@@ -55,7 +56,7 @@
         },
         {
             facing: 'R',
-            par: 12,
+            par: 5,
             grid: [
                 'S....',
                 '.....',
@@ -63,11 +64,11 @@
                 '.....',
                 'G....'
             ],
-            referenceProgram: ['F', 'F', 'F', 'R', 'F', 'F', 'F', 'F', 'R', 'F', 'F', 'F']
+            referenceProgram: ['R', 'F', 'F', 'F', 'F']
         },
         {
             facing: 'D',
-            par: 12,
+            par: 6,
             grid: [
                 '.....',
                 'S.#..',
@@ -75,11 +76,11 @@
                 '..#..',
                 '..#..'
             ],
-            referenceProgram: ['F', 'F', 'F', 'L', 'F', 'L', 'F', 'F', 'R', 'F', 'F', 'F']
+            referenceProgram: ['F', 'L', 'F', 'F', 'F', 'F']
         },
         {
             facing: 'D',
-            par: 12,
+            par: 11,
             grid: [
                 '......',
                 '..##..',
@@ -88,7 +89,7 @@
                 '......',
                 '......'
             ],
-            referenceProgram: ['F', 'F', 'L', 'F', 'F', 'F', 'F', 'L', 'F', 'F', 'R', 'F']
+            referenceProgram: ['F', 'F', 'L', 'F', 'F', 'F', 'F', 'F', 'L', 'F', 'F']
         },
         {
             facing: 'R',
@@ -179,7 +180,7 @@
         },
         {
             facing: 'U',
-            par: 21,
+            par: 19,
             grid: [
                 '...*..G',
                 '....#..',
@@ -190,13 +191,12 @@
                 '......S'
             ],
             referenceProgram: [
-                'F', 'F',
-                'L',
-                'F', 'F', 'F', 'F', 'F', 'F',
+                'F', 'F', 'L',
+                'F', 'F', 'F', 'F', 'F',
                 'R',
                 'F', 'F', 'F', 'F',
                 'R',
-                'F', 'F', 'F', 'F', 'F', 'F'
+                'F', 'F', 'F', 'F', 'F'
             ]
         }
     ];

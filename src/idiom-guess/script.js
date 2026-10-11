@@ -76,11 +76,12 @@
         return bank[Math.floor(rand() * bank.length)];
     }
 
-    /** 提示：随机揭示一个尚未猜中（非绿）位置的正确字下标；全绿返回 -1 */
-    function revealHint(answer, greens) {
+    /** 提示：随机揭示一个尚未猜中（非绿）且未揭示过的位置下标；无可揭示返回 -1 */
+    function revealHint(answer, greens, hintSet) {
+        const revealed = hintSet || new Set();
         const candidates = [];
         for (let i = 0; i < 4; i += 1) {
-            if (greens[i] !== 'green') candidates.push(i);
+            if (greens[i] !== 'green' && !revealed.has(i)) candidates.push(i);
         }
         if (candidates.length === 0) return -1;
         return candidates[Math.floor(Math.random() * candidates.length)];
@@ -273,7 +274,7 @@
         for (let i = 0; i < 4; i += 1) {
             greens.push(state.attempts.some((attempt) => attempt.feedback[i] === 'green') ? 'green' : 'gray');
         }
-        const index = revealHint(state.answer.w, greens);
+        const index = revealHint(state.answer.w, greens, state.hintSet);
         if (index === -1) return;
         state.hintSet.add(index);
         state.hintsLeft -= 1;

@@ -9,8 +9,8 @@ function read(file) {
     return fs.readFileSync(path.join(root, file), 'utf8');
 }
 
-function runScriptWithContext() {
-    const storage = new Map();
+function runScriptWithContext(storagePreset) {
+    const storage = new Map(storagePreset ? Object.entries(storagePreset) : []);
     const elements = new Map();
 
     function createElement(tag) {
@@ -271,6 +271,67 @@ function testMatchAndNearestPlacement() {
     );
 }
 
+/* 剪影关点击回归：点击应按 x/y 二维最近槽位判定（旧实现 y 恒传 0 会系统性偏向顶部槽位） */
+function testSilhouetteTapPicksNearestIn2D() {
+    const { api, elements } = runScriptWithContext({ 'tangram-unlocked-level': '9' });
+    const data = api.levelData(9);
+    assert.strictEqual(data.hint, 2, '第 9 关应为纯剪影模式');
+
+    function nearestSlot(x, y) {
+        let best = -1;
+        let bestDist = Infinity;
+        data.slots.forEach((slot, index) => {
+            const c = api.slotCentroid(slot);
+            const dist = (c[0] - x) ** 2 + (c[1] - y) ** 2;
+            if (dist < bestDist) {
+                bestDist = dist;
+                best = index;
+            }
+        });
+        return best;
+    }
+
+    /* 找一个纵向可区分的点击点：真实 y 与 y=0 选出的槽位不同、且两槽位类型互斥（可用放置成败区分） */
+    let tap = null;
+    let expected = -1;
+    for (let xi = 0.5; xi < data.w && !tap; xi += 0.5) {
+        for (let yi = data.h * 0.55; yi < data.h; yi += 0.5) {
+            const real = nearestSlot(xi, yi);
+            const flat = nearestSlot(xi, 0);
+            if (real !== flat && data.slots[real].t !== data.slots[flat].t) {
+                tap = [xi, yi];
+                expected = real;
+                break;
+            }
+        }
+    }
+    assert.ok(tap, '第 9 关应存在纵向可区分的剪影点击点');
+
+    /* 从托盘选中与期望槽位类型匹配的板块（托盘按钮按 shuffleTray 顺序创建） */
+    const order = api.shuffleTray(9 * 7919 + 13);
+    const trayButtons = elements.get('tray').children;
+    let picked = false;
+    for (let i = 0; i < order.length; i += 1) {
+        if (api.PIECE_DEFS[order[i]].t === data.slots[expected].t) {
+            trayButtons[i].handlers.click();
+            picked = true;
+            break;
+        }
+    }
+    assert.ok(picked, '托盘中应存在匹配板块');
+
+    /* stub 的 board rect 为 100x100，按关卡宽高反算 clientX/clientY */
+    elements.get('board').handlers.click({
+        clientX: (tap[0] / data.w) * 100,
+        clientY: (tap[1] / data.h) * 100
+    });
+    assert.strictEqual(
+        elements.get('placed-text').textContent,
+        '1/7',
+        '剪影关点击应放入二维最近槽位（y 参与距离计算）'
+    );
+}
+
 function testShuffleTrayReproducible() {
     const { api } = runScriptWithContext();
 
@@ -309,6 +370,7 @@ testPieceDefsAndLevelsGeometry();
 testLevelTilingsAreExact();
 testHintProgression();
 testMatchAndNearestPlacement();
+testSilhouetteTapPicksNearestIn2D();
 testShuffleTrayReproducible();
 testStarRatingAndStorage();
 

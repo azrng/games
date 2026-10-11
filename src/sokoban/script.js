@@ -195,8 +195,14 @@
         return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
     }
 
+    /** 关卡总数（levels.js 未加载时返回 0，loadLevel 自带防护） */
+    function levelCount() {
+        return Array.isArray(windowObject.SOKOBAN_LEVELS) ? windowObject.SOKOBAN_LEVELS.length : 0;
+    }
+
     function readUnlocked() {
-        return getStorageNumber(UNLOCK_KEY, 1);
+        /* 解锁进度按关卡总数封顶：通关末关后存档为 length+1，篡改/异常存档也不应越界 */
+        return Math.min(getStorageNumber(UNLOCK_KEY, 1), Math.max(levelCount(), 1));
     }
 
     function readBestMoves(level) {
@@ -315,6 +321,8 @@
         elements.resultPushes.textContent = String(state.game.pushes);
         const best = readBestMoves(state.level);
         elements.resultBest.textContent = best > 0 ? String(best) : '--';
+        /* 末关通关后没有下一关：隐藏"下一关"按钮，避免点击越界早退、弹窗卡住 */
+        elements.nextBtn.hidden = levelCount() > 0 && state.level >= levelCount();
         elements.winModal.hidden = false;
     }
 
@@ -433,5 +441,10 @@
     };
 
     bindEvents();
-    loadLevel(Math.min(getStorageNumber(CURRENT_KEY, 1), Math.max(readUnlocked(), 1)));
+    /* 起始关三重钳制：当前关存档、解锁进度、关卡总数，损坏存档（如 999）回落到末关而非空白盘 */
+    loadLevel(Math.min(
+        Math.max(getStorageNumber(CURRENT_KEY, 1), 1),
+        Math.max(readUnlocked(), 1),
+        Math.max(levelCount(), 1)
+    ));
 })(window, document);

@@ -178,7 +178,33 @@ function testLevelCatalogAndReferenceSolutions() {
         assert.strictEqual(result.gemsCollected, parsed.gems.length,
             `level ${level}: reference program should collect every gem`);
         assert.strictEqual(result.crashAt, 0, `level ${level}: reference program should never crash`);
+
+        /* par 校准契约：par 必须等于 BFS 最优指令数（旧数据 L3/L4/L5/L12 的 par 远大于最优，三星门槛失真） */
+        assert.strictEqual(bfsOptimalSteps(api, level), parsed.par,
+            `level ${level}: par should equal the BFS-optimal instruction count`);
     }
+}
+
+/* 在（行,列,朝向,宝石拾取集合）状态空间上 BFS，返回最优指令数；无解返回 -1 */
+function bfsOptimalSteps(api, level) {
+    const parsed = api.parseLevel(level);
+    const start = api.createRunState(parsed);
+    const key = (s) => s.row + ',' + s.col + ',' + s.facing + ',' + [...s.collected].sort((a, b) => a - b).join('.');
+    const queue = [{ state: start }];
+    const seen = new Set([key(start)]);
+    while (queue.length > 0) {
+        const node = queue.shift();
+        for (const cmd of ['F', 'L', 'R']) {
+            const outcome = api.stepRobot(parsed, node.state, cmd);
+            if (outcome.crashed) continue;
+            if (outcome.win) return outcome.state.steps;
+            const k = key(outcome.state);
+            if (seen.has(k)) continue;
+            seen.add(k);
+            queue.push({ state: outcome.state });
+        }
+    }
+    return -1;
 }
 
 /* simulateProgram 边界：撞墙、出界、宝石未集齐、程序截断、过关即提前结束 */
