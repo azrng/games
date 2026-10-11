@@ -155,11 +155,15 @@ function testPourEdges() {
 
     /* fill / empty 边界：装满取容量、倒光归零、越界原样返回 */
     assert.deepStrictEqual(api.fill([0, 0], caps, 0), [5, 0], 'fill should top the cup up to capacity');
-    assert.deepStrictEqual(api.fill([2, 3], caps, 1), [2, 3], 'filling a full cup keeps the amounts');
     assert.deepStrictEqual(api.empty([4, 2], caps, 1), [4, 0], 'empty should zero the cup');
+    /* 无效动作契约：满杯再装满、空杯再倒光必须原样返回同一引用，保证不计步数 */
     const kept = [3, 1];
     assert.strictEqual(api.fill(kept, caps, 7), kept, 'fill with a bad index should be a no-op');
     assert.strictEqual(api.empty(kept, caps, -2), kept, 'empty with a bad index should be a no-op');
+    const fullCup = [5, 3];
+    assert.strictEqual(api.fill(fullCup, caps, 0), fullCup, 'filling a full cup should be a no-op that keeps the reference');
+    const emptyCup = [0, 3];
+    assert.strictEqual(api.empty(emptyCup, caps, 0), emptyCup, 'emptying an empty cup should be a no-op that keeps the reference');
 
     /* applyAction 分发：pour / fill / empty 三种动作类型都能正确落状态 */
     assert.deepStrictEqual(api.applyAction([4, 1], caps, { type: 'pour', from: 0, to: 1 }), [2, 3]);

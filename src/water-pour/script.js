@@ -137,17 +137,19 @@
         return next;
     }
 
-    /* 装满第 i 杯；越界原样返回 */
+    /* 装满第 i 杯；越界或已满时原样返回（已满属无效动作，不计步数） */
     function fill(state, caps, i) {
         if (i < 0 || i >= caps.length) return state;
+        if (state[i] >= caps[i]) return state;
         const next = state.slice();
         next[i] = caps[i];
         return next;
     }
 
-    /* 倒光第 i 杯；越界原样返回 */
+    /* 倒光第 i 杯；越界或已空时原样返回（已空属无效动作，不计步数） */
     function empty(state, caps, i) {
         if (i < 0 || i >= caps.length) return state;
+        if (state[i] <= 0) return state;
         const next = state.slice();
         next[i] = 0;
         return next;
@@ -370,7 +372,8 @@
             if (state.cups[action.from] <= 0) return `杯子 ${action.from + 1} 是空的，倒不出水。`;
             return `杯子 ${action.to + 1} 已经满了，装不下了。`;
         }
-        return '这个操作现在不可用。';
+        if (action.type === 'fill') return `杯子 ${action.from + 1} 已经是满的啦。`;
+        return `杯子 ${action.from + 1} 本来就是空的。`;
     }
 
     /* 统一的动作入口：无效动作不消耗步数，有效动作推入撤销栈 */
