@@ -3,7 +3,7 @@ doc_id: REQ-INDEX
 doc_type: index
 module: global
 status: approved
-last_updated: 2026-10-09
+last_updated: 2026-10-11
 ---
 
 # 需求索引与项目级目标
@@ -41,6 +41,7 @@ last_updated: 2026-10-09
 | sokoban | 推箱子：Microban 关卡推箱规划（双端） | [core-game.md](sokoban/core-game.md)（核心玩法） |
 | idiom-guess | 猜成语：四字着色反馈成语推理（双端） | [core-game.md](idiom-guess/core-game.md)（核心玩法） |
 | game-hub | 平台首页：年龄筛选（REQ-GH001）与设备筛选（REQ-GH002） | [device-filter.md](game-hub/device-filter.md)（设备筛选 Tab；年龄筛选见 [age-filter.md](game-hub/age-filter.md)） |
+| game-hub | 平台公共：游戏页首次进入玩法提示（REQ-GH003） | [first-play-tip.md](game-hub/first-play-tip.md)（提示条 + 页头「?」入口，共享组件 game-tip.js） |
 
 ## 公共约束
 

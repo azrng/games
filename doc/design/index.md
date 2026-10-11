@@ -3,7 +3,7 @@ doc_id: DES-INDEX
 doc_type: index
 module: global
 status: approved
-last_updated: 2026-10-08
+last_updated: 2026-10-11
 ---
 
 # 设计索引
@@ -16,6 +16,7 @@ last_updated: 2026-10-08
 | pinyin-typing | 拼音打字乐园核心玩法（5-8 岁三档） | approved | [core-game.md](pinyin-typing/core-game.md) | REQ-PT001 |
 | game-hub | 首页年龄筛选 Tab | approved | [age-filter.md](game-hub/age-filter.md) | REQ-GH001 |
 | game-hub | 首页设备筛选 Tab | approved | [device-filter.md](game-hub/device-filter.md) | REQ-GH002 |
+| game-hub | 游戏页首次进入玩法提示条与「?」入口 | approved | [first-play-tip.md](game-hub/first-play-tip.md) | REQ-GH003 |
 | tangram | 七巧板核心玩法 | approved | [core-game.md](tangram/core-game.md) | REQ-TG001 |
 | clock-learning | 时钟认知核心玩法 | approved | [core-game.md](clock-learning/core-game.md) | REQ-CL001 |
 | shopping-cashier | 购物小掌柜核心玩法 | approved | [core-game.md](shopping-cashier/core-game.md) | REQ-SP001 |
@@ -35,5 +36,5 @@ last_updated: 2026-10-08
 
 ## 跨模块
 
-- `architecture.md`：暂无（当前无跨模块公共设计，平台壳与游戏间仅有链接关系）。
+- `architecture.md`：暂无（跨模块公共实现目前仅有游戏页共享脚本：`game-back.js` 返回按钮、`game-tip.js` 首次玩法提示，后者设计见 [game-hub/first-play-tip.md](game-hub/first-play-tip.md)）。
 - `设计文档.md`：旧版兼容入口，仅含历史内容，不追加新章节。
