@@ -154,8 +154,11 @@ function createTetrisCore(rng = Math.random) {
         return spawn(type);
     }
 
-    /** 沿用锁定延迟重置规则：落地状态下成功操作可重置计时（有次数上限） */
+    /** 沿用锁定延迟重置规则：仅落地状态下成功操作可重置计时（有次数上限）；
+     * 悬空时不消耗重置额度，否则下落途中移动/旋转会白白烧掉 15 次额度 */
     function onSuccessfulMove() {
+        const a = core.active;
+        if (!a || !collides(a.type, a.rot, a.x, a.y + 1)) return; // 未落地
         if (core.lockResets < TETRIS_LOCK_RESETS) {
             core.lockTimer = 0;
             core.lockResets += 1;
@@ -658,6 +661,14 @@ function initTetrisPage() {
     });
 
     window.addEventListener('blur', () => {
+        // 失焦时松开的按键不会再触发 keyup，必须清掉按住状态，否则回来后 DAS/软降自动连移
+        held.left = false;
+        held.right = false;
+        held.soft = false;
+        heldDir = 0;
+        dasTimer = 0;
+        arrTimer = 0;
+        softTimer = 0;
         if (state === 'playing') togglePause();
     });
 

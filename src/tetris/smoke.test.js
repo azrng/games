@@ -75,6 +75,10 @@ function testFilesAndStructure() {
     for (const marker of ['TETRIS_KICKS_JLSTZ', 'TETRIS_KICKS_I', 'detectTSpin', 'ghostY', 'doHold', 'TETRIS_LCD_INK', 'lcd-clock']) {
         assert(script.includes(marker), `script should contain ${marker}`);
     }
+    assert(script.includes("addEventListener('blur'"), 'script should listen for window blur');
+    assert(script.includes('held.soft = false;') && script.includes('heldDir = 0;'),
+        'blur handler should clear held key state to avoid auto-repeat after refocus');
+    assert(script.includes('未落地'), 'airborne moves should skip lock-delay resets');
     assert(script.includes('window.Tetris'), 'script should export the test surface');
 }
 
@@ -241,6 +245,36 @@ function testLockDelayAndGravity() {
     assert(g2.core.active.y > startY + 1, 'gravity should pull the piece down over time');
 }
 
+function testLockResetQuota() {
+    /* 悬空移动/旋转不消耗锁定延迟重置额度 */
+    const game = T.createTetrisCore(mulberry32(13));
+    game.start();
+    game.core.board.forEach((row) => row.fill(null));
+    game.core.active.type = 'T';
+    game.core.active.rot = 0;
+    game.core.active.x = 3;
+    game.core.active.y = 5; // 悬空
+    assert(game.tryMove(-1) && game.tryMove(1), 'airborne moves should succeed');
+    assert(game.rotate(1), 'airborne rotate should succeed');
+    assert.strictEqual(game.core.lockResets, 0,
+        'airborne moves must not consume the lock-delay reset quota');
+
+    /* 落地后移动重置计时并计入额度，额度耗尽后不再重置 */
+    game.core.active.rot = 0; // 转回横态，保证 y=20 摆位合法
+    game.core.active.y = 20; // T 块落在 20/21 行，已贴底
+    assert(game.tryMove(1), 'grounded move should succeed');
+    assert.strictEqual(game.core.lockResets, 1, 'grounded move should consume one reset');
+    assert.strictEqual(game.core.lockTimer, 0, 'grounded move should reset the lock timer');
+    for (let i = 0; i < 20; i++) {
+        assert(game.tryMove(i % 2 === 0 ? 1 : -1), 'alternating grounded moves should succeed');
+    }
+    assert.strictEqual(game.core.lockResets, 15, 'reset quota should cap at the limit');
+    game.core.lockTimer = 0.3;
+    assert(game.tryMove(-1), 'move with exhausted quota should still succeed');
+    assert.strictEqual(game.core.lockTimer, 0.3,
+        'exhausted quota should no longer reset the lock timer');
+}
+
 function testHold() {
     const game = T.createTetrisCore(mulberry32(9));
     game.start();
@@ -273,6 +307,7 @@ testSRSSpins();
 testGhostAndHardDrop();
 testTSpinScoring();
 testLockDelayAndGravity();
+testLockResetQuota();
 testHold();
 testGameOver();
 
