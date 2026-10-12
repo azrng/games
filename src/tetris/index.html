@@ -4,84 +4,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <meta name="description" content="原生 JavaScript 实现的俄罗斯方块：SRS 旋转、7-bag、暂存、落点投影与 T-spin 计分" />
+    <meta name="description" content="复古掌机风格的俄罗斯方块：SRS 旋转、7-bag、暂存、落点投影与 T-spin 计分" />
     <title>俄罗斯方块 - 游戏平台</title>
     <link rel="stylesheet" href="../css/custom.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20261011-6">
     <link href="./mobile-gate.css" rel="stylesheet">
 </head>
 
 <body>
     <main class="tetris-shell" aria-label="俄罗斯方块">
-        <header class="tetris-header">
-            <div>
-                <p class="eyebrow">Tetris</p>
-                <h1>俄罗斯方块</h1>
-            </div>
-            <div class="status-pills">
-                <div class="status-pill" aria-label="最高分">
-                    <span aria-hidden="true">🏆</span>
-                    <span id="best-text">0</span>
+        <div class="console">
+            <!-- 机身左右两侧的方块形状装饰列（复刻掌机版黄边装饰） -->
+            <div class="screen-zone">
+                <div class="deco-col deco-left" aria-hidden="true">
+                    <svg viewBox="-0.2 -0.2 3.4 2.4">
+                        <g><rect x="0" y="0" width="1" height="1" /><rect x="0.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="2" y="1" width="1" height="1" /><rect x="2.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 2.4 2.4">
+                        <g><rect x="0" y="0" width="1" height="1" /><rect x="0.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="0" y="1" width="1" height="1" /><rect x="0.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 2.4 3.4">
+                        <g><rect x="0" y="0" width="1" height="1" /><rect x="0.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="0" y="1" width="1" height="1" /><rect x="0.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="0" y="2" width="1" height="1" /><rect x="0.3" y="2.3" width="0.4" height="0.4" class="core" /><rect x="1" y="2" width="1" height="1" /><rect x="1.3" y="2.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 3.4 2.4">
+                        <g><rect x="0" y="1" width="1" height="1" /><rect x="0.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="2" y="1" width="1" height="1" /><rect x="2.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 2.4 2.4">
+                        <g><rect x="0" y="0" width="1" height="1" /><rect x="0.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="0" y="1" width="1" height="1" /><rect x="0.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
                 </div>
-                <button type="button" id="music-btn" class="status-pill pill-btn" aria-label="背景音乐开关" aria-pressed="false">
-                    <span aria-hidden="true">🎵</span>
-                    <span id="music-text">音乐关</span>
-                </button>
-            </div>
-        </header>
-
-        <section class="tetris-layout">
-            <aside class="side-panel" aria-label="暂存区">
-                <p class="side-label">暂存 <span class="key-hint">C</span></p>
-                <canvas id="hold-canvas" width="96" height="96" aria-label="暂存的方块"></canvas>
-                <div class="stat-block">
-                    <p class="side-label">分数</p>
-                    <p class="stat-value" id="score-text">0</p>
+                <div class="deco-col deco-right" aria-hidden="true">
+                    <svg viewBox="-0.2 -0.2 2.4 3.4">
+                        <g><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="1" y="2" width="1" height="1" /><rect x="1.3" y="2.3" width="0.4" height="0.4" class="core" /><rect x="0" y="2" width="1" height="1" /><rect x="0.3" y="2.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 3.4 2.4">
+                        <g><rect x="0" y="0" width="1" height="1" /><rect x="0.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="2" y="1" width="1" height="1" /><rect x="2.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 2.4 2.4">
+                        <g><rect x="0" y="0" width="1" height="1" /><rect x="0.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="0" y="1" width="1" height="1" /><rect x="0.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 3.4 2.4">
+                        <g><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="0" y="1" width="1" height="1" /><rect x="0.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="2" y="1" width="1" height="1" /><rect x="2.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
+                    <svg viewBox="-0.2 -0.2 3.4 2.4">
+                        <g><rect x="0" y="0" width="1" height="1" /><rect x="0.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="0" width="1" height="1" /><rect x="1.3" y="0.3" width="0.4" height="0.4" class="core" /><rect x="1" y="1" width="1" height="1" /><rect x="1.3" y="1.3" width="0.4" height="0.4" class="core" /><rect x="2" y="1" width="1" height="1" /><rect x="2.3" y="1.3" width="0.4" height="0.4" class="core" /></g>
+                    </svg>
                 </div>
-                <div class="stat-block">
-                    <p class="side-label">等级 / 行数</p>
-                    <p class="stat-value"><span id="level-text">1</span> · <span id="lines-text">0</span></p>
+
+                <!-- 顶部标题带：粗黑条 + 四黑点 + 居中黑字标题（黄底） -->
+                <header class="console-top" aria-hidden="true">
+                    <span class="top-bar"></span>
+                    <span class="title-dots"><i></i><i></i><i></i><i></i></span>
+                    <h1>俄罗斯方块</h1>
+                    <span class="title-dots"><i></i><i></i><i></i><i></i></span>
+                    <span class="top-bar"></span>
+                </header>
+
+                <div class="console-screen">
+                    <div class="screen-body">
+                        <div class="board-wrap">
+                            <canvas id="board-canvas" aria-label="俄罗斯方块棋盘"></canvas>
+                            <div id="overlay" class="board-overlay is-menu">
+                                <svg class="pixel-dino" viewBox="0 0 20 17" aria-hidden="true">
+                                    <path d="M10 0h10v1h-10z M9 1h11v1h-11z M9 2h2v1h-2z M12 2h8v1h-8z M9 3h11v1h-11z M9 4h7v1h-7z M9 5h9v1h-9z M9 6h6v1h-6z M9 7h7v1h-7z M0 8h2v1h-2z M9 8h6v1h-6z M0 9h3v1h-3z M8 9h8v1h-8z M0 10h4v1h-4z M7 10h9v1h-9z M16 10h1v1h-1z M0 11h5v1h-5z M6 11h10v1h-10z M16 11h2v1h-2z M0 12h16v1h-16z M1 13h15v1h-15z M8 14h3v1h-3z M12 14h3v1h-3z M8 15h3v1h-3z M12 15h3v1h-3z M8 16h4v1h-4z M12 16h4v1h-4z" />
+                                </svg>
+                                <h2 id="overlay-title">俄罗斯方块</h2>
+                                <p class="overlay-sub" aria-hidden="true">TETRIS</p>
+                                <p id="overlay-desc"></p>
+                                <button type="button" id="overlay-btn" class="overlay-btn">开始游戏</button>
+                            </div>
+                        </div>
+                        <aside class="lcd-col" aria-label="状态区">
+                            <div class="lcd-row"><span>最高分</span><b class="lcd-num" id="best-text" data-ghost="888888"></b></div>
+                            <div class="lcd-row"><span>分数</span><b class="lcd-num" id="score-text" data-ghost="888888"></b></div>
+                            <div class="lcd-row"><span>行数</span><b class="lcd-num" id="lines-text" data-ghost="888"></b></div>
+                            <div class="lcd-row"><span>级别</span><b class="lcd-num" id="level-text" data-ghost="88"></b></div>
+                            <div class="lcd-row lcd-center"><span>暂存</span><canvas id="hold-canvas" width="128" height="128" aria-label="暂存的方块"></canvas></div>
+                            <div class="lcd-row lcd-center"><span>下一个</span><canvas id="next-canvas" width="128" height="128" aria-label="接下来的方块"></canvas></div>
+                            <div class="lcd-foot">
+                                <svg id="lcd-music" class="lcd-icon" viewBox="0 0 20 16" aria-hidden="true">
+                                    <path d="M2 5h4l5-4v14l-5-4H2z" />
+                                    <path class="icon-x" d="M14 5l5 6M19 5l-5 6" />
+                                </svg>
+                                <svg id="lcd-pause" class="lcd-icon" viewBox="0 0 14 16" aria-hidden="true">
+                                    <rect x="1" y="1" width="4" height="14" />
+                                    <rect x="9" y="1" width="4" height="14" />
+                                </svg>
+                                <div class="lcd-clock" id="lcd-clock">00:00</div>
+                            </div>
+                        </aside>
+                    </div>
                 </div>
-            </aside>
+            </div>
 
-            <div class="board-wrap">
-                <canvas id="board-canvas" aria-label="俄罗斯方块棋盘"></canvas>
-                <div id="overlay" class="board-overlay">
-                    <h2 id="overlay-title">俄罗斯方块</h2>
-                    <p id="overlay-desc">方向键移动，↑ 旋转，空格硬降</p>
-                    <button type="button" id="overlay-btn" class="overlay-btn">开始游戏</button>
+            <!-- 屏幕下方：左列 = 实体小键 + 掉落大钮；右列 = 旋转钮 + 十字方向钮（复刻掌机版手柄） -->
+            <div class="console-bottom">
+                <div class="bottom-left">
+                    <div class="mini-keys">
+                        <button type="button" id="pause-btn" class="mini-key"><span class="ball ball-green" aria-hidden="true"></span>暂停(P)</button>
+                        <button type="button" id="music-btn" class="mini-key" aria-pressed="false"><span class="ball ball-green" aria-hidden="true"></span>音效(S)</button>
+                        <button type="button" id="hold-btn" class="mini-key"><span class="ball ball-green" aria-hidden="true"></span>暂存(C)</button>
+                        <button type="button" id="restart-btn" class="mini-key"><span class="ball ball-red" aria-hidden="true"></span>重玩(R)</button>
+                    </div>
+                    <section class="touch-pad" aria-label="手柄按键">
+                        <div class="drop-group">
+                            <button type="button" data-act="hard" class="pad-ball pad-drop" aria-label="掉落，硬降到底"></button>
+                            <span class="pad-label">掉落 (SPACE)</span>
+                        </div>
+                        <div class="cross-group">
+                            <div class="rotate-row">
+                                <button type="button" data-act="rotate-cw" class="pad-ball pad-cross" aria-label="旋转"></button>
+                                <span class="pad-label">旋转</span>
+                            </div>
+                            <div class="cross-row">
+                                <div class="cross-cell">
+                                    <button type="button" data-act="left" class="pad-ball pad-cross" aria-label="左移"></button>
+                                    <span class="pad-label">左移</span>
+                                </div>
+                                <div class="cross-center" aria-hidden="true">
+                                    <i class="tri tri-up"></i><i class="tri tri-left"></i><i class="tri tri-right"></i><i class="tri tri-down"></i>
+                                </div>
+                                <div class="cross-cell">
+                                    <button type="button" data-act="right" class="pad-ball pad-cross" aria-label="右移"></button>
+                                    <span class="pad-label">右移</span>
+                                </div>
+                            </div>
+                            <div class="cross-cell cross-down">
+                                <button type="button" data-act="soft" class="pad-ball pad-cross" aria-label="下移"></button>
+                                <span class="pad-label">下移</span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
+        </div>
 
-            <aside class="side-panel" aria-label="预告区">
-                <p class="side-label">预告</p>
-                <canvas id="next-canvas" width="96" height="264" aria-label="接下来的方块"></canvas>
-            </aside>
-        </section>
-
-        <!-- 触屏按键：仅 coarse 指针设备显示，与键盘操作等价 -->
-        <section class="touch-pad" aria-label="触屏操作">
-            <div class="touch-row">
-                <button type="button" data-act="left" aria-label="左移">◀</button>
-                <button type="button" data-act="rotate-cw" aria-label="顺时针旋转">⟳</button>
-                <button type="button" data-act="right" aria-label="右移">▶</button>
-            </div>
-            <div class="touch-row">
-                <button type="button" data-act="hold" aria-label="暂存">换</button>
-                <button type="button" data-act="soft" aria-label="软降">▼</button>
-                <button type="button" data-act="hard" aria-label="硬降">⤓</button>
-            </div>
-        </section>
-
-        <p class="tetris-hint">← → 移动 · ↑/X 旋转 · Z 反旋 · ↓ 软降 · 空格硬降 · C 暂存 · P 暂停</p>
+        <p class="tetris-hint">← → 移动 · ↑/X 旋转 · Z 反旋 · ↓ 软降 · 空格硬降 · C 暂存 · P 暂停 · S 音效 · R 重玩</p>
     </main>
 
     <div id="mobile-gate">
         <div class="mobile-gate-card">
             <span class="mobile-gate-emoji">🕹️</span>
-            <p class="mobile-gate-tag">键盘体验最佳</p>
-            <h3>俄罗斯方块推荐用电脑玩</h3>
-            <p class="mobile-gate-desc">实体键盘的手感最好。手机上也能玩——继续后会显示触屏按键，但棋盘会小一些。</p>
+            <p class="mobile-gate-tag">复古掌机</p>
+            <h3>键盘手感更佳</h3>
+            <p class="mobile-gate-desc">手机上可以畅玩：机身自带手柄按键，棋盘会自动缩放到一屏显示。电脑键盘操作更顺手。</p>
             <div class="mobile-gate-actions">
                 <a class="mobile-gate-primary" href="../../index.html">返回选择游戏</a>
                 <button type="button" id="mobile-gate-continue">用手机继续玩</button>
@@ -89,7 +155,7 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=20261011-6"></script>
     <script src="../js/game-back.js"></script>
     <script>
         (function () {

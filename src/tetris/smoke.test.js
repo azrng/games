@@ -47,7 +47,7 @@ const T = loadScript();
 function testFilesAndStructure() {
     const html = read('index.html');
     assert(html.includes('charset="UTF-8"'), 'page should declare UTF-8');
-    assert(html.includes('src="script.js"'), 'page should load the rewritten script');
+    assert(html.includes('src="script.js?v='), 'page should load the rewritten script with a cache-busting version');
     assert(html.includes('id="board-canvas"'), 'page should keep the board canvas');
     assert(html.includes('id="hold-canvas"') && html.includes('id="next-canvas"'),
         'page should provide hold and next canvases');
@@ -56,15 +56,23 @@ function testFilesAndStructure() {
         'page should keep the mobile gate and its continue button');
     assert(html.includes('app_tetris_mobile_gate_dismissed'),
         'gate dismissal should stay in sessionStorage');
+    assert(html.includes('id="pause-btn"') && html.includes('id="restart-btn"'),
+        'page should provide pause and restart console keys');
+    assert(html.includes('id="hold-btn"') && html.includes('id="lcd-music"') && html.includes('id="lcd-pause"'),
+        'page should provide hold key and lcd status icons');
+    assert(html.includes('id="lcd-clock"'), 'page should keep the lcd clock');
     assert(!html.includes('app-1.0.1.js'), 'page should not reference the old react-tetris bundle');
     assert(!html.includes('width=640'), 'page should drop the legacy 640px viewport hack');
 
     const css = read('style.css');
     assert(css.includes('safe-area-inset-top'), 'layout should avoid the top safe area');
     assert(css.includes('pointer: coarse'), 'touch pad should show on coarse pointers');
+    assert(css.includes('position: sticky'), 'touch pad should stick within view on mobile');
+    assert(html.includes('cross-center') && html.includes('data-act="hard"'),
+        'touch pad should keep the gamepad buttons (cross keys + drop/hold)');
 
     const script = read('script.js');
-    for (const marker of ['TETRIS_KICKS_JLSTZ', 'TETRIS_KICKS_I', 'detectTSpin', 'ghostY', 'doHold']) {
+    for (const marker of ['TETRIS_KICKS_JLSTZ', 'TETRIS_KICKS_I', 'detectTSpin', 'ghostY', 'doHold', 'TETRIS_LCD_INK', 'lcd-clock']) {
         assert(script.includes(marker), `script should contain ${marker}`);
     }
     assert(script.includes('window.Tetris'), 'script should export the test surface');

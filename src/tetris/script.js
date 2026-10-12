@@ -59,11 +59,14 @@ const TETRIS_KICKS_I = {
     '0>3': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]]
 };
 
-/* 方块配色（Guideline 惯例色） */
+/* 方块配色（Guideline 惯例色）：用于暂存 / 预告小窗 */
 const TETRIS_COLORS = {
     I: '#31c7ef', O: '#f7d308', T: '#ad4d9c',
     S: '#42b642', Z: '#ef2029', J: '#5a65ad', L: '#ef7921'
 };
+
+/* 复古掌机 LCD 配色：棋盘内网格与方块用墨绿单色，营造掌机屏幕观感 */
+const TETRIS_LCD_INK = '#39482e';
 
 const TETRIS_LOCK_DELAY = 0.5;   // 落地后锁定延迟（秒）
 const TETRIS_LOCK_RESETS = 15;   // 锁定延迟最多重置次数
@@ -382,7 +385,9 @@ function initTetrisPage() {
     const linesText = document.getElementById('lines-text');
     const bestText = document.getElementById('best-text');
     const musicBtn = document.getElementById('music-btn');
-    const musicText = document.getElementById('music-text');
+    const holdBtn = document.getElementById('hold-btn');
+    const lcdMusic = document.getElementById('lcd-music');
+    const lcdPause = document.getElementById('lcd-pause');
 
     const CELL = 30;
     const dpr = window.devicePixelRatio || 1;
@@ -392,9 +397,15 @@ function initTetrisPage() {
 
     let game = null;
     let state = 'menu'; // menu | playing | paused | over
+    /* 菜单状态下用演示实例渲染预告区，未开局也能看到下一个方块（对齐掌机版观感） */
+    const demoGame = createTetrisCore();
+    demoGame.start();
     let best = 0;
     let musicOn = false;
     let music = null;
+
+    /* 触屏设备的浮层文案改为触控话术（桌面保持键盘话术） */
+    const IS_TOUCH = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
     /* DAS/ARR：按住方向键先延迟后连发 */
     const DAS = 0.17;
@@ -410,7 +421,11 @@ function initTetrisPage() {
     } catch (error) {
         best = 0; // 隐私模式等存储不可用时最高分不持久化
     }
-    bestText.textContent = String(best);
+    bestText.textContent = padDigits(best, 6);
+    // 菜单态即显示初始数值（掌机版开机即亮数码管）
+    scoreText.textContent = padDigits(0, 6);
+    levelText.textContent = padDigits(1, 2);
+    linesText.textContent = padDigits(0, 3);
 
     /* 画布高分屏适配 */
     function setupCanvas(canvas, ctx, w, h) {
@@ -419,29 +434,25 @@ function initTetrisPage() {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     setupCanvas(boardCanvas, bctx, TETRIS_COLS * CELL, TETRIS_ROWS * CELL);
-    setupCanvas(holdCanvas, hctx, 96, 96);
-    setupCanvas(nextCanvas, nctx, 96, 264);
+    setupCanvas(holdCanvas, hctx, 128, 128);
+    setupCanvas(nextCanvas, nctx, 128, 128);
 
-    function drawCell(ctx, px, py, size, type, alpha = 1) {
+    /* 复古掌机画法：方块 = 外描边方框 + 中心实心小方块（「回」字格），color 缺省用 LCD 墨绿 */
+    function drawCell(ctx, px, py, size, type, alpha = 1, color = '') {
+        const ink = color || TETRIS_LCD_INK;
         ctx.globalAlpha = alpha;
-        ctx.fillStyle = TETRIS_COLORS[type];
-        ctx.beginPath();
-        if (ctx.roundRect) {
-            ctx.roundRect(px + 1.5, py + 1.5, size - 3, size - 3, 5);
-        } else {
-            ctx.rect(px + 1.5, py + 1.5, size - 3, size - 3);
-        }
-        ctx.fill();
-        // 顶部高光，增强立体感
-        ctx.globalAlpha = alpha * 0.25;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(px + 3, py + 3, size - 6, 4);
+        ctx.strokeStyle = ink;
+        ctx.lineWidth = Math.max(2, size * 0.11);
+        ctx.strokeRect(px + 1.5, py + 1.5, size - 3, size - 3);
+        const inner = Math.max(3, size * 0.34);
+        ctx.fillStyle = ink;
+        ctx.fillRect(px + (size - inner) / 2, py + (size - inner) / 2, inner, inner);
         ctx.globalAlpha = 1;
     }
 
     function drawMini(ctx, type, cx, cy) {
         const cells = TETRIS_ROTATIONS[type][0];
-        const size = 20;
+        const size = 32; /* 与状态列幽灵格（32px）同尺寸，块与格对齐 */
         const xs = cells.map((c) => c[0]);
         const ys = cells.map((c) => c[1]);
         const minX = Math.min(...xs), maxX = Math.max(...xs);
@@ -457,25 +468,21 @@ function initTetrisPage() {
         const W = TETRIS_COLS * CELL;
         const H = TETRIS_ROWS * CELL;
         bctx.clearRect(0, 0, W, H);
+        // 空格网格由 CSS 回字纹理背景提供，画布不再重复绘制网格线
 
-        // 网格线
-        bctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
-        bctx.lineWidth = 1;
-        for (let x = 1; x < TETRIS_COLS; x++) {
-            bctx.beginPath(); bctx.moveTo(x * CELL, 0); bctx.lineTo(x * CELL, H); bctx.stroke();
+        if (!game) {
+            // 菜单状态：棋盘留空，仅展示预告队列
+            nctx.clearRect(0, 0, 128, 128);
+            if (demoGame.core.queue[0]) drawMini(nctx, demoGame.core.queue[0], 64, 64);
+            return;
         }
-        for (let y = 1; y < TETRIS_ROWS; y++) {
-            bctx.beginPath(); bctx.moveTo(0, y * CELL); bctx.lineTo(W, y * CELL); bctx.stroke();
-        }
-
-        if (!game) return;
         const { core } = game;
 
         // 已固定的方块（跳过隐藏行）
         for (let y = TETRIS_HIDDEN; y < TETRIS_ROWS + TETRIS_HIDDEN; y++) {
             for (let x = 0; x < TETRIS_COLS; x++) {
                 const type = core.board[y][x];
-                if (type) drawCell(bctx, x * CELL, (y - TETRIS_HIDDEN) * CELL, CELL, type);
+                if (type) drawCell(bctx, x * CELL, (y - TETRIS_HIDDEN) * CELL, CELL, type, 1, TETRIS_LCD_INK);
             }
         }
 
@@ -497,47 +504,50 @@ function initTetrisPage() {
             for (const [cx, cy] of TETRIS_ROTATIONS[a.type][a.rot]) {
                 const y = gy + cy;
                 if (y >= TETRIS_HIDDEN) {
-                    drawCell(bctx, (a.x + cx) * CELL, (y - TETRIS_HIDDEN) * CELL, CELL, a.type, 0.22);
+                    drawCell(bctx, (a.x + cx) * CELL, (y - TETRIS_HIDDEN) * CELL, CELL, a.type, 0.22, TETRIS_LCD_INK);
                 }
             }
             // 当前方块
             for (const [cx, cy] of TETRIS_ROTATIONS[a.type][a.rot]) {
                 const y = a.y + cy;
                 if (y >= TETRIS_HIDDEN) {
-                    drawCell(bctx, (a.x + cx) * CELL, (y - TETRIS_HIDDEN) * CELL, CELL, a.type);
+                    drawCell(bctx, (a.x + cx) * CELL, (y - TETRIS_HIDDEN) * CELL, CELL, a.type, 1, TETRIS_LCD_INK);
                 }
             }
         }
 
         // 暂存区
-        hctx.clearRect(0, 0, 96, 96);
-        if (core.hold) drawMini(hctx, core.hold, 48, 48);
+        hctx.clearRect(0, 0, 128, 128);
+        if (core.hold) drawMini(hctx, core.hold, 64, 64);
         if (!core.canHold) {
             hctx.globalAlpha = 0.35;
-            hctx.fillStyle = '#0f172a';
-            hctx.fillRect(0, 0, 96, 96);
+            hctx.fillStyle = 'rgba(47, 61, 38, 0.9)';
+            hctx.fillRect(0, 0, 128, 128);
             hctx.globalAlpha = 1;
         }
 
-        // 预告队列（接下来 3 个）
-        nctx.clearRect(0, 0, 96, 264);
-        core.queue.slice(0, 3).forEach((type, i) => {
-            drawMini(nctx, type, 48, 48 + i * 84);
-        });
+        // 预告区（掌机版只展示下一个）
+        nctx.clearRect(0, 0, 128, 128);
+        if (core.queue[0]) drawMini(nctx, core.queue[0], 64, 64);
+    }
+
+    /* 数码管数值：前导空白位透出底下的幽灵 8（\u2007 等宽空格） */
+    function padDigits(value, width) {
+        return String(value).padStart(width, '\u2007');
     }
 
     function updateHud() {
         if (!game) return;
-        scoreText.textContent = String(game.core.score);
-        levelText.textContent = String(game.core.level);
-        linesText.textContent = String(game.core.lines);
+        scoreText.textContent = padDigits(game.core.score, 6);
+        levelText.textContent = padDigits(game.core.level, 2);
+        linesText.textContent = padDigits(game.core.lines, 3);
     }
 
     function saveBest() {
         if (!game) return;
         if (game.core.score > best) {
             best = game.core.score;
-            bestText.textContent = String(best);
+            bestText.textContent = padDigits(best, 6);
             try {
                 localStorage.setItem('app_tetris_best_v1', String(best));
             } catch (error) {
@@ -558,6 +568,7 @@ function initTetrisPage() {
         game.start();
         state = 'playing';
         overlay.classList.add('hidden');
+        overlay.classList.remove('is-menu');
         updateHud();
         render();
     }
@@ -565,9 +576,11 @@ function initTetrisPage() {
     function togglePause() {
         if (state === 'playing') {
             state = 'paused';
-            showOverlay('已暂停', '按 P 或点击按钮继续', '继续');
+            lcdPause.classList.add('is-on');
+            showOverlay('已暂停', IS_TOUCH ? '点击屏幕继续' : '按 P 或点击屏幕继续', '继续');
         } else if (state === 'paused') {
             state = 'playing';
+            lcdPause.classList.remove('is-on');
             overlay.classList.add('hidden');
         }
     }
@@ -583,10 +596,16 @@ function initTetrisPage() {
     /* 键盘输入（忽略长按 repeat，连发由 DAS 统一驱动） */
     document.addEventListener('keydown', (e) => {
         if (state === 'menu' || state === 'over') {
-            if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); startGame(); }
+            // 掌机版习惯：按任意键开局（保留刷新/开发者工具等系统键不拦截）
+            if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key !== 'F5' && !e.key.startsWith('F')) {
+                if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
+                startGame();
+            }
             return;
         }
         if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); return; }
+        if (e.code === 'KeyR') { e.preventDefault(); startGame(); return; }
+        if (e.code === 'KeyS') { e.preventDefault(); toggleMusic(); return; }
         if (state !== 'playing') return;
         switch (e.code) {
             case 'ArrowLeft': if (!e.repeat) { held.left = true; heldDir = -1; dasTimer = 0; arrTimer = 0; game.tryMove(-1); } e.preventDefault(); break;
@@ -632,17 +651,18 @@ function initTetrisPage() {
         btn.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    overlayBtn.addEventListener('click', () => {
-        if (state === 'paused') togglePause();
-        else startGame();
+    /* 点浮层任意处：菜单/结束开局，暂停中继续（掌机版“按任意键开始”习惯） */
+    overlay.addEventListener('pointerdown', () => {
+        if (state === 'menu' || state === 'over') startGame();
+        else if (state === 'paused') togglePause();
     });
 
     window.addEventListener('blur', () => {
         if (state === 'playing') togglePause();
     });
 
-    /* 背景音乐：点击开关后循环播放（受浏览器自动播放策略约束，首次交互后才可出声） */
-    musicBtn.addEventListener('click', () => {
+    /* 背景音乐：点击音效键或按 S 循环播放（受浏览器自动播放策略约束，首次交互后才可出声） */
+    function toggleMusic() {
         if (!music) {
             music = new Audio('music.mp3');
             music.loop = true;
@@ -651,18 +671,49 @@ function initTetrisPage() {
         musicOn = !musicOn;
         if (musicOn) {
             music.play().then(() => {
-                musicText.textContent = '音乐开';
                 musicBtn.setAttribute('aria-pressed', 'true');
+                lcdMusic.classList.add('is-on');
             }).catch(() => {
                 musicOn = false;
             });
         } else {
             music.pause();
             music.currentTime = 0;
-            musicText.textContent = '音乐关';
             musicBtn.setAttribute('aria-pressed', 'false');
+            lcdMusic.classList.remove('is-on');
         }
+    }
+
+    musicBtn.addEventListener('click', (e) => {
+        e.currentTarget.blur();
+        toggleMusic();
     });
+
+    /* 掌机实体键：暂停 / 重玩 / 暂存。点击后归还焦点，避免空格键误触按钮 */
+    document.getElementById('pause-btn').addEventListener('click', (e) => {
+        e.currentTarget.blur();
+        if (state === 'playing' || state === 'paused') togglePause();
+    });
+
+    document.getElementById('restart-btn').addEventListener('click', (e) => {
+        e.currentTarget.blur();
+        startGame();
+    });
+
+    holdBtn.addEventListener('click', (e) => {
+        e.currentTarget.blur();
+        if (state === 'playing' && game) game.doHold();
+    });
+
+    /* LCD 时钟：掌机屏幕右下角显示实时时间 */
+    const lcdClock = document.getElementById('lcd-clock');
+    function tickClock() {
+        const now = new Date();
+        lcdClock.textContent = String(now.getHours()).padStart(2, '0')
+            + ':' + String(now.getMinutes()).padStart(2, '0');
+    }
+    tickClock();
+    setInterval(tickClock, 1000);
 
     /* 主循环 */
     let lastT = performance.now();
