@@ -221,6 +221,56 @@ function testGeneratedLevels() {
     }
 }
 
+/* (c2) 关卡可通关：目标凑满、部件跨目标互不相交、一次性部件卡按任意顺序可拼完全部目标 */
+function testLevelCompletable() {
+    const { api } = runScriptWithContext();
+
+    for (let level = 1; level <= api.levelCount(); level += 1) {
+        const config = api.levelConfig(level);
+        const generated = api.generateLevel(level, api.levelSeed(level));
+
+        /* 12 关全部凑满各自 targetCount */
+        assert.strictEqual(generated.targets.length, config.targetCount, `level ${level} should fill targetCount`);
+
+        /* 任意两个目标字的部件集互不相交：共用部件池里只有一张卡，拼完即禁用会让另一目标永远缺卡 */
+        for (let i = 0; i < generated.targets.length; i += 1) {
+            for (let j = i + 1; j < generated.targets.length; j += 1) {
+                const left = generated.targets[i].parts;
+                const right = generated.targets[j].parts;
+                for (const part of left) {
+                    assert(!right.includes(part), `level ${level} targets ${generated.targets[i].char}/${generated.targets[j].char} share part ${part}`);
+                }
+            }
+        }
+
+        /* 端到端可通关模拟：部件卡视为一次性资源，按给定顺序逐目标找齐两张部件卡并消耗 */
+        const consumeAll = (order) => {
+            const cards = generated.pool.slice();
+            for (const entry of order) {
+                for (const part of entry.parts) {
+                    const index = cards.indexOf(part);
+                    assert(index >= 0, `level ${level} target ${entry.char} cannot find part card ${part}`);
+                    cards.splice(index, 1);
+                }
+            }
+        };
+        consumeAll(generated.targets);
+        consumeAll(generated.targets.slice().reverse());
+        /* 再用种子随机打乱消耗顺序，覆盖“任意顺序”下的回归 */
+        for (let seed = 1; seed <= 5; seed += 1) {
+            const random = api.createSeededRandom(seed * 31);
+            const order = generated.targets.slice();
+            for (let i = order.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(random() * (i + 1));
+                const tmp = order[i];
+                order[i] = order[j];
+                order[j] = tmp;
+            }
+            consumeAll(order);
+        }
+    }
+}
+
 /* (d) 星级边界与存档：解锁只增不减、星级保留最大值 */
 function testStarRatingAndRecords() {
     const { api, storage } = runScriptWithContext();
@@ -297,6 +347,7 @@ function testStorageFallback() {
 testFilesAndCatalogExist();
 testWordBankQuality();
 testGeneratedLevels();
+testLevelCompletable();
 testStarRatingAndRecords();
 testStorageFallback();
 

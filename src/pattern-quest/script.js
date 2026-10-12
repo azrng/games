@@ -17,17 +17,19 @@
     const TINT_LABELS = { red: '红色', blue: '蓝色', green: '绿色', amber: '黄色', purple: '紫色' };
     const SHAPE_LABELS = { circle: '圆形', square: '方形', triangle: '三角形', diamond: '菱形' };
 
-    /* —— 题型声明：kind 为规律求值方式；show 为展示项数量（数组表示随机区间）；desc 是给孩子看的规律提示 —— */
+    /* —— 题型声明：kind 为规律求值方式；show 为展示项数量（数组表示随机区间）；desc 是给孩子看的规律提示。
+       cycle 类型的 show 必须取循环节长度的整数倍：否则孩子把已展示序列整体当循环节也能自洽读通，
+       推出的“下一项”与正解不同，形成两可答案（smoke 的歧义校验器负责把关） —— */
     const PATTERN_TYPES = {
         ab: { kind: 'cycle', show: 4, desc: '两个图案轮流出现' },
         aabb: { kind: 'cycle', show: 4, desc: '两个一组重复出现' },
-        abc: { kind: 'cycle', show: 5, desc: '三个图案依次循环' },
+        abc: { kind: 'cycle', show: 6, desc: '三个图案依次循环' },
         grow: { kind: 'grow', show: 3, desc: '数量一次比一次多 1' },
         tint: { kind: 'cycle', show: 6, desc: '颜色交替出现' },
-        mixed: { kind: 'cycle', show: 5, desc: '形状轮流出现，数量 1、2 交替' },
-        abcd: { kind: 'cycle', show: 6, desc: '四个图案依次循环' },
+        mixed: { kind: 'cycle', show: 6, desc: '形状轮流出现，数量 1、2 交替' },
+        abcd: { kind: 'cycle', show: 8, desc: '四个图案依次循环' },
         combo: { kind: 'combo', show: 4, desc: '形状轮流出现，数量每次加 1' },
-        long: { kind: 'cycle', show: [7, 9], desc: '找规律，补上下一张' }
+        long: { kind: 'cycle', show: 9, desc: '找规律，补上下一张' }
     };
 
     /* —— 12 关题型档位（题目只会从对应集合里抽取，难度逐档递进）—— */
@@ -46,11 +48,11 @@
         12: ['abcd', 'combo', 'long']
     };
 
-    /* —— 各档位展示项数量契约：band → { showMin, showMax } —— */
+    /* —— 各档位展示项数量契约：band → { showMin, showMax }，范围需覆盖档位内全部题型的 show —— */
     const BAND_SHOW = {
         1: { showMin: 4, showMax: 4 },
-        2: { showMin: 3, showMax: 5 },
-        3: { showMin: 5, showMax: 6 },
+        2: { showMin: 3, showMax: 6 },
+        3: { showMin: 4, showMax: 6 },
         4: { showMin: 4, showMax: 9 }
     };
 

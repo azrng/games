@@ -289,6 +289,49 @@ function testLevelBandContract() {
     assert.strictEqual(api.levelConfig(99).level, 12);
 }
 
+/* 歧义校验器：cycle 类题目的展示序列若能被孩子按其他周期 p 自洽读通
+   （含 p=show 的“整块读法”，此时下一项即 sequence[0]），
+   该读法推出的“下一项”必须与正解一致，否则孩子按另一套读法作答会被判错。
+   因此 cycle 类型的 show 必须取循环节长度的整数倍 */
+function testCycleReadingsUnambiguous() {
+    const { api } = runScriptWithContext();
+    const conflicts = [];
+
+    for (let level = 1; level <= api.levelCount(); level += 1) {
+        for (let q = 0; q < api.PUZZLES_PER_LEVEL; q += 1) {
+            const puzzle = api.generatePuzzle(level, api.puzzleSeed(level, q));
+            /* grow / combo 的数量随位置递增，不是周期重复，不进入本校验范围 */
+            if (puzzle.kind !== 'cycle') continue;
+
+            const keys = puzzle.sequence.map((tile) => api.tileKey(tile));
+            const answerKey = api.tileKey(puzzle.answer);
+            const show = keys.length;
+            for (let p = 1; p <= show; p += 1) {
+                let isPeriodic = true;
+                for (let i = 0; i < show; i += 1) {
+                    if (keys[i] !== keys[i % p]) {
+                        isPeriodic = false;
+                        break;
+                    }
+                }
+                if (!isPeriodic) continue;
+                const nextKey = keys[show % p];
+                if (nextKey !== answerKey) {
+                    conflicts.push(
+                        `L${level}Q${q + 1} ${puzzle.type} show=${show}: 周期 ${p} 读法推出下一项 ${nextKey}，正解是 ${answerKey}`
+                    );
+                }
+            }
+        }
+    }
+
+    assert.strictEqual(
+        conflicts.length,
+        0,
+        `cycle 类题目存在自洽但与正解冲突的读法（共 ${conflicts.length} 处）：\n${conflicts.join('\n')}`
+    );
+}
+
 function testStarsAndStorage() {
     const { api, storage } = runScriptWithContext();
 
@@ -325,6 +368,7 @@ testFilesAndCatalogExist();
 testApplyRuleKinds();
 testGeneratePuzzleConsistency();
 testLevelBandContract();
+testCycleReadingsUnambiguous();
 testStarsAndStorage();
 
 console.log('pattern quest smoke test passed');

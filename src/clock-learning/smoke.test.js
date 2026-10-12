@@ -256,11 +256,20 @@ function testValidateDialTolerances() {
     assert.strictEqual(api.validateDialAngles(90, 10, tier1, 1), true, 'tier1 minute within ±15° should pass');
     assert.strictEqual(api.validateDialAngles(90, 20, tier1, 1), false, 'tier1 minute beyond ±15° should fail');
 
+    /* 半点档时针 ±15°：按钮步长恒 30°，可达时针角全为 30° 的倍数，与半点目标角（h*30+15）
+       最短恒差 15°，容差小于 15° 会让纯按钮路径永远判负（拖拽路径不受影响） */
     const tier2 = { hour: 3, minute: 30 }; /* 时针 105° / 分针 180° */
-    assert.strictEqual(api.validateDialAngles(112, 180, tier2, 5), true, 'tier2 hour within ±10° should pass');
-    assert.strictEqual(api.validateDialAngles(116, 180, tier2, 5), false, 'tier2 hour beyond ±10° should fail');
+    assert.strictEqual(api.validateDialAngles(90, 180, tier2, 5), true, 'tier2 hour on the adjacent whole-hour angle (exactly 15° off) should pass');
+    assert.strictEqual(api.validateDialAngles(120, 180, tier2, 5), true, 'tier2 hour on the other adjacent whole-hour angle (exactly 15° off) should pass');
+    assert.strictEqual(api.validateDialAngles(89, 180, tier2, 5), false, 'tier2 hour beyond ±15° should fail');
+    assert.strictEqual(api.validateDialAngles(121, 180, tier2, 5), false, 'tier2 hour beyond ±15° should fail');
     assert.strictEqual(api.validateDialAngles(105, 188, tier2, 5), true, 'tier2 minute within ±9° should pass');
     assert.strictEqual(api.validateDialAngles(105, 190, tier2, 5), false, 'tier2 minute beyond ±9° should fail');
+
+    /* 半点放宽行为（题面口径）：9:30 目标时针 285°，按钮可达的相邻整点角 270°/300° 判为正确 */
+    assert.strictEqual(api.validateDialAngles(270, 180, { hour: 9, minute: 30 }, 5), true, '9:30 should accept the hour hand parked on 9 (button-reachable, exactly 15° off)');
+    assert.strictEqual(api.validateDialAngles(300, 180, { hour: 9, minute: 30 }, 5), true, '9:30 should accept the hour hand parked on 10 (button-reachable, exactly 15° off)');
+    assert.strictEqual(api.validateDialAngles(269, 180, { hour: 9, minute: 30 }, 5), false, '9:30 should reject hour angles more than 15° away');
 
     const tier3 = { hour: 2, minute: 20 }; /* 时针 70° / 分针 120° */
     assert.strictEqual(api.validateDialAngles(85, 120, tier3, 9), true, 'tier3 hour within ±20° should pass');

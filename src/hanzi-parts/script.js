@@ -124,51 +124,64 @@
         return next;
     }
 
-    /* 关卡生成：抽目标字（两两组合键互不相同）+ 干扰部件，同种子结果完全一致。
-       目标只取两个部件不同的字：部件池要求互异，林=木+木这类同部件字需要两张相同部件卡才能拼出 */
+    /* 关卡生成：抽目标字（组合键互异且部件跨目标唯一）+ 干扰部件，同种子结果完全一致。
+       目标只取两个部件不同的字：部件池要求互异，林=木+木这类同部件字需要两张相同部件卡才能拼出。
+       部件还必须跨目标唯一：共用部件在池里只出一张卡，拼掉一个目标后另一目标就永远缺卡，关卡必然无法通关；
+       贪心抽取在约束下可能凑不满目标数，用 attempt 递增派生种子确定性重抽 */
     function generateLevel(level, seed) {
         const config = levelConfig(level);
-        const random = createSeededRandom(((seed >>> 0) + level * 7919) >>> 0);
-
         const candidates = [];
         for (const entry of DATA) {
             if (entry.parts[0] !== entry.parts[1]) candidates.push(entry);
         }
-        const targets = [];
-        const usedKeys = new Set();
-        for (const entry of seededShuffle(candidates, random)) {
-            const key = combinationKey(entry.parts[0], entry.parts[1]);
-            if (usedKeys.has(key)) continue;
-            usedKeys.add(key);
-            targets.push(entry);
-            if (targets.length === config.targetCount) break;
-        }
 
-        /* 部件池 = 全部所需部件（去重）+ 干扰部件，整体打乱后输出 */
-        const pool = [];
-        const inPool = new Set();
-        const addPart = (part) => {
-            if (!inPool.has(part)) {
-                inPool.add(part);
-                pool.push(part);
+        const MAX_ATTEMPTS = 200;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+            const random = createSeededRandom(((seed >>> 0) + level * 7919 + attempt * 104729) >>> 0);
+            const targets = [];
+            const usedKeys = new Set();
+            const usedParts = new Set();
+            for (const entry of seededShuffle(candidates, random)) {
+                const key = combinationKey(entry.parts[0], entry.parts[1]);
+                if (usedKeys.has(key)) continue;
+                /* 部件跨目标唯一：任一部件已被先前目标占用就跳过，避免共用部件卡被拼废 */
+                if (usedParts.has(entry.parts[0]) || usedParts.has(entry.parts[1])) continue;
+                usedKeys.add(key);
+                usedParts.add(entry.parts[0]);
+                usedParts.add(entry.parts[1]);
+                targets.push(entry);
+                if (targets.length === config.targetCount) break;
             }
-        };
-        for (const entry of targets) {
-            addPart(entry.parts[0]);
-            addPart(entry.parts[1]);
-        }
-        const bankParts = [];
-        for (const entry of DATA) {
-            for (const part of entry.parts) {
-                if (!inPool.has(part)) bankParts.push(part);
+            if (targets.length < config.targetCount) continue;
+
+            /* 部件池 = 全部所需部件（去重）+ 干扰部件，整体打乱后输出 */
+            const pool = [];
+            const inPool = new Set();
+            const addPart = (part) => {
+                if (!inPool.has(part)) {
+                    inPool.add(part);
+                    pool.push(part);
+                }
+            };
+            for (const entry of targets) {
+                addPart(entry.parts[0]);
+                addPart(entry.parts[1]);
             }
+            const bankParts = [];
+            for (const entry of DATA) {
+                for (const part of entry.parts) {
+                    if (!inPool.has(part)) bankParts.push(part);
+                }
+            }
+            const shuffledBank = seededShuffle(bankParts, random);
+            const distractorCount = Math.max(0, config.poolSize - pool.length);
+            for (let i = 0; i < distractorCount && i < shuffledBank.length; i += 1) {
+                addPart(shuffledBank[i]);
+            }
+            return { targets, pool: seededShuffle(pool, random) };
         }
-        const shuffledBank = seededShuffle(bankParts, random);
-        const distractorCount = Math.max(0, config.poolSize - pool.length);
-        for (let i = 0; i < distractorCount && i < shuffledBank.length; i += 1) {
-            addPart(shuffledBank[i]);
-        }
-        return { targets, pool: seededShuffle(pool, random) };
+        /* 正常题库不会走到这里；兜底报错避免静默生成无法通关的关卡 */
+        throw new Error(`hanzi-parts: 第 ${level} 关重试 ${MAX_ATTEMPTS} 次仍凑不满 ${config.targetCount} 个部件互不相交的目标字`);
     }
 
     function loadUnlockedLevel() {

@@ -9,11 +9,14 @@
     const LEVEL_COUNT = 12;
     /* 五分钟档的合法分钟值：整点与半点已由前八关覆盖，此处刻意排除 0 和 30 */
     const FIVE_MINUTE_VALUES = [5, 10, 15, 20, 25, 35, 40, 45, 50, 55];
-    /* 拨针校验容差（角度）：整点档时针±15°；半点档时针±10°/分针±9°；五分钟档时针±20°/分针±9°。
-       整点档分针规格未单独约定，取 ±15°（五分钟步进下等价于必须指在 12 点） */
+    /* 拨针校验容差（角度）：整点档时针±15°；半点档时针±15°/分针±9°；五分钟档时针±20°/分针±9°。
+       整点档分针规格未单独约定，取 ±15°（五分钟步进下等价于必须指在 12 点）；
+       半点档时针刻意取满 ±15°：半点目标时针角为 h*30+15，而按钮步长恒 30°，
+       可达时针角全为 30° 的倍数，与目标最短恒差 15°，容差一旦小于 15°，
+       纯按钮路径永远无法达标（拖拽不受影响），故按“指在两个数字正中间附近也算对”的低龄口径放宽 */
     const DIAL_TOLERANCES = {
         1: { hour: 15, minute: 15 },
-        2: { hour: 10, minute: 9 },
+        2: { hour: 15, minute: 9 },
         3: { hour: 20, minute: 9 }
     };
     const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -26,6 +29,7 @@
         firstTryCorrect: 0,
         attempted: false,
         answered: false,
+        wrongAttempts: 0,
         optionButtons: [],
         dragHand: '',
         dialHourAngle: 0,
@@ -310,7 +314,15 @@
             if (correct) state.firstTryCorrect += 1;
         }
         if (!correct) {
-            elements.feedbackText.textContent = '再试一次，你可以的！';
+            state.wrongAttempts += 1;
+            /* 递进提示：半点拨针题第 2 次答错起追加一句点拨，避免孩子反复把时针
+               对齐到整点数字却始终判负而不知道原因 */
+            let message = '再试一次，你可以的！';
+            if (state.question && state.question.type === 'dial'
+                && state.question.minute === 30 && state.wrongAttempts >= 2) {
+                message += '半点的时候，时针要指在两个数字的正中间哦';
+            }
+            elements.feedbackText.textContent = message;
             elements.feedbackText.classList.remove('is-success');
             updateHeader();
             return;
@@ -398,6 +410,7 @@
         state.question = question;
         state.attempted = false;
         state.answered = false;
+        state.wrongAttempts = 0;
         state.optionButtons = [];
         elements.feedbackText.textContent = '';
         elements.feedbackText.classList.remove('is-success');
