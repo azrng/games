@@ -42,6 +42,7 @@ last_updated: 2026-10-11
 | idiom-guess | 猜成语：四字着色反馈成语推理（双端） | [core-game.md](idiom-guess/core-game.md)（核心玩法） |
 | game-hub | 平台首页：年龄筛选（REQ-GH001）与设备筛选（REQ-GH002） | [device-filter.md](game-hub/device-filter.md)（设备筛选 Tab；年龄筛选见 [age-filter.md](game-hub/age-filter.md)） |
 | game-hub | 平台公共：游戏页首次进入玩法提示（REQ-GH003） | [first-play-tip.md](game-hub/first-play-tip.md)（提示条 + 页头「?」入口，共享组件 game-tip.js） |
+| binghuo-shenmiao | 冰火神庙：桌面复刻游戏 web 版接入（REQ-BH001） | [core-game.md](binghuo-shenmiao/core-game.md)（四包 158 关，localStorage 存档，一次性移植） |
 
 ## 公共约束
 

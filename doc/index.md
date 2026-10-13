@@ -70,6 +70,9 @@ last_updated: 2026-10-08
 | sokoban | 推箱子核心玩法 | 设计 | approved | [doc/design/sokoban/core-game.md](design/sokoban/core-game.md) |
 | idiom-guess | 猜成语核心玩法 | 需求 | approved | [doc/requirements/idiom-guess/core-game.md](../requirements/idiom-guess/core-game.md) |
 | idiom-guess | 猜成语核心玩法 | 设计 | approved | [doc/design/idiom-guess/core-game.md](design/idiom-guess/core-game.md) |
+| binghuo-shenmiao | 冰火神庙接入平台（web 版） | 需求 | draft | [doc/requirements/binghuo-shenmiao/core-game.md](../requirements/binghuo-shenmiao/core-game.md) |
+| binghuo-shenmiao | 冰火神庙接入平台（web 版） | 设计 | draft | [doc/design/binghuo-shenmiao/core-game.md](design/binghuo-shenmiao/core-game.md) |
+| binghuo-shenmiao | web 版存储适配 | 契约 | draft | [doc/contracts/binghuo-shenmiao/core-game.md](contracts/binghuo-shenmiao/core-game.md) |
 
 ## 兼容入口
 

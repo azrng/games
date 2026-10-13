@@ -33,6 +33,7 @@ last_updated: 2026-10-11
 | nonogram | 数织核心玩法 | approved | [core-game.md](nonogram/core-game.md) | REQ-NG001 |
 | sokoban | 推箱子核心玩法 | approved | [core-game.md](sokoban/core-game.md) | REQ-SK001 |
 | idiom-guess | 猜成语核心玩法 | approved | [core-game.md](idiom-guess/core-game.md) | REQ-IG001 |
+| binghuo-shenmiao | 冰火神庙接入平台（web 版） | draft | [core-game.md](binghuo-shenmiao/core-game.md) | REQ-BH001 |
 
 ## 跨模块
 
