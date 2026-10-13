@@ -316,6 +316,16 @@
             desc: "汉兜式猜成语：九次机会按字色推理四字成语，附拼音释义出处。",
             readme: null,
             meta: { age: "all", device: "all" }
+        },
+        {
+            slug: "binghuo-shenmiao",
+            title: "冰火神庙",
+            path: "src/binghuo-shenmiao/index.html",
+            mobilePath: "src/binghuo-shenmiao/index.html",
+            icon: "src/img/game.svg",
+            desc: "森林冰火人四神庙复刻：火男水女双人协作闯关 158 关，钻石收集与进度存档。",
+            readme: null,
+            meta: { age: "all", device: "desktop" }
         }
     ];
 

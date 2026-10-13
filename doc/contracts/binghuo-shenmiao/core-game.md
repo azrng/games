@@ -22,7 +22,7 @@ related:
 | progressList | `app_game_binghuo-shenmiao_progress` | 结构：`{ [gameId]: { [levelId]: LevelProgressSummary } }` |
 | progressRecord | 同上 | 合并写入：completed 置真、解锁 nextLevelId、bestTimeMs 取最小、红/蓝钻取历史并集；返回该关最新进度 |
 | progressReset | 同上 + history 键 | 清空全部四包进度与对局历史；settings 键保留 |
-| settingsGet | `app_game_binghuo-shenmiao_settings` | `{ musicVolume, sfxVolume }`，缺省 100 |
+| settingsGet | `app_game_binghuo-shenmiao_settings` | `{ musicVolume, sfxVolume }`，缺省 60/80（对齐桌面版 SettingsService.DEFAULTS） |
 | settingsSet | 同上 | 部分字段合并，返回全量 |
 | historyList | `app_game_binghuo-shenmiao_history` | 结构：`{ [gameId]: PlayRecord[] }`，新记录前插，各包截断 20 条 |
 
