@@ -600,6 +600,105 @@ function testLogicFixes() {
     assert.strictEqual(api.state.rounds, 0, 'prepareRun should reset rounds for every run');
 }
 
+/* 语音行为：出词自动朗读、静音联动、音色选择记忆 */
+function testSpeechPipeline() {
+    const speakCalls = [];
+    const synth = {
+        speak(u) { speakCalls.push(u.text); },
+        cancel() {},
+        getVoices() { return [
+            { name: 'Zira', lang: 'en-US' },
+            { name: 'David', lang: 'en-US' },
+            { name: 'Huihui', lang: 'zh-CN' }
+        ]; }
+    };
+    function FakeUtterance(text) { this.text = text; }
+
+    /* 1. 打完单词即时朗读：打完最后一个字母立即 speak（出词不再朗读，听写除外） */
+    const { context, storage } = runScriptWithContext([]);
+    const api = context.window.TypingCannon;
+    context.window.SpeechSynthesisUtterance = FakeUtterance;
+    context.window.speechSynthesis = synth;
+    context.startGame();
+    api.state.items = [];
+    context.spawnItem();
+    const item = api.state.items[0];
+    assert.strictEqual(speakCalls.length, 0, 'copy word should not speak on spawn anymore');
+    item.y = 100;
+    context.update(0.016);
+    assert.strictEqual(speakCalls.length, 0, 'entering view should not speak outside dictation');
+    for (const ch of item.word) context.handleChar(ch);
+    assert.deepStrictEqual(speakCalls, [item.word],
+        'completing a word should speak it instantly as feedback');
+
+    /* 2. 静音联动：muted 后打完词不读 */
+    api.toggleMute();
+    api.state.items = [];
+    context.spawnItem();
+    const item2 = api.state.items[0];
+    item2.y = 100;
+    context.update(0.016);
+    for (const ch of item2.word) context.handleChar(ch);
+    assert.strictEqual(speakCalls.length, 1, 'muted words should not speak');
+
+    /* 2b. 听写卡保留出词朗读（先听后拼是玩法本身） */
+    api.toggleMute();   // 恢复声音
+    context.window.speechSynthesis = { speak(u) { speakCalls.push(u.text); }, cancel() {}, getVoices() { return []; } };
+    context.startDictation('workplace-core');
+    api.state.items = [];
+    context.spawnItem();
+    const dict = api.state.items[0];
+    assert.strictEqual(dict.dir, 'dictation', 'dictation spawn should be a dictation card');
+    dict.y = 100;
+    context.update(0.016);
+    assert(speakCalls.includes(dict.word), 'dictation card should still speak on entering view');
+
+    /* 3. 音色选择记忆：change 落盘 → 重载后 speakWord 套用已存音色 */
+    storage.set(api.VOICE_KEY, 'David');
+    const reloaded = runScriptWithContext([...storage.entries()]);
+    reloaded.context.window.SpeechSynthesisUtterance = FakeUtterance;
+    reloaded.context.window.speechSynthesis = synth;
+    reloaded.context.refreshVoices();   // 真实浏览器里 voiceschanged 异步就绪，这里手动同步
+    const heard = [];
+    reloaded.context.window.speechSynthesis.speak = (u) => heard.push(u);
+    reloaded.context.window.TypingCannon.speakWord('apple');
+    assert.strictEqual(heard.length, 1, 'speakWord should enqueue exactly one utterance');
+    assert.strictEqual(heard[0].voice && heard[0].voice.name, 'David',
+        'remembered voice should be applied to the utterance');
+
+    /* 4. 中文音色被过滤：音色下拉只列英语音色（Huihui 不进 ttsVoices） */
+    reloaded.context.refreshVoices();
+    const sel = reloaded.elements.get('voiceSelect');
+    assert(sel.innerHTML === '' || !sel.innerHTML.includes('Huihui'),
+        'voice select should only offer English voices');
+
+    /* 5. 无语音环境：静默跳过不抛错 */
+    const bare = runScriptWithContext([]);
+    bare.context.window.TypingCannon.speakWord('cat');
+    bare.context.window.TypingCannon.toggleMute();
+    assert(true, 'speech calls should degrade silently without speechSynthesis');
+}
+
+/* 暂停恢复：F1 暂停后按 P（大小写）继续，与打字态字母键不冲突 */
+function testPauseResume() {
+    const { context } = runScriptWithContext([]);
+    const api = context.window.TypingCannon;
+
+    context.startGame();
+    assert.strictEqual(api.state.state, 'playing', 'endless start should be playing');
+    context.typingKey({ key: 'F1', preventDefault() {} });
+    assert.strictEqual(api.state.state, 'paused', 'F1 should pause the run');
+    context.typingKey({ key: 'p', preventDefault() {} });
+    assert.strictEqual(api.state.state, 'playing', 'pressing p while paused should resume');
+    context.typingKey({ key: 'F1', preventDefault() {} });
+    context.typingKey({ key: 'P', preventDefault() {} });
+    assert.strictEqual(api.state.state, 'playing', 'uppercase P should resume too');
+    /* playing 态按 p 是打字不是恢复：不改变状态 */
+    api.state.state = 'playing';
+    context.typingKey({ key: 'p', preventDefault() {} });
+    assert.strictEqual(api.state.state, 'playing', 'p while playing must not toggle pause');
+}
+
 testFilesAndCatalogExist();
 testBootRendersLevelSelect();
 testWordPackContract();
@@ -610,5 +709,7 @@ testReviewBook();
 testReviewScheduler();
 testDictationMode();
 testLogicFixes();
+testSpeechPipeline();
+testPauseResume();
 
 console.log('typing-cannon smoke test passed');

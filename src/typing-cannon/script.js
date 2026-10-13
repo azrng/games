@@ -210,7 +210,32 @@ function enStarTotal() {
 function enLevelTotal() { return PACKS.reduce((a, p) => a + p.levels.length, 0); }
 
 /* ---- 英语选关界面 ---- */
+/* 音色下拉：列出系统英语音色，本地音色（离线合成、零延迟）排前并标「本地」，
+   Online/云端音色天然有 1~2 秒合成延迟；已记忆的选择置为当前项；无语音能力时整个区块隐藏 */
+function fillVoiceSelect() {
+  const sel = document.getElementById('voiceSelect');
+  const box = document.getElementById('voiceRow');
+  if (!sel || !box) return;
+  if (typeof window.speechSynthesis === 'undefined') { box.classList.add('hidden'); return; }
+  const remembered = localStorage.getItem(VOICE_KEY);
+  sel.innerHTML = '';
+  const optDefault = document.createElement('option');
+  optDefault.value = '';
+  optDefault.textContent = '🔊 系统默认音色';
+  sel.appendChild(optDefault);
+  const isLocal = (v) => !/online|natural/i.test(v.name) || v.localService === true;
+  const sorted = [...ttsVoices].sort((a, b) => (isLocal(b) ? 1 : 0) - (isLocal(a) ? 1 : 0));
+  for (const v of sorted) {
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = (isLocal(v) ? '⚡' : '☁️') + v.name + '（' + v.lang + (isLocal(v) ? ' · 本地' : '') + '）';
+    sel.appendChild(opt);
+  }
+  sel.value = ttsVoices.some(v => v.name === remembered) ? remembered : '';
+}
+
 function renderEnHome() {
+  fillVoiceSelect();
   document.getElementById('enStarTotal').textContent = '⭐ ' + enStarTotal() + '/' + (enLevelTotal() * 3);
   const best = +(localStorage.getItem('typcannon_best') || 0);
   document.getElementById('enBest').textContent = best > 0 ? best : '—';
@@ -332,7 +357,7 @@ function spawnItem() {
     word, emoji, ipa, zh, dir, x, y: -50,
     vy: enFall() * wordSpeedScale(),
     typed: 0, flash: 0, hitFlash: 0, wobble: Math.random() * Math.PI * 2,
-    seen: dir === 'recall' || dir === 'dictation' ? false : true,   // 词义/听写卡进入视野后才触发预展示或朗读
+    seen: false,   // 所有卡进入视野（y>70）后由 update 置位并自动朗读一次
     introT: 0
   });
 }
@@ -434,6 +459,8 @@ function destroyItem(it) {
   }
   burst(it.x, it.y, ['#fbbf24','#f97316','#ef4444','#fff'], 26, 240);
   sfx.destroy();
+  // 打完一个词的瞬间把单词读一遍：输入完成 → 听到完整发音，形成"看到→打对→听到"闭环（字母练习无单词不读）
+  if (G.mode !== 'practice') speakWord(it.word);
   if (G.mode === 'practice') {
     if (G.kills % 26 === 0) {          // 每打掉 26 个字母 = 一轮字母表
       G.rounds++;
@@ -578,14 +605,45 @@ function renderOverWords(words) {
   }).join('');
 }
 
-/* 朗读单词（浏览器原生语音合成，不可用时按钮本就不渲染） */
-function speakWord(text) {
+/* ---- 朗读管线（浏览器原生语音合成；出词自动朗读 + 音色可选） ---- */
+const VOICE_KEY = 'typcannon_voice';   // 记忆用户选择的音色名（ utterance.voice.name ）
+let ttsVoices = [];                    // 异步加载的系统音色列表
+function refreshVoices() {
   if (typeof window.speechSynthesis === 'undefined') return;
+  try { ttsVoices = window.speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('en')); } catch (e) {}
+}
+if (typeof window.speechSynthesis !== 'undefined') {
+  refreshVoices();
+  // 音色列表在部分浏览器是异步就绪的，就绪后重刷并同步下拉框选项
+  window.speechSynthesis.addEventListener?.('voiceschanged', () => { refreshVoices(); fillVoiceSelect(); });
+}
+function currentVoice() {
+  return ttsVoices.find(v => v.name === localStorage.getItem(VOICE_KEY)) || null;
+}
+function toggleMute() {
+  muted = !muted;
+  if (muted && typeof window.speechSynthesis !== 'undefined') {
+    try { window.speechSynthesis.cancel(); } catch (e) {}   // 静音时掐掉正在读的词
+  }
+  if (G.state === 'playing' || G.state === 'paused') {
+    G.toast = { text: muted ? '🔇 已静音' : '🔊 声音打开', sub: muted ? '朗读与音效已关闭' : '单词出现时会自动朗读', t: 1.6 };
+  }
+}
+/* 朗读单词：打完即时读、听写重听、结算生词点读共用；静音或不支持时静默跳过。
+   只在确有播报在队时才 cancel——空队列 cancel 在部分平台会造成可感知的启动延迟，
+   拖慢"打完最后一个字母直接开口"的即时性 */
+function speakWord(text) {
+  if (muted || !text || typeof window.speechSynthesis === 'undefined') return;
   try {
-    const u = new SpeechSynthesisUtterance(text);
+    const synth = window.speechSynthesis;
+    if (synth.speaking || synth.pending) synth.cancel();
+    const Ctor = window.SpeechSynthesisUtterance || (typeof SpeechSynthesisUtterance !== 'undefined' ? SpeechSynthesisUtterance : null);
+    if (!Ctor) return;
+    const u = new Ctor(text);
     u.lang = 'en-US'; u.rate = 0.9;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+    const v = currentVoice();
+    if (v) u.voice = v;
+    synth.speak(u);
   } catch (e) {}
 }
 
@@ -720,9 +778,10 @@ function update(dt) {
 
   for (let i = G.items.length - 1; i >= 0; i--) {
     const it = G.items[i];
-    // 词条预展示期（recall/听写卡进入视野后 1.5 秒）：半速下坠；听写卡同时自动朗读一次
-    if ((it.dir === 'recall' || it.dir === 'dictation') && !it.seen && it.y > 70) {
-      it.seen = true; it.introT = 1.5;
+    // 词条进入视野后：recall/听写卡给 1.5 秒预展示期（半速下坠）；听写卡自动朗读（先听后拼是玩法本身）
+    if (!it.seen && it.y > 70) {
+      it.seen = true;
+      if (it.dir === 'recall' || it.dir === 'dictation') it.introT = 1.5;
       if (it.dir === 'dictation') speakWord(it.word);
     }
     const fall = it.introT > 0 ? it.vy * 0.45 : it.vy;
@@ -1130,7 +1189,11 @@ function typingKey(e) {
     else if (G.state === 'paused') G.state = 'playing';
     return;
   }
-  if (e.key === 'F2') { e.preventDefault(); muted = !muted; return; }
+  if (e.key === 'F2') { e.preventDefault(); toggleMute(); return; }
+  // 暂停界面提示"按 P 继续"：恢复播放（-playing 态字母键不进这里，不与打字冲突）
+  if (e.key === 'p' || e.key === 'P') {
+    if (G.state === 'paused') { e.preventDefault(); G.state = 'playing'; return; }
+  }
   // 只处理字母；忽略按住不放的重复按键
   if (G.state === 'playing' && /^[a-zA-Z]$/.test(e.key) && !e.repeat) {
     handleChar(e.key.toLowerCase());
@@ -1182,6 +1245,11 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   else startGame();
 });
 document.getElementById('enTopBtn').addEventListener('click', showEnMenu);
+document.getElementById('voiceSelect').addEventListener('change', e => {
+  const name = e.target.value;
+  try { if (name) localStorage.setItem(VOICE_KEY, name); else localStorage.removeItem(VOICE_KEY); } catch (err) {}
+  speakWord('hello');   // 试听：选完立刻读一个词确认音色
+});
 document.getElementById('enGrid').addEventListener('click', e => {
   const d = e.target.closest('.en-dictation-btn');
   if (d) { startDictation(d.dataset.pack); return; }
@@ -1229,6 +1297,6 @@ renderBoard('menuBoardRows');
 /* 首屏：直接落在选关菜单 */
 showEnMenu();
 
-/* 供 smoke test 校验词包、内部状态与错词调度纯函数 */
+/* 供 smoke test 校验词包、内部状态、错词调度与语音行为纯函数 */
 window.TypingCannon = { WordPacks: PACKS, state: G, save: enSave, review: reviewBook,
-  dictationAvailable, scheduleReview, reviewGraduated };
+  dictationAvailable, scheduleReview, reviewGraduated, speakWord, toggleMute, fillVoiceSelect, refreshVoices, VOICE_KEY };

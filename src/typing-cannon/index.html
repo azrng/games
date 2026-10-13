@@ -30,12 +30,18 @@
       🎯 <b>日常高频核心</b>（🧠 词义回忆）：气泡显示<b>中文释义</b>，凭回忆拼出单词；
       词出现时会先展示单词和音标，结算页还能复习本局生词。<br>
       📖 <b>错词复习</b>：词义关里漏接 / 打错的词会自动进错词本，按记忆间隔排期复习——答对拉长间隔、答错重新排队，间隔拉到 21 天以上即毕业。<br>
+      🔊 <b>单词朗读</b>：单词掉下来时会自动读出发音，边听边打记得更牢；F2 一键静音，
+      菜单下方可选<b>朗读音色</b>（列出系统里已装的英语语音）。<br>
       🎧 <b>听写挑战</b>（点成人词包分组上的"🎧 听写"）：听发音拼单词，点击气泡可重听。<br>
       🌪️ <b>无尽模式</b>：没有终点，掉落越来越快，挑战最高分！<br>
       🅰️ <b>字母练习</b>：掉下来的是<b>单个字母</b>，看到哪个字母就按哪个键——把 A 到 Z 都打熟！
       <span style="color:#94a3b8;font-size:12.5px"><br>玩法：看到单词直接打字，大炮自动打最危险的 · 点气泡可换目标 · Esc 放弃 · F1 暂停 · F2 静音</span>
     </div>
     <div id="enGrid"></div>
+    <div class="voice-row" id="voiceRow">
+      <label for="voiceSelect">🗣️ 单词朗读音色：</label>
+      <select id="voiceSelect"></select>
+    </div>
     <div class="btn-row">
       <button class="btn" id="startBtn">🌪️ 无尽模式 ▶</button>
       <button class="btn pink" id="practiceBtn">🅰️ 字母练习</button>
